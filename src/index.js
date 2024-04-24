@@ -4,13 +4,12 @@ import { Router } from 'express';
 
 
 
-export default oasTelemetry;
 let telemetryConfig = {
     exporter: inMemoryExporter,
     baseURL: '/telemetry'
 
 };
-export function oasTelemetry(tlConfig) {
+export default function oasTelemetry(tlConfig) {
     if(tlConfig) {
         console.log('Telemetry config provided');
         telemetryConfig = tlConfig;
