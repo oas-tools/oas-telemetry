@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "This package export an express midelware that allows to trace the requests and responses of an express application using OpenTelemetry",
   "author": "Manuel Otero",
-  "contributors": ["Alejandro Santisteban"],
+  "contributors": [
+    "Alejandro Santisteban"
+  ],
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
@@ -23,7 +25,8 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "nedb": "^1.8.0"
+    "nedb": "^1.8.0",
+    "v8": "^0.1.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.24.1",

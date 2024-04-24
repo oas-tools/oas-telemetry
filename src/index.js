@@ -1,6 +1,7 @@
 // telemetryMiddleware.js
 import { inMemoryExporter } from './telemetry.js';
 import { Router } from 'express';
+import v8 from 'v8';
 
 
 
@@ -22,6 +23,7 @@ export default function oasTelemetry(tlConfig) {
     router.get(baseURL+"/stop", stopTelemetry);
     router.get(baseURL+"/list", listTelemetry);
     router.post(baseURL+"/find", findTelemetry);
+    router.get(baseURL+"/heapStats", heapStats);
     return router;
 }
 const landingPage = (req, res) => {
@@ -76,6 +78,19 @@ const findTelemetry = (req, res) => {
         const spans = docs;
         res.send({ spansCount: spans.length, spans: spans });
     });
+}
+
+const heapStats = (req, res) => {
+    var heapStats = v8.getHeapStatistics();
+
+    // Round stats to MB
+    var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
+      map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
+      return map;
+    }, {});
+    roundedHeapStats['units'] = 'MB';
+
+    res.send(roundedHeapStats);
 }
 
 
