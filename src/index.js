@@ -21,7 +21,7 @@ export default function oasTelemetry(tlConfig) {
     router.get(baseURL+"/start", startTelemetry);
     router.get(baseURL+"/stop", stopTelemetry);
     router.get(baseURL+"/list", listTelemetry);
-    router.post(baseURL+"/search", searchTelemetry);
+    router.post(baseURL+"/find", findTelemetry);
     return router;
 }
 const landingPage = (req, res) => {
@@ -64,7 +64,7 @@ const listTelemetry = (req, res) => {
     });
 }
 
-const searchTelemetry = (req, res) => {
+const findTelemetry = (req, res) => {
     const spansDB = telemetryConfig.exporter.getFinishedSpans();
     const search = req.body;
     spansDB.find(search,(err, docs) => {
