@@ -4,20 +4,16 @@
 
 'use strict'
 
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
+// import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { Resource } from '@opentelemetry/resources';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-// import { InMemoryExporter } from '@restsense/agent/api/exporters';
 import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';
 
 
 // initialize the SDK and register with the OpenTelemetry API
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+// import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+// import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
 // Create an in-memory span exporter
 export const inMemoryExporter = new InMemoryExporter();
@@ -25,9 +21,7 @@ export const inMemoryExporter = new InMemoryExporter();
 // enable all auto-instrumentations from the meta package
 const traceExporter = inMemoryExporter;
 const sdk = new NodeSDK({
-  resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'my-service',
-  }),
+  resource: new Resource(),
   traceExporter,
   instrumentations: [new HttpInstrumentation()]
 });

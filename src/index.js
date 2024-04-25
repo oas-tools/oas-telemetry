@@ -35,6 +35,7 @@ const landingPage = (req, res) => {
         <li><a href="/telemetry/stop">/telemetry/stop</a></li>
         <li><a href="/telemetry/reset">/telemetry/reset</a></li>
         <li><a href="/telemetry/list">/telemetry/list</a></li>
+        <li><a href="/telemetry/heapStats">/telemetry/heapStats</a></li>
         <li>/telemetry/find [POST]</li>
     </ul>
     `;

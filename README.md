@@ -1,6 +1,6 @@
 # OAS TELEMETRY
 
-OAS Telemetry offer an express middleware designed for collecting telemetry data using Open Telemetry in applications built using the OpenAPI Specification (OAS). This middleware allows developers to easily incorporate telemetry functionality into their APIs.
+OAS Telemetry offers an express middleware designed for collecting telemetry data using Open Telemetry in applications built using the OpenAPI Specification (OAS). This middleware allows developers to easily incorporate telemetry functionality into their APIs.
 
 OAS Telemetry provides a set of endpoints that can be accessed to perform various actions related to telemetry data, such as starting and stopping data collection, resetting telemetry data, listing collected data, and searching for specific telemetry records. These endpoints can be easily integrated into an Express.js application, providing developers with a convenient way to manage and analyze telemetry data.
 
@@ -53,11 +53,12 @@ OAS Telemetry middleware adds the following endpoints to your Express applicatio
 - /telemetry/reset: Reset telemetry data.
 - /telemetry/list: List all telemetry data.
 - /telemetry/find (POST): Search telemetry data.
+- /telemetry/heapStats: Shows v8 heapStats.
 
 ## CommonJs Example
 ```js index.cjs
 // this MUST be the first line in your file (before any imports)
-const oasTelemetry = require('oas-telemetry');
+const oasTelemetry = require('@oas-tools/oas-telemetry');
 
 const express = require('express');
 const app = express();
@@ -79,7 +80,7 @@ app.listen(port, () => {
 ## ESM Example
 ```js index.mjs
 // simple express API in ES6 Syntax
-import oasTelemetry from 'oas-telemetry';
+import oasTelemetry from '@oas-tools/oas-telemetry';
 import express from 'express';
 const app = express();
 const port = 3000;
