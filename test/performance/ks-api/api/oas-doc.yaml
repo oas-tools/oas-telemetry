@@ -1,0 +1,349 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Knapsack Stress API
+  description: >-
+    This is a Knapsack API for stress analysis and benchmarking
+    (Bootstraped with https://github.com/pafmon/oas-wizard and https://github.com/isa-group/oas-generator)  
+  contact:
+    name: PabloFM
+    email: pablofm@us.es
+    url: 'http://www.isa.us.es'
+  license:
+    name: MIT
+    url: 'http: //opensource.org/licenses/MIT'
+paths:
+  /api/v1/problems:
+    post:
+      description: Creates a new problem
+      operationId: newProblem
+      responses:
+        '200':
+          description: problem response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/problem'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+      requestBody:
+        x-name: problem
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/problem'
+        description: Problem to be created
+        required: true
+  /api/v1/stress:
+    post:
+      x-router-controller: apiv1stressController
+      description: "Stress analysis: It Creates a synthetic problem and solves it returning time and memory used"
+      operationId: newStress
+      responses:
+        '200':
+          description: stress response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stressResult'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'
+      requestBody:
+        x-name: stressRequest
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/stressRequest'
+        description: Stress request to be executed.
+        required: true
+  '/api/v1/stress/{itemNumber}/{maxWeight}':
+    get:
+      x-router-controller: apiv1stressController
+      description: Returns a stressRequest by problem
+      operationId: getStress
+      parameters:
+        - name: itemNumber
+          in: path
+          description: Number of items for the generated problem
+          required: true
+          schema:
+            type: number
+        - name: maxWeight
+          in: path
+          description: Max weight of each item in the generated problem
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: stress response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stressResult'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'        
+  '/api/v1/stress/info':
+    get:
+      x-router-controller: apiv1stressController
+      description: Returns the performance info about system status.
+      operationId: getStressInfo
+      responses:
+        '200':
+          description: stress info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stressInfo'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorModel'        
+components:
+  schemas:
+    errorModel:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    problem:
+      description: ''
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        problem:
+          type: object
+          properties:
+            items:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                required:
+                  - item
+                  - value
+                properties:
+                  item:
+                    type: string
+                    minLength: 1
+                  value:
+                    type: number
+            size:
+              type: number
+          required:
+            - items
+            - size
+        solution:
+          type: object
+          properties:
+            items:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                required:
+                  - item
+                  - value
+                properties:
+                  item:
+                    type: string
+                    minLength: 1
+                  value:
+                    type: number
+            size:
+              type: number
+            stats:
+                type: object
+                properties:
+                  solvingTime:
+                    type: number
+                required:
+                  - solvingTime
+          required:
+            - items
+            - size
+            - stats
+      required:
+        - id
+        - problem
+    stressRequest:
+      description: ''
+      type: object
+      properties:
+        problem:
+          type: string
+          minLength: 1
+        parameters:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            required:
+              - id
+              - value
+            properties:
+              id:
+                type: string
+                minLength: 1
+              value:
+                type: number
+        config:
+          type: object
+          properties:
+            maxMemory:
+              type: number
+            maxTime:
+              type: number
+          required:
+            - maxMemory
+            - maxTime
+      required:
+        - problem
+        - parameters
+        - config
+    stressResult:
+      description: ''
+      type: object
+      properties:
+        problem:
+          type: string
+          minLength: 1
+        parameters:
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            required:
+              - id
+              - value
+            properties:
+              id:
+                type: string
+                minLength: 1
+              value:
+                type: number
+        config:
+          type: object
+          properties:
+            maxMemory:
+              type: number
+            maxTime:
+              type: number
+          required:
+            - maxMemory
+            - maxTime
+        info:
+          type: object
+          properties:
+            initialMemory:
+              type: number
+            heapStats:
+              type: object
+          required:
+            - initialMemory
+            - heapStats
+        result:
+          type: object
+          properties:
+            stages:
+              type: array
+              uniqueItems: true
+              minItems: 1
+              items:
+                required:
+                  - id
+                  - duration
+                  - memory
+                properties:
+                  id:
+                    type: string
+                    minLength: 1
+                  duration:
+                    type: number
+                  memory:
+                    type: number
+            total:
+              type: object
+              properties:
+                duration:
+                  type: number
+                memory:
+                  type: number
+              required:
+                - duration
+                - memory
+          required:
+            - stages
+            - total
+      required:
+        - problem
+        - parameters
+        - config
+        - info
+        - result
+    stressInfo:
+      description: ''
+      type: object
+      properties:
+        cpuUsage:
+          type: number
+        cpuFree:
+          type: number
+        cpuCount:
+          type: number
+        cpuInfo:
+          type: object
+        freemem:
+          type: number
+        totalmem:
+          type: number
+        freememPercentage:
+          type: number
+        sysUptime:
+          type: number
+        processUptime:
+          type: number
+        loadavgLast1Minute:
+          type: number
+        loadavgLast5Minutes:
+          type: number
+        loadavgLast15Minutes:
+          type: number
+        platform:
+          type: string
+          minLength: 1
+      required:
+        - cpuUsage
+        - cpuFree
+        - cpuCount
+        - freemem
+        - totalmem
+        - freememPercentage
+        - sysUptime
+        - processUptime
+        - loadavgLast1Minute
+        - loadavgLast5Minutes
+        - loadavgLast15Minutes
+        - platform
