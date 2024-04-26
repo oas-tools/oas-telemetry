@@ -63,13 +63,17 @@ function removeCircular(obj) {
 
     // Replacer function to handle circular references
     function replacer(key, value) {
-        if (typeof value === "object" && value !== null) {
-            // If the object has been visited before, return the name prefixed with "CIRCULAR+"
-            if (seen.has(value)) {
-                return `CIRCULAR${key}`;
-            }
-            seen.set(value, key); // Mark the object as visited with its name
+        if (key === "_spanProcessor") {
+            return "oas-telemetry skips this field to avoid circular reference";
         }
+        // GENERIC CIRCULAR REFERENCE HANDLING
+        // if (typeof value === "object" && value !== null) {
+        //     // If the object has been visited before, return the name prefixed with "CIRCULAR+"
+        //     if (seen.has(value)) {
+        //         return `CIRCULAR${key}`;
+        //     }
+        //     seen.set(value, key); // Mark the object as visited with its name
+        // }
         return value;
     }
     
