@@ -13,23 +13,15 @@ Overall, OAS Telemetry will serve as a valuable tool for developers looking to g
 
 
 ## Usage
-OAS Telemetry is compatible with both CommonJS and ECMAScript Modules (ESM)
-
 To use the middelware add this two lines in your index.js (ESM):
 ```js
-// this MUST be the first line in your file (before any imports)
-const oasTelemetry = require('oas-telemetry');
-
-// ...Express app and other imports...
-
-// Now you can use the oasTelemetry middleware, configured with the default options
-app.use(oasTelemetry())
-```
-
-ESM version:
-```js
 import oasTelemetry from 'oas-telemetry';
-app.use(oasTelemetry())
+import {readFileSync} from 'fs';
+
+app.use(oasTelemetry({
+    spec : readFileSync('./spec/oas.yaml',{ encoding: 'utf8', flag: 'r' })
+}))
+
 ```
 
 ## Custom Configuration
@@ -38,7 +30,7 @@ You can also customize the telemetry configuration by passing options to the mid
 ```js
 const customTelemetryConfig = {
     exporter: myCustomExporter,
-    baseURL: '/custom-telemetry'
+    spec: /* OAS content in json or yaml */
 };
 
 app.use(oasTelemetry(customTelemetryConfig));
@@ -50,49 +42,48 @@ OAS Telemetry middleware adds the following endpoints to your Express applicatio
 - /telemetry: Landing page with links to available routes.
 - /telemetry/start: Start telemetry data collection.
 - /telemetry/stop: Stop telemetry data collection.
+- /telemetry/status: Get status of telemetry.
 - /telemetry/reset: Reset telemetry data.
 - /telemetry/list: List all telemetry data.
 - /telemetry/find (POST): Search telemetry data.
 - /telemetry/heapStats: Shows v8 heapStats.
 
-## CommonJs Example
-```js index.cjs
-// this MUST be the first line in your file (before any imports)
-const oasTelemetry = require('@oas-tools/oas-telemetry');
 
-const express = require('express');
-const app = express();
-const port = 3001;
-app.use(express.json());
-
-// Now you can use the oasTelemetry middleware, configured with the default options
-app.use(oasTelemetry())
-
-app.get('/', (req, res) => {
-    res.send('Hello World!');
-});
-
-app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
-});
-```
-
-## ESM Example
+## Simple Example
 ```js index.mjs
-// simple express API in ES6 Syntax
 import oasTelemetry from '@oas-tools/oas-telemetry';
 import express from 'express';
+
 const app = express();
 const port = 3000;
+
+const spec = { "paths": {
+                    "/api/v1/pets": {
+                        "get": {
+                            "summary": "Get pets",
+                            "responses":{
+                                "200": {
+                                    "description": "Success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+app.use(oasTelemetry({
+    spec : JSON.stringify(spec)
+}))
+
 app.use(express.json());
 
-app.use(oasTelemetry())
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+app.get("/api/v1/pets", (req, res) => {
+    res.send([{ name: "rocky"},{ name: "pikachu"}]);
 });
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Telemetry portal available at http://localhost:${port}/telemetry`);
 });
 ```
 
