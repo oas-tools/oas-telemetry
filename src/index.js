@@ -2,37 +2,71 @@
 import { inMemoryExporter } from './telemetry.js';
 import { Router } from 'express';
 import v8 from 'v8';
+import {readFileSync,existsSync} from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+let telemetryStatus = {
+    active : true
+};
+
+let baseURL = '/telemetry';
 
 let telemetryConfig = {
     exporter: inMemoryExporter,
-    baseURL: '/telemetry'
-
+    specFileName: ""
 };
+
 export default function oasTelemetry(tlConfig) {
     if(tlConfig) {
         console.log('Telemetry config provided');
         telemetryConfig = tlConfig;
+        if(telemetryConfig.exporter == undefined)
+            telemetryConfig.exporter = inMemoryExporter;
     }
+
+    if(telemetryConfig.spec)
+    console.log(`Spec content provided`);
+ else{
+     if(telemetryConfig.specFileName != "")
+         console.log(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
+    else{
+          console.log("No spec available !");
+  }
+ }
+
+    
+    
     const router = Router();
-    const baseURL = telemetryConfig.baseURL;
-    router.get(baseURL, landingPage);
+    
+    //const baseURL = telemetryConfig.baseURL;
+    
+    router.get(baseURL, mainPage);
+    router.get(baseURL+"/detail/*", detailPage);
+    router.get(baseURL+"/spec", specLoader);
+    router.get(baseURL+"/api", apiPage);
     router.get(baseURL+"/reset", resetTelemetry);
     router.get(baseURL+"/start", startTelemetry);
     router.get(baseURL+"/stop", stopTelemetry);
+    router.get(baseURL+"/status", statusTelemetry);
     router.get(baseURL+"/list", listTelemetry);
     router.post(baseURL+"/find", findTelemetry);
     router.get(baseURL+"/heapStats", heapStats);
+ 
     return router;
 }
-const landingPage = (req, res) => {
+
+const apiPage = (req, res) => {
     let text = `
-    <h1>Telemetry showcase</h1>s
-    <h2>Available routes:</h2>
+    <h1>Telemetry API routes:</h1>
     <ul>
         <li><a href="/telemetry/start">/telemetry/start</a></li>
         <li><a href="/telemetry/stop">/telemetry/stop</a></li>
+        <li><a href="/telemetry/status">/telemetry/status</a></li>
         <li><a href="/telemetry/reset">/telemetry/reset</a></li>
         <li><a href="/telemetry/list">/telemetry/list</a></li>
         <li><a href="/telemetry/heapStats">/telemetry/heapStats</a></li>
@@ -42,15 +76,80 @@ const landingPage = (req, res) => {
     res.send(text);
 }
 
+const mainPage = (req, res) => {
+    const data = readFileSync(__dirname+'/ui/main.html',
+    { encoding: 'utf8', flag: 'r' });
+
+    res.send(data);
+}
+const detailPage = (req, res) => {
+    const data = readFileSync(__dirname+'/ui/detail.html',
+    { encoding: 'utf8', flag: 'r' });
+
+    res.send(data);
+}
+
+const specLoader = (req, res) => {
+    if(telemetryConfig.specFileName){
+        try{
+            const data = readFileSync(telemetryConfig.specFileName,
+                { encoding: 'utf8', flag: 'r' });
+        
+                const extension = path.extname(telemetryConfig.specFileName);
+                
+                let json = data;
+        
+                if(extension == yaml)
+                    json = JSON.stringify(yaml.SafeLoad(data),null,2);
+
+                res.setHeader('Content-Type', 'application/json');
+                res.send(json);
+                    
+        }catch(e){
+            console.log(`ERROR loading spec file ${telemetryConfig.specFileName}: ${e}`)
+        }
+    }else{
+        if (telemetryConfig.spec){
+            let spec = false;
+
+            try{
+                spec = JSON.parse(telemetryConfig.spec);
+            }catch (ej) {
+                try {
+                    spec = JSON.stringify(yaml.load(telemetryConfig.spec),null,2);
+                }catch(ey) {
+                    console.log(`Error parsing spec: ${ej} - ${ey}`);
+                }
+            }
+
+            if (!spec) {
+                res.status(404);
+            }else{
+                res.setHeader('Content-Type', 'application/json');
+                res.send(spec);
+            }
+
+        }
+    }
+}
+
 
 const startTelemetry = (req, res) => {
     telemetryConfig.exporter.start();
+    telemetryStatus.active = true;
     res.send('Telemetry started');
 }
 const stopTelemetry = (req, res) => {
     telemetryConfig.exporter.stop();
+    telemetryStatus.active = false;
+
     res.send('Telemetry stopped');
 }
+const statusTelemetry = (req, res) => {
+    res.send(telemetryStatus);
+}
+
+
 const resetTelemetry = (req, res) => {
     telemetryConfig.exporter.reset();
     res.send('Telemetry reset');
