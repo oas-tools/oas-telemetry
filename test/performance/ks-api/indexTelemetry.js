@@ -1,11 +1,18 @@
 'use strict';
-
+//CHANGE 1
+// this MUST be the first line in your file (before any imports)
+const oasTelemetry = require('@oas-tools/oas-telemetry');
 var fs = require('fs'),
-  http = require('http'),
-  path = require('path');
+http = require('http'),
+path = require('path');
 
 var express = require("express");
 var app = express();
+//CHANGE 2
+// Now you can use the oasTelemetry middleware, configured with the default options
+app.use(oasTelemetry())
+
+
 var bodyParser = require('body-parser');
 app.use(bodyParser.json({
   strict: false,
