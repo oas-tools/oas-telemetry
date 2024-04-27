@@ -35,11 +35,17 @@ const customTelemetryConfig = {
 
 app.use(oasTelemetry(customTelemetryConfig));
 ```
-## Some Telemetry Endpoints
+
+## Telemetry UI
+
+You can access the telemetry UI in the endpoint ``/telemetry``
+
+
+## API Telemetry Endpoints
 
 OAS Telemetry middleware adds the following endpoints to your Express application:
 
-- /telemetry: Landing page with links to available routes.
+
 - /telemetry/start: Start telemetry data collection.
 - /telemetry/stop: Stop telemetry data collection.
 - /telemetry/status: Get status of telemetry.
