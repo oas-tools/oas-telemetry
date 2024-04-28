@@ -183,7 +183,7 @@ for i in {1..9}
 do
     node test "TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
 done
-node test "TLM LONG_30m TENS 10" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+node test "TLM LONG_30m TENS A" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
 echo "----------- 3 (HUNDREDS of ms in response)---------"
 node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
@@ -192,7 +192,7 @@ for i in {1..9}
 do
     node test "TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
 done
-node test "TLM LONG_30m HUNDREDS 10" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+node test "TLM LONG_30m HUNDREDS A" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
 
 
