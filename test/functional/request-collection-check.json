@@ -1,0 +1,41 @@
+{
+	"info": {
+		"name": "oas-telemetry-test-check",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/telemetry/list (Check logs)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Log count check\", function () {\r",
+							"    var data = pm.response.json();\r",
+							"    pm.expect(data.spansCount).to.eql(13);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseurl}}/telemetry",
+					"host": [
+						"{{baseurl}}"
+					],
+					"path": [
+						"telemetry",
+						"list"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -96,6 +96,12 @@
 <script>
 
 let traceCount=-1;
+let LOG=false;
+
+function log(s){
+    if(LOG)
+        console.log(s);
+}
 
 function parsePath() {
 
@@ -193,7 +199,7 @@ function getPathRegEx(path){
 
 async function fetchTracesByParsing(path,method,status) {
     try {
-        console.log(`Fetchig traces for <${path}> - ${method} - ${status},.. `);
+        log(`Fetchig traces for <${path}> - ${method} - ${status},.. `);
 
         const response = await fetch("/telemetry/list");
 
@@ -204,8 +210,8 @@ async function fetchTracesByParsing(path,method,status) {
         const responseJSON = await response.json();
         const traces = responseJSON.spans;
 
-        console.log(`Feched ${traces.length} traces.`);
-        //console.log(`First trace: ${JSON.stringify(traces[0],null,2)}`);
+        log(`Feched ${traces.length} traces.`);
+        //log(`First trace: ${JSON.stringify(traces[0],null,2)}`);
         let filteredTraces = traces.filter((t)=>{
                 return (
                     (getPathRegEx(path).test(t.attributes.http_dot_target)) &&
@@ -226,38 +232,56 @@ async function fetchTracesByParsing(path,method,status) {
     }
 }
 
+function calculateTiming(startSecInput,startNanoSecInput,endSecInput,endNanoSecInput,precision = 3){
+    // Default precision 3 = miliseconds
+
+    let startSec= parseFloat(startSecInput)
+    let startNanoSec= parseFloat(startNanoSecInput)
+    let endSec= parseFloat(endSecInput)
+    let endNanoSec= parseFloat(endNanoSecInput)
+
+    let startNanoSecParsed = parseFloat("0."+startNanoSec);
+    let endNanoSecParsed = parseFloat("0."+endNanoSec);
+
+    let preciseStart = parseFloat(startSec + startNanoSecParsed);
+    let preciseEnd = parseFloat(endSec + endNanoSecParsed);
+    let preciseDuration = parseFloat(preciseEnd-preciseStart);
+
+    let startDate = new Date(preciseStart.toFixed(precision)*1000);
+    let startTS = startDate.toISOString();
+
+    let endDate = new Date(preciseEnd.toFixed(precision)*1000);
+    let endTS = endDate.toISOString();
+
+    return {
+        preciseStart: preciseStart,
+        preciseEnd : preciseEnd,
+        preciseDuration : preciseDuration,
+        start : parseFloat(preciseStart.toFixed(precision)),
+        end: parseFloat(preciseEnd.toFixed(precision)),
+        duration : parseFloat(preciseDuration.toFixed(precision)),
+        startDate: startDate,
+        endDate: endDate,
+        startTS :startTS,
+        endTS: endTS
+    };
+
+}
+
 function parseTraceInfo(t){
     const ep = t.attributes.http_dot_target;
     const method = t.attributes.http_dot_method.toLowerCase();
     const status = t.attributes.http_dot_status_code;
+   
+    const timing = calculateTiming(t.startTime[0],t.startTime[1],t.endTime[0],t.endTime[1]);
 
-    const startSec = t.startTime[0];
-    const startNanoSec = t.startTime[1];
-    const endSec = t.endTime[0];
-    const endNanoSec = t.endTime[1];
-    
-    const durationSec = endSec -startSec;
-    let durationNanoSec = endNanoSec -startNanoSec;
-    if (durationSec)
-        durationNanoSec = endNanoSec;
-
-    const durationMiliSec = Math.round(durationNanoSec / 10000);
-
-    const duration = durationSec + (durationMiliSec / 1000)
-                        
-    let startDateObj = new Date((startSec * 1000)+(startNanoSec / 10000));
-    let startTS = startDateObj.toISOString();
-    
-    let endDateObj = new Date((endSec * 1000)+(endNanoSec / 10000));
-    let endTS = endDateObj.toISOString();
-    
-    console.log(`${startTS} - ${endTS} - ${t._spanContext.traceId} - ${t.name} - ${ep} - ${status} - ${duration}`);
+    log(`${timing.startTS} - ${timing.endTS} - ${t._spanContext.traceId} - ${t.name} - ${ep} - ${status} - ${timing.duration}`);
     return {
-        ts : startTS,
+        ts : timing.startTS,
         ep: ep,
         method: method,
         status: status,
-        duration: duration
+        duration: timing.duration
     };
 }
 
@@ -285,7 +309,7 @@ function loadTraces(traces) {
         cellEP.textContent = t.ep;
         cellMethod.textContent = t.method;
         cellStatus.textContent = t.status;
-        cellDuration.textContent = t.duration;    
+        cellDuration.textContent = t.duration.toFixed(3);    
 
         row.trace = trace;
         row.onclick = function() { 

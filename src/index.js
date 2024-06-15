@@ -6,9 +6,7 @@ import {readFileSync,existsSync} from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import ui from './ui.js'
 
 let telemetryStatus = {
     active : true
@@ -49,10 +47,10 @@ export default function oasTelemetry(tlConfig) {
     router.get(baseURL+"/detail/*", detailPage);
     router.get(baseURL+"/spec", specLoader);
     router.get(baseURL+"/api", apiPage);
-    router.get(baseURL+"/reset", resetTelemetry);
     router.get(baseURL+"/start", startTelemetry);
     router.get(baseURL+"/stop", stopTelemetry);
     router.get(baseURL+"/status", statusTelemetry);
+    router.get(baseURL+"/reset", resetTelemetry);
     router.get(baseURL+"/list", listTelemetry);
     router.post(baseURL+"/find", findTelemetry);
     router.get(baseURL+"/heapStats", heapStats);
@@ -77,16 +75,12 @@ const apiPage = (req, res) => {
 }
 
 const mainPage = (req, res) => {
-    const data = readFileSync(__dirname+'/ui/main.html',
-    { encoding: 'utf8', flag: 'r' });
-
-    res.send(data);
+    res.set('Content-Type', 'text/html');
+    res.send(ui().main);
 }
 const detailPage = (req, res) => {
-    const data = readFileSync(__dirname+'/ui/detail.html',
-    { encoding: 'utf8', flag: 'r' });
-
-    res.send(data);
+    res.set('Content-Type', 'text/html');
+    res.send(ui().detail);
 }
 
 const specLoader = (req, res) => {

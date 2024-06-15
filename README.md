@@ -55,10 +55,48 @@ OAS Telemetry middleware adds the following endpoints to your Express applicatio
 - /telemetry/heapStats: Shows v8 heapStats.
 
 
-## Simple Example
+## Simple Example [ES Module](https://nodejs.org/docs/latest/api/esm.html) (*.mjs)
 ```js index.mjs
 import oasTelemetry from '@oas-tools/oas-telemetry';
 import express from 'express';
+
+const app = express();
+const port = 3000;
+
+const spec = { "paths": {
+                    "/api/v1/pets": {
+                        "get": {
+                            "summary": "Get pets",
+                            "responses":{
+                                "200": {
+                                    "description": "Success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+app.use(oasTelemetry({
+    spec : JSON.stringify(spec)
+}))
+
+app.use(express.json());
+
+app.get("/api/v1/pets", (req, res) => {
+    res.send([{ name: "rocky"},{ name: "pikachu"}]);
+});
+
+app.listen(port, () => {
+    console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Telemetry portal available at http://localhost:${port}/telemetry`);
+});
+```
+
+## Simple Example [Common.js Module](https://nodejs.org/docs/latest/api/modules.html) (*.cjs)
+```js index.cjs
+let oasTelemetry = require('@oas-tools/oas-telemetry');
+let express = require('express');
 
 const app = express();
 const port = 3000;
