@@ -11,8 +11,10 @@ export class InMemoryExporter {
     export(readableSpans, resultCallback) {
         try {
             if (!this._stopped) {
-                // Remove circular references
-                const cleanSpans = readableSpans.map(span => removeCircular(span));
+                // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
+                const cleanSpans = readableSpans
+                .map(nestedSpan => removeCircularRefs(nestedSpan))// to avoid JSON parsing error
+                .map(span => applyNesting(span));// to avoid dot notation in keys (neDB does not support dot notation in keys)
 
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err, newDoc) => {
@@ -57,7 +59,7 @@ export class InMemoryExporter {
     }
 }
 
-function removeCircular(obj) {
+function removeCircularRefs(obj) {
     const seen = new WeakMap(); // Used to keep track of visited objects
 
 
@@ -80,11 +82,73 @@ function removeCircular(obj) {
     // Convert the object to a string and then parse it back
     // This will trigger the replacer function to handle circular references
     const jsonString = JSON.stringify(obj, replacer);
-    const spanNoDotsInKeys =jsonString.replace(/[^"]*":/g, (match) => {
-        // Replace all dots in the key with underscores (e.g. "http.method" -> "http_method")
-        const newMatch = match.replace(/\./g,"_dot_")
+    return JSON.parse(jsonString);
+}
 
-        return newMatch
-    })  
-    return JSON.parse(spanNoDotsInKeys);
+/**
+ * Recursively converts dot-separated keys in an object to nested objects.
+ * 
+ * @param {Object} obj - The object to process.
+ * @returns {Object} - The object with all dot-separated keys converted to nested objects.
+ * @example
+ * // Input:
+ * // {
+ * //   "http.method": "GET",
+ * //   "http.url": "http://example.com",
+ * //   "nested.obj.key": "value"
+ * // }
+ * // Output:
+ * // {
+ * //   "http": {
+ * //     "method": "GET",
+ * //     "url": "http://example.com"
+ * //   },
+ * //   "nested": {
+ * //     "obj": {
+ * //       "key": "value"
+ * //     }
+ * //   }
+ * // }
+ */
+function convertToNestedObject(obj) {
+    const result = {};
+
+    for (const key in obj) {
+        const keys = key.split('.');
+        let temp = result;
+
+        for (let i = 0; i < keys.length; i++) {
+            const currentKey = keys[i];
+
+            if (i === keys.length - 1) {
+                // Last key, set the value
+                temp[currentKey] = obj[key];
+            } else {
+                // Intermediate key, ensure the object exists
+                if (!temp[currentKey]) {
+                    temp[currentKey] = {};
+                }
+                temp = temp[currentKey];
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Applies nesting to all dot-separated keys within an object.
+ * 
+ * @param {Object} obj - The object to apply nesting to.
+ * @returns {Object} - The transformed object with nested structures.
+ */
+function applyNesting(obj) {
+    // Recursively apply convertToNestedObject to each level of the object
+    for (const key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            obj[key] = applyNesting(obj[key]);
+        }
+    }
+
+    return convertToNestedObject(obj);
 }

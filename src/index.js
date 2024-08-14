@@ -5,7 +5,6 @@ import v8 from 'v8';
 import {readFileSync,existsSync} from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { fileURLToPath } from 'url';
 import ui from './ui.js'
 
 let telemetryStatus = {
