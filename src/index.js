@@ -1,6 +1,6 @@
 // telemetryMiddleware.js
 import { inMemoryExporter } from './telemetry.js';
-import { Router } from 'express';
+import { Router,json } from 'express';
 import v8 from 'v8';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
@@ -40,11 +40,12 @@ export default function oasTelemetry(tlConfig) {
         }
     }
 
-
-
     const router = Router();
 
-    //const baseURL = telemetryConfig.baseURL;
+    if (telemetryConfig.baseURL)
+        baseURL = telemetryConfig.baseURL;
+
+    router.use(json());
 
     router.get(baseURL, mainPage);
     router.get(baseURL+"/detail/*", detailPage);
@@ -214,14 +215,15 @@ const listPlugins = (req, res) => {
 }
 
 const registerPlugin = (req, res) => {
-    let pluginResource = request.body;
+    let pluginResource = req.body;
+    console.log(`Req = ${JSON.stringify(req.body,null,2)}...`);
     console.log(`Getting plugin at ${pluginResource.url}...`);
     
     axios
     .get(pluginResource.url)
-    .then((res) => {
+    .then((response) => {
       console.log(`Plugin fetched.`);
-      const pluginCode = res.data;
+      const pluginCode = response.data;
       console.log("Plugin size: "+pluginCode.length);
       eval(pluginCode);
       plugin = __OT_PLUGIN__();
@@ -231,8 +233,9 @@ const registerPlugin = (req, res) => {
       pluginResource.name = plugin.getName();
       pluginResource.active = true;
       plugins.push(pluginResource);
-      response.status(201).send(`Plugin registered`);
-    }).catch((err) => console.log(err));
+      inMemoryExporter.activatePlugin("test");
+      res.status(201).send(`Plugin registered`);
+    }).catch((err) => console.log("registerPlugin:"+err));
   
     
 }

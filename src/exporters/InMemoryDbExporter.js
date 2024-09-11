@@ -58,6 +58,9 @@ export class InMemoryExporter {
     getFinishedSpans() {
         return this._spans;
     }
+    activatePlugin(plugin){
+        console.log(`Activating plugin ${plugin}`);
+    }
 }
 
 function removeCircularRefs(obj) {
