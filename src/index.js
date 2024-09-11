@@ -2,10 +2,10 @@
 import { inMemoryExporter } from './telemetry.js';
 import { Router } from 'express';
 import v8 from 'v8';
-import {readFileSync,existsSync} from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import ui from './ui.js';
+import ui from './ui.js'
 import axios from 'axios';
 
 
@@ -23,29 +23,29 @@ let telemetryConfig = {
 };
 
 export default function oasTelemetry(tlConfig) {
-    if(tlConfig) {
+    if (tlConfig) {
         console.log('Telemetry config provided');
         telemetryConfig = tlConfig;
-        if(telemetryConfig.exporter == undefined)
+        if (telemetryConfig.exporter == undefined)
             telemetryConfig.exporter = inMemoryExporter;
     }
 
-    if(telemetryConfig.spec)
-    console.log(`Spec content provided`);
- else{
-     if(telemetryConfig.specFileName != "")
-         console.log(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
-    else{
-          console.log("No spec available !");
-  }
- }
+    if (telemetryConfig.spec)
+        console.log(`Spec content provided`);
+    else {
+        if (telemetryConfig.specFileName != "")
+            console.log(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
+        else {
+            console.log("No spec available !");
+        }
+    }
 
-    
-    
+
+
     const router = Router();
-    
+
     //const baseURL = telemetryConfig.baseURL;
-    
+
     router.get(baseURL, mainPage);
     router.get(baseURL+"/detail/*", detailPage);
     router.get(baseURL+"/spec", specLoader);
@@ -59,8 +59,6 @@ export default function oasTelemetry(tlConfig) {
     router.get(baseURL+"/heapStats", heapStats);
     router.get(baseURL+"/plugins", listPlugins);
     router.post(baseURL+"/plugins", registerPlugin);
-    
- 
     return router;
 }
 
@@ -90,41 +88,41 @@ const detailPage = (req, res) => {
 }
 
 const specLoader = (req, res) => {
-    if(telemetryConfig.specFileName){
-        try{
+    if (telemetryConfig.specFileName) {
+        try {
             const data = readFileSync(telemetryConfig.specFileName,
                 { encoding: 'utf8', flag: 'r' });
-        
-                const extension = path.extname(telemetryConfig.specFileName);
-                
-                let json = data;
-        
-                if(extension == yaml)
-                    json = JSON.stringify(yaml.SafeLoad(data),null,2);
 
-                res.setHeader('Content-Type', 'application/json');
-                res.send(json);
-                    
-        }catch(e){
-            console.log(`ERROR loading spec file ${telemetryConfig.specFileName}: ${e}`)
+            const extension = path.extname(telemetryConfig.specFileName);
+
+            let json = data;
+
+            if (extension == yaml)
+                json = JSON.stringify(yaml.SafeLoad(data), null, 2);
+
+            res.setHeader('Content-Type', 'application/json');
+            res.send(json);
+
+        } catch (e) {
+            console.error(`ERROR loading spec file ${telemetryConfig.specFileName}: ${e}`)
         }
-    }else{
-        if (telemetryConfig.spec){
+    } else {
+        if (telemetryConfig.spec) {
             let spec = false;
 
-            try{
+            try {
                 spec = JSON.parse(telemetryConfig.spec);
-            }catch (ej) {
+            } catch (ej) {
                 try {
-                    spec = JSON.stringify(yaml.load(telemetryConfig.spec),null,2);
-                }catch(ey) {
-                    console.log(`Error parsing spec: ${ej} - ${ey}`);
+                    spec = JSON.stringify(yaml.load(telemetryConfig.spec), null, 2);
+                } catch (ey) {
+                    console.error(`Error parsing spec: ${ej} - ${ey}`);
                 }
             }
 
             if (!spec) {
                 res.status(404);
-            }else{
+            } else {
                 res.setHeader('Content-Type', 'application/json');
                 res.send(spec);
             }
@@ -136,17 +134,16 @@ const specLoader = (req, res) => {
 
 const startTelemetry = (req, res) => {
     telemetryConfig.exporter.start();
-    telemetryStatus.active = true;
     res.send('Telemetry started');
 }
 const stopTelemetry = (req, res) => {
     telemetryConfig.exporter.stop();
-    telemetryStatus.active = false;
 
     res.send('Telemetry stopped');
 }
 const statusTelemetry = (req, res) => {
-    res.send(telemetryStatus);
+    const status = !telemetryConfig.exporter._stopped || false;
+    res.send({ active: status });
 }
 
 
@@ -156,7 +153,7 @@ const resetTelemetry = (req, res) => {
 }
 const listTelemetry = (req, res) => {
     const spansDB = telemetryConfig.exporter.getFinishedSpans();
-    spansDB.find({},(err, docs) => {
+    spansDB.find({}, (err, docs) => {
         if (err) {
             console.error(err);
             return;
@@ -181,16 +178,29 @@ const heapStats = (req, res) => {
 
 const findTelemetry = (req, res) => {
     const spansDB = telemetryConfig.exporter.getFinishedSpans();
-    const search = req.body;
-    spansDB.find(search,(err, docs) => {
-        if (err) {
-            console.error(err);
-            res.send({ spansCount: "error", spans: [] });
+    const body = req.body;
+    const search = body?.search ? body.search : {};
+    if (body?.flags?.containsRegex) {
+        try {
+            body.config?.regexIds?.forEach(regexId => {
+                search[regexId] = new RegExp(search[regexId]);
+            });
+        } catch (e) {
+            console.error(e);
+            res.status(404).send({ spansCount: 0, spans: [], error: e });
             return;
         }
-        const spans = docs;
-        res.send({ spansCount: spans.length, spans: spans });
-    });
+        spansDB.find(search, (err, docs) => {
+            if (err) {
+                console.error(err);
+                res.status(404).send({ spansCount: 0, spans: [], error: err });
+                return;
+            }
+            
+            const spans = docs;
+            res.send({ spansCount: spans.length, spans: spans });
+        });
+    }
 }
 
 const listPlugins = (req, res) => {
