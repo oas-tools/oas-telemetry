@@ -6,7 +6,7 @@ import dataStore from 'nedb'
 export class InMemoryExporter {
     constructor() {
         this._spans = new dataStore();
-        this._stopped = false;
+        this._stopped = true;
     }
     export(readableSpans, resultCallback) {
         try {
@@ -14,7 +14,8 @@ export class InMemoryExporter {
                 // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
                 const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan))// to avoid JSON parsing error
-                .map(span => applyNesting(span));// to avoid dot notation in keys (neDB does not support dot notation in keys)
+                .map(span => applyNesting(span))// to avoid dot notation in keys (neDB does not support dot notation in keys)
+                .filter(span => !span.attributes?.http?.target?.includes("/telemetry"));// to avoid telemetry spans
 
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err, newDoc) => {
