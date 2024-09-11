@@ -23,7 +23,8 @@
     "launchTestMJS": "npx -y wait-on http://localhost:3000/api/v1/pets && npm run sendRequests && sleep 4 && npm run checkRequestsLog",
     "postTestMJS": "kill `ps -uax | grep \"node test/functional/otTestServer\" | grep -v \"grep\" | grep -v \"sh\" | awk '{print $2}'`",
     "sendRequests": "npx -y newman run test/functional/request-collection.json -e test/functional/request-environment.json",
-    "checkRequestsLog": "npx -y newman run test/functional/request-collection-check.json -e test/functional/request-environment.json"
+    "checkRequestsLog": "npx -y newman run test/functional/request-collection-check.json -e test/functional/request-environment.json",
+    "launchKSApi": "npm run build; (cd test/performance/ks-api ; node indexTelemetry.js)"
   },
   "files": [
     "dist",

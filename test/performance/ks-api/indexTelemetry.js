@@ -1,33 +1,37 @@
 'use strict';
 //CHANGE 1
 // this MUST be the first line in your file (before any imports)
-const oasTelemetry = require('@oas-tools/oas-telemetry');
-var fs = require('fs'),
-http = require('http'),
-path = require('path');
+const oasTelemetry = require('../../../dist/index.cjs');
+let fs = require('fs');
+let http = require('http');
+let path = require('path');
+let jsyaml = require('js-yaml');
 
-var express = require("express");
-var app = express();
+let express = require("express");
+let app = express();
+
 //CHANGE 2
-// Now you can use the oasTelemetry middleware, configured with the default options
-app.use(oasTelemetry())
+// Now you can use the oasTelemetry middleware, configured with the default options, passing the OAS Spec
 
+let spec = fs.readFileSync(path.join(__dirname, '/api/oas-doc.yaml'), 'utf8');
+let oasDoc = jsyaml.safeLoad(spec);
 
-var bodyParser = require('body-parser');
+app.use(oasTelemetry({spec : spec}))
+
+let bodyParser = require('body-parser');
 app.use(bodyParser.json({
   strict: false,
   limit: '50mb'
 }));
 
 
-var oasTools = require('oas-tools');
-var jsyaml = require('js-yaml');
-var serverPort = process.env.PORT || 8080;
+let oasTools = require('oas-tools');
 
-var spec = fs.readFileSync(path.join(__dirname, '/api/oas-doc.yaml'), 'utf8');
-var oasDoc = jsyaml.safeLoad(spec);
+let serverPort = process.env.PORT || 8080;
 
-var options_object = {
+
+
+let options_object = {
   controllers: path.join(__dirname, './controllers'),
   loglevel: 'error',
   strict: false,
@@ -54,10 +58,10 @@ app.get('/', function (req, res) {
 
 const v8 = require('v8');
 app.get('/heapStats', function (req, res) {
-  var heapStats = v8.getHeapStatistics();
+  let heapStats = v8.getHeapStatistics();
 
   // Round stats to MB
-  var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
+  let roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
     map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
     return map;
   }, {});

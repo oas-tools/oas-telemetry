@@ -5,7 +5,11 @@ import v8 from 'v8';
 import {readFileSync,existsSync} from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import ui from './ui.js'
+import ui from './ui.js';
+import axios from 'axios';
+
+
+let  plugins = [];
 
 let telemetryStatus = {
     active : true
@@ -53,6 +57,9 @@ export default function oasTelemetry(tlConfig) {
     router.get(baseURL+"/list", listTelemetry);
     router.post(baseURL+"/find", findTelemetry);
     router.get(baseURL+"/heapStats", heapStats);
+    router.get(baseURL+"/plugins", listPlugins);
+    router.post(baseURL+"/plugins", registerPlugin);
+    
  
     return router;
 }
@@ -159,6 +166,19 @@ const listTelemetry = (req, res) => {
     });
 }
 
+const heapStats = (req, res) => {
+    var heapStats = v8.getHeapStatistics();
+
+    // Round stats to MB
+    var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
+      map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
+      return map;
+    }, {});
+    roundedHeapStats['units'] = 'MB';
+
+    res.send(roundedHeapStats);
+}
+
 const findTelemetry = (req, res) => {
     const spansDB = telemetryConfig.exporter.getFinishedSpans();
     const search = req.body;
@@ -173,17 +193,39 @@ const findTelemetry = (req, res) => {
     });
 }
 
-const heapStats = (req, res) => {
-    var heapStats = v8.getHeapStatistics();
-
-    // Round stats to MB
-    var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
-      map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
-      return map;
-    }, {});
-    roundedHeapStats['units'] = 'MB';
-
-    res.send(roundedHeapStats);
+const listPlugins = (req, res) => {
+    res.send(plugins.map((p)=>{
+        return {
+          id:p.id, 
+          url:p.url, 
+          active:p.active
+        };
+    }));
 }
+
+const registerPlugin = (req, res) => {
+    let pluginResource = request.body;
+    console.log(`Getting plugin at ${pluginResource.url}...`);
+    
+    axios
+    .get(pluginResource.url)
+    .then((res) => {
+      console.log(`Plugin fetched.`);
+      const pluginCode = res.data;
+      console.log("Plugin size: "+pluginCode.length);
+      eval(pluginCode);
+      plugin = __OT_PLUGIN__();
+      plugin.load();
+      console.log(`Loaded plugin <${plugin.getName()}>`);
+      pluginResource.plugin = plugin;
+      pluginResource.name = plugin.getName();
+      pluginResource.active = true;
+      plugins.push(pluginResource);
+      response.status(201).send(`Plugin registered`);
+    }).catch((err) => console.log(err));
+  
+    
+}
+
 
 
