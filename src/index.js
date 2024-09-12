@@ -225,15 +225,15 @@ const registerPlugin = (req, res) => {
       console.log(`Plugin fetched.`);
       const pluginCode = response.data;
       console.log("Plugin size: "+pluginCode.length);
+      var plugin;
       eval(pluginCode);
-      plugin = __OT_PLUGIN__();
       plugin.load();
       console.log(`Loaded plugin <${plugin.getName()}>`);
       pluginResource.plugin = plugin;
       pluginResource.name = plugin.getName();
       pluginResource.active = true;
       plugins.push(pluginResource);
-      inMemoryExporter.activatePlugin("test");
+      inMemoryExporter.activatePlugin(pluginResource.plugin);
       res.status(201).send(`Plugin registered`);
     }).catch((err) => console.log("registerPlugin:"+err));
   

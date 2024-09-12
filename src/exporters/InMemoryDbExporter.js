@@ -1,13 +1,16 @@
 import { ExportResultCode } from '@opentelemetry/core';
 
 //import in memory database
-import dataStore from 'nedb'
+import dataStore from 'nedb';
 
 export class InMemoryExporter {
     constructor() {
         this._spans = new dataStore();
         this._stopped = true;
-    }
+    };
+
+    static plugins = [];
+
     export(readableSpans, resultCallback) {
         try {
             if (!this._stopped) {
@@ -19,6 +22,9 @@ export class InMemoryExporter {
 
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err, newDoc) => {
+                    InMemoryExporter.plugins.forEach((p)=>{                        
+                        cleanSpans.forEach((t)=>{p.newTrace(t)});
+                    });
                     if (err) {
                         console.error(err);
                         return;
@@ -34,32 +40,34 @@ export class InMemoryExporter {
                 error: new Error('Error exporting spans\n' + error.message + '\n' + error.stack),
             })
         }
-    }
+    };
     start() {
         this._stopped = false;
-    }
+    };
     stop() {
         this._stopped = true;
-    }
+    };
     shutdown() {
         this._stopped = true;
         this._spans = new dataStore();
         return this.forceFlush();
-    }
+    };
     /**
      * Exports any pending spans in the exporter
      */
     forceFlush() {
         return Promise.resolve();
-    }
+    };
     reset() {
         this._spans = new dataStore();
-    }
+    };
     getFinishedSpans() {
         return this._spans;
-    }
+    };
     activatePlugin(plugin){
-        console.log(`Activating plugin ${plugin}`);
+        console.log(`Activating plugin ${plugin.getName()}...`);
+        InMemoryExporter.plugins.push(plugin);
+        console.log(`Done. (${InMemoryExporter.plugins.length} registered)`);
     }
 }
 
