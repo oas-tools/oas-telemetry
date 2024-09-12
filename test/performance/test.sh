@@ -36,7 +36,7 @@ echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js &  
-    curl http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -45,7 +45,7 @@ echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js & 
-    curl http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -54,7 +54,7 @@ echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js &  
-    curl http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -66,7 +66,7 @@ echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &
-    curl http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "TLM ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -74,7 +74,7 @@ echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &  
-        curl http://localhost:8080/ ## Wait for the server to start
+        curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "TLM TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -82,117 +82,144 @@ echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &  
-    curl http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
     node test "TLM HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
 #-----------------------------------------------------------------------------------------------
-echo "TELEMETRY ACTIVATED but stopped tests starting..."
+echo "JAEGER TELEMETRY ACTIVATED tests starting..."
 
 echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
-  node ks-api/indexTelemetry.js & 
-    curl http://localhost:8080/ ## Wait for the server to start
-    node test "TLM_STOPPED BEFORE_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
-
-    curl http://localhost:8080/telemetry/stop
-    node test "TLM_STOPPED WHILE_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
-    
-    curl http://localhost:8080/telemetry/start
-    node test "TLM_STOPPED AFTER_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+    node ks-api/indexJaeger.js &
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    node test "JAEGER ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
 echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
-    node ks-api/indexTelemetry.js & 
-    curl http://localhost:8080/ ## Wait for the server to start
-    node test "TLM_STOPPED BEFORE_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
-
-    curl http://localhost:8080/telemetry/stop
-    node test "TLM_STOPPED WHILE_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
-    
-    curl http://localhost:8080/telemetry/start
-    node test "TLM_STOPPED AFTER_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+    node ks-api/indexJaeger.js &  
+        curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    node test "JAEGER TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
 echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
-    node ks-api/indexTelemetry.js & 
-    curl http://localhost:8080/ ## Wait for the server to start
-    node test "TLM_STOPPED BEFORE_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+    node ks-api/indexJaeger.js &  
+    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    node test "JAEGER HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+done
 
-    curl http://localhost:8080/telemetry/stop
-    node test "TLM_STOPPED WHILE_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+# #-----------------------------------------------------------------------------------------------
+# echo "TELEMETRY ACTIVATED but stopped tests starting..."
+
+# echo "----------- 1 (ONES of ms in response)---------"
+# for i in {1..5}
+# do
+#   node ks-api/indexTelemetry.js & 
+#     curl http://localhost:8080/ ## Wait for the server to start
+#     node test "TLM_STOPPED BEFORE_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
+
+#     curl http://localhost:8080/telemetry/stop
+#     node test "TLM_STOPPED WHILE_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
     
-    curl http://localhost:8080/telemetry/start
-    node test "TLM_STOPPED AFTER_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
-done
-#-----------------------------------------------------------------------------------------------
-echo "LONG DURATION TESTS (30min) WITHOUT TELEMETRY (control group) tests starting..."
-# Total test time 30 minutes, divided in 10 tests of 3 minutes each. 100ms per request. 3 minutes = 180s = 180000ms =  100ms * 1800 requests
-requests=1800
-echo "----------- 1 (ONES of ms in response)---------"
-node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start
-for i in {1..9}
-do
-    node test "NO_TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
-done # ONLY the last test should kill the process when it finishes
-node test "NO_TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+#     curl http://localhost:8080/telemetry/start
+#     node test "TLM_STOPPED AFTER_STOP ONES $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# done
 
-echo "----------- 2 (TENS of ms in response)---------"
-node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start
-for i in {1..9}
-do
-    node test "NO_TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
-done
-node test "NO_TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# echo "----------- 2 (TENS of ms in response)---------"
+# for i in {1..5}
+# do
+#     node ks-api/indexTelemetry.js & 
+#     curl http://localhost:8080/ ## Wait for the server to start
+#     node test "TLM_STOPPED BEFORE_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
 
-echo "----------- 3 (HUNDREDS of ms in response)---------"
-node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start
-for i in {1..9}
-do
-    node test "NO_TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
-done
-node test "NO_TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+#     curl http://localhost:8080/telemetry/stop
+#     node test "TLM_STOPPED WHILE_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
+    
+#     curl http://localhost:8080/telemetry/start
+#     node test "TLM_STOPPED AFTER_STOP TENS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# done
+
+# echo "----------- 3 (HUNDREDS of ms in response)---------"
+# for i in {1..5}
+# do
+#     node ks-api/indexTelemetry.js & 
+#     curl http://localhost:8080/ ## Wait for the server to start
+#     node test "TLM_STOPPED BEFORE_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+
+#     curl http://localhost:8080/telemetry/stop
+#     node test "TLM_STOPPED WHILE_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+    
+#     curl http://localhost:8080/telemetry/start
+#     node test "TLM_STOPPED AFTER_STOP HUNDREDS $i" $concurrentUsers $requestsForStop $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# done
+# #-----------------------------------------------------------------------------------------------
+# echo "LONG DURATION TESTS (30min) WITHOUT TELEMETRY (control group) tests starting..."
+# # Total test time 30 minutes, divided in 10 tests of 3 minutes each. 100ms per request. 3 minutes = 180s = 180000ms =  100ms * 1800 requests
+# requests=1800
+# echo "----------- 1 (ONES of ms in response)---------"
+# node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start
+# for i in {1..9}
+# do
+#     node test "NO_TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
+# done # ONLY the last test should kill the process when it finishes
+# node test "NO_TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+
+# echo "----------- 2 (TENS of ms in response)---------"
+# node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start
+# for i in {1..9}
+# do
+#     node test "NO_TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
+# done
+# node test "NO_TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+
+# echo "----------- 3 (HUNDREDS of ms in response)---------"
+# node ks-api/index.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start
+# for i in {1..9}
+# do
+#     node test "NO_TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+# done
+# node test "NO_TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
 
-#-----------------------------------------------------------------------------------------------
-echo "LONG DURATION TESTS (30min) WITH TELEMETRY ACTIVATED (MEMORY OVERHEAD) tests starting..."
-# Total test time 30 minutes, divided in 10 tests of 3 minutes each. 100ms per request. 3 minutes = 180s = 180000ms =  100ms * 1800 requests
-requests=1800
-echo "----------- 1 (ONES of ms in response)---------"
+# #-----------------------------------------------------------------------------------------------
+# echo "LONG DURATION TESTS (30min) WITH TELEMETRY ACTIVATED (MEMORY OVERHEAD) tests starting..."
+# # Total test time 30 minutes, divided in 10 tests of 3 minutes each. 100ms per request. 3 minutes = 180s = 180000ms =  100ms * 1800 requests
+# requests=1800
+# echo "----------- 1 (ONES of ms in response)---------"
 
-node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start  
-for i in {1..9}
-do
-    node test "TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
-done # ONLY the last test should kill the process when it finishes
-node test "TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start  
+# for i in {1..9}
+# do
+#     node test "TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES 
+# done # ONLY the last test should kill the process when it finishes
+# node test "TLM LONG_30m ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
-echo "----------- 2 (TENS of ms in response)---------"
-node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start
-for i in {1..9}
-do
-    node test "TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
-done
-node test "TLM LONG_30m TENS A" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# echo "----------- 2 (TENS of ms in response)---------"
+# node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start
+# for i in {1..9}
+# do
+#     node test "TLM LONG_30m TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS 
+# done
+# node test "TLM LONG_30m TENS A" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
-echo "----------- 3 (HUNDREDS of ms in response)---------"
-node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
-curl http://localhost:8080/ ## Wait for the server to start
-for i in {1..9}
-do
-    node test "TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
-done
-node test "TLM LONG_30m HUNDREDS A" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
+# echo "----------- 3 (HUNDREDS of ms in response)---------"
+# node ks-api/indexTelemetry.js & #Starts only once, but a new line is created in the csv file for each test (10 tests)
+# curl http://localhost:8080/ ## Wait for the server to start
+# for i in {1..9}
+# do
+#     node test "TLM LONG_30m HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS 
+# done
+# node test "TLM LONG_30m HUNDREDS A" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS  && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 
 
 

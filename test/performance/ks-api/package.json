@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@oas-tools/oas-telemetry": "^0.1.5",
+    "@risingstack/jaeger": "^2.5.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "js-yaml": "^3.3.0",
+    "ks-api": "file:",
     "oas-tools": "^2.2.2",
     "os-utils": "0.0.14",
     "systeminformation": "^3.54.0"

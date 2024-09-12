@@ -4,7 +4,8 @@
   "description": "This package exports an express midelware that allows to trace the requests and responses of an express application using OpenTelemetry",
   "author": "Manuel Otero",
   "contributors": [
-    "Alejandro Santisteban","Pablo Fernandez"
+    "Alejandro Santisteban",
+    "Pablo Fernandez"
   ],
   "license": "Apache-2.0",
   "type": "module",
@@ -13,12 +14,12 @@
     "publish": "npm run build && npm publish",
     "testPerformance": "npm i && cd test/performance/ && ./test.sh",
     "pretest": "npm run build",
-    "test": "npm run testCJS && npm run testMJS", 
-    "testCJS": "npm run preTestCJS && npm run launchTestCJS && npm run postTestCJS", 
+    "test": "npm run testCJS && npm run testMJS",
+    "testCJS": "npm run preTestCJS && npm run launchTestCJS && npm run postTestCJS",
     "preTestCJS": "node test/functional/otTestServer.cjs &",
     "launchTestCJS": "npx -y wait-on http://localhost:3000/api/v1/pets && npm run sendRequests && sleep 4 && npm run checkRequestsLog",
     "postTestCJS": "kill `ps -uax | grep \"node test/functional/otTestServer\" | grep -v \"grep\" | grep -v \"sh\" | awk '{print $2}'`",
-    "testMJS": "npm run preTestMJS && npm run launchTestMJS && npm run postTestMJS", 
+    "testMJS": "npm run preTestMJS && npm run launchTestMJS && npm run postTestMJS",
     "preTestMJS": "node test/functional/otTestServer.mjs &",
     "launchTestMJS": "npx -y wait-on http://localhost:3000/api/v1/pets && npm run sendRequests && sleep 4 && npm run checkRequestsLog",
     "postTestMJS": "kill `ps -uax | grep \"node test/functional/otTestServer\" | grep -v \"grep\" | grep -v \"sh\" | awk '{print $2}'`",
@@ -37,6 +38,7 @@
     "default": "./src/index.js"
   },
   "dependencies": {
+    "@oas-tools/oas-telemetry": "file:",
     "@opentelemetry/instrumentation-http": "^0.51.0",
     "@opentelemetry/resources": "^1.24.0",
     "@opentelemetry/sdk-node": "^0.49.1",
