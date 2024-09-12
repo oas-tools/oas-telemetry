@@ -1,5 +1,10 @@
 import { ExportResultCode } from '@opentelemetry/core';
 
+let dbglog = ()=>{};
+
+if(process.env.OTDEBUG == "true")
+    dbglog = console.log;
+
 //import in memory database
 import dataStore from 'nedb';
 
@@ -22,8 +27,12 @@ export class InMemoryExporter {
 
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err, newDoc) => {
-                    InMemoryExporter.plugins.forEach((p)=>{                        
-                        cleanSpans.forEach((t)=>{p.newTrace(t)});
+                    InMemoryExporter.plugins.forEach((p,i)=>{                        
+                        cleanSpans.forEach((t)=>{
+                            dbglog(`Sending trace <${t._id}> to plugin (Plugin #${i}) <${p.name}>`);
+                            dbglog(`Trace: \n<${JSON.stringify(t,null,2)}`);
+                            p.newTrace(t);
+                        });
                     });
                     if (err) {
                         console.error(err);
@@ -65,9 +74,9 @@ export class InMemoryExporter {
         return this._spans;
     };
     activatePlugin(plugin){
-        console.log(`Activating plugin ${plugin.getName()}...`);
+        dbglog(`Activating plugin <${plugin.getName()}>...`);
         InMemoryExporter.plugins.push(plugin);
-        console.log(`Done. (${InMemoryExporter.plugins.length} registered)`);
+        dbglog(`Plugin <${plugin.getName()}> active (Total active plugins: ${InMemoryExporter.plugins.length})`);
     }
 }
 

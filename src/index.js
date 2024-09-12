@@ -8,6 +8,10 @@ import yaml from 'js-yaml';
 import ui from './ui.js'
 import axios from 'axios';
 
+let dbglog = ()=>{};
+
+if(process.env.OTDEBUG == "true")
+    dbglog = console.log;
 
 let  plugins = [];
 
@@ -24,19 +28,19 @@ let telemetryConfig = {
 
 export default function oasTelemetry(tlConfig) {
     if (tlConfig) {
-        console.log('Telemetry config provided');
+        dbglog('Telemetry config provided');
         telemetryConfig = tlConfig;
         if (telemetryConfig.exporter == undefined)
             telemetryConfig.exporter = inMemoryExporter;
     }
 
     if (telemetryConfig.spec)
-        console.log(`Spec content provided`);
+        dbglog(`Spec content provided`);
     else {
         if (telemetryConfig.specFileName != "")
-            console.log(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
+            dbglog(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
         else {
-            console.log("No spec available !");
+            console.error("No spec available !");
         }
     }
 
@@ -216,26 +220,33 @@ const listPlugins = (req, res) => {
 
 const registerPlugin = (req, res) => {
     let pluginResource = req.body;
-    console.log(`Req = ${JSON.stringify(req.body,null,2)}...`);
-    console.log(`Getting plugin at ${pluginResource.url}...`);
+    dbglog(`Plugin Registration Request: = ${JSON.stringify(req.body,null,2)}...`);
+    dbglog(`Getting plugin at ${pluginResource.url}...`);
     
     axios
     .get(pluginResource.url)
     .then((response) => {
-      console.log(`Plugin fetched.`);
+      dbglog(`Plugin fetched.`);
       const pluginCode = response.data;
-      console.log("Plugin size: "+pluginCode.length);
+      dbglog("Plugin size: "+pluginCode.length);
       var plugin;
       eval(pluginCode);
-      plugin.load();
-      console.log(`Loaded plugin <${plugin.getName()}>`);
-      pluginResource.plugin = plugin;
-      pluginResource.name = plugin.getName();
-      pluginResource.active = true;
-      plugins.push(pluginResource);
-      inMemoryExporter.activatePlugin(pluginResource.plugin);
-      res.status(201).send(`Plugin registered`);
-    }).catch((err) => console.log("registerPlugin:"+err));
+      plugin.load(pluginResource.config);
+      if(plugin.isConfigured()){
+        dbglog(`Loaded plugin <${plugin.getName()}>`);
+        pluginResource.plugin = plugin;
+        pluginResource.name = plugin.getName();
+        
+        pluginResource.active = true;
+        plugins.push(pluginResource);
+        inMemoryExporter.activatePlugin(pluginResource.plugin);
+        res.status(201).send(`Plugin registered`);
+      }else{
+        console.error(`Plugin <${plugin.getName()}> can not be configured`);
+        res.status(400).send(`Plugin configuration problem`);
+      }
+
+    }).catch((err) => console.error("registerPlugin:"+err));
   
     
 }
