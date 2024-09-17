@@ -9,6 +9,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
+    "devImportUi": "node dev/ui/importUiToHtml.js",
+    "devExportUi": "node dev/ui/exportHtmlToUi.js",
     "build": "babel src -d dist --out-file-extension .cjs",
     "publish": "npm run build && npm publish",
     "testPerformance": "npm i && cd test/performance/ && ./test.sh",
