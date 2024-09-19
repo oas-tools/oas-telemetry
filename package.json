@@ -1,7 +1,7 @@
 {
   "name": "@oas-tools/oas-telemetry",
   "version": "0.2.1",
-  "description": "This package exports an express midelware that allows to trace the requests and responses of an express application using OpenTelemetry",
+  "description": "This package exports an Express middleware that traces requests and responses of an Express application using OpenTelemetry.",
   "author": "Manuel Otero",
   "contributors": [
     "Alejandro Santisteban","Pablo Fernandez"
