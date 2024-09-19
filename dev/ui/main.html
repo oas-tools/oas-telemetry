@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -116,14 +115,16 @@
                 if (c != "") {
                     pathRegExpStr += "/";
                     if (c.charAt(0) == "{" && c.charAt(c.length - 1) == "}") {
-                        pathRegExpStr += "(.*)";
+                        // Ensure it matches at least one character (.+)
+                        pathRegExpStr += "(.+)";
                     } else {
                         pathRegExpStr += c;
                     }
                 }
             });
-
-            pathRegExpStr += "$";
+            
+            // Allow an optional trailing slash
+            pathRegExpStr += "/?$";
 
             return pathRegExpStr;
         }

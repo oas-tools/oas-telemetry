@@ -1,7 +1,6 @@
 export default function ui() {
     return {
-        main: `
-<!DOCTYPE html>
+        main: `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -118,14 +117,16 @@ export default function ui() {
                 if (c != "") {
                     pathRegExpStr += "/";
                     if (c.charAt(0) == "{" && c.charAt(c.length - 1) == "}") {
-                        pathRegExpStr += "(.*)";
+                        // Ensure it matches at least one character (.+)
+                        pathRegExpStr += "(.+)";
                     } else {
                         pathRegExpStr += c;
                     }
                 }
             });
-
-            pathRegExpStr += "\$";
+            
+            // Allow an optional trailing slash
+            pathRegExpStr += "/?\$";
 
             return pathRegExpStr;
         }
@@ -374,8 +375,7 @@ export default function ui() {
 </body>
 
 </html>`,
-        detail: `
-<!DOCTYPE html>
+        detail: `<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -578,14 +578,16 @@ export default function ui() {
                 if (c != "") {
                     pathRegExpStr += "/";
                     if (c.charAt(0) == "{" && c.charAt(c.length - 1) == "}") {
-                        pathRegExpStr += "(.*)";
+                        // Ensure it matches at least one character (.+)
+                        pathRegExpStr += "(.+)";
                     } else {
                         pathRegExpStr += c;
                     }
                 }
             });
 
-            pathRegExpStr += "\$";
+            // Allow an optional trailing slash
+            pathRegExpStr += "/?\$";
 
             return pathRegExpStr;
         }
@@ -594,7 +596,24 @@ export default function ui() {
             try {
                 log(\`Fetchig traces for <\${path}> - \${method} - \${status},.. \`);
 
-                const response = await fetch("/telemetry/list");
+                const body = {
+                    "flags": { "containsRegex": true },
+                    "config": { "regexIds": ["attributes.http.target"] },
+                    "search": {
+                        "attributes.http.target": getPathRegEx(path),
+                        "attributes.http.method": method.toUpperCase(),
+                        "attributes.http.status_code": parseInt(status)
+                    }
+                };
+                log("body: " + JSON.stringify(body, null, 2));
+                //response is to the post at /telemetry/find
+                const response = await fetch("/telemetry/find", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(body)
+                });
 
                 if (!response.ok) {
                     throw new Error("ERROR getting the Traces.");
@@ -602,13 +621,12 @@ export default function ui() {
 
                 const responseJSON = await response.json();
                 const traces = responseJSON.spans;
-                const filteredTraces = traces; //filter made in server side
-                log(\`Feched \${traces.length} traces.\`);
-                //log(\`First trace: \${JSON.stringify(traces[0],null,2)}\`);
 
-                if (filteredTraces.length != traceCount) {
-                    loadTraces(filteredTraces);
-                    traceCount = filteredTraces.length;
+                log(\`Fetched \${traces.length} traces.\`);
+
+                if (traces.length != traceCount) {
+                    loadTraces(traces);
+                    traceCount = traces.length;
                 }
 
                 setTimeout(fetchTracesByParsing, 1000, path, method, status);

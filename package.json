@@ -12,6 +12,7 @@
     "devImportUi": "node dev/ui/importUiToHtml.js",
     "devExportUi": "node dev/ui/exportHtmlToUi.js",
     "build": "babel src -d dist --out-file-extension .cjs",
+    "devUi": "nodemon --watch dev/ui --ext html --exec \"npm run devExportUi && npm run build && node test/functional/otTestServer.cjs\"",
     "publish": "npm run build && npm publish",
     "testPerformance": "npm i && cd test/performance/ && ./test.sh",
     "pretest": "npm run build",
