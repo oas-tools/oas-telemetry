@@ -8,12 +8,98 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            display: inline-block;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header .links {
+            display: flex;
+            align-items: center;
+        }
+        .links a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 30px;
+        }
+
+        .page {
+            margin: 0;
+            padding: 0;
+        }
+
+        .panel-conainer {
+            min-width: 60%;
+            width: fit-content;
+            margin: 20px auto;
+        }
+        .panel {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin: 10px;
+            border-radius: 4px;
+        }
+
+        .panel-header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .panel-content {
+            display: none;
+            padding: 15px;
+            
+            /* items margin */
+            >* {
+                margin: 5px 0;
+            }
+            
+        }
+        
+        .panel.open .panel-content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            justify-content: center;
+            align-items: center;
+
+        }
+
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
 
         table {
-            width: 100%;
+            width: fit-content;
             border-collapse: collapse;
+            margin: 100%;
         }
 
         th,
@@ -27,40 +113,221 @@
             background-color: #f2f2f2;
         }
 
-        #telemetryStatusSpan {
-            color: rgb(0, 123, 6);
-            font-size: x-small;
+
+
+        .spaced-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+    <style>
+        .toggle-container {
+            display: flex;
+            flex: none;
+            width: max-content;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            min-width: 40px;
+            min-height: 20px;
+            border-radius: 12px;
+            background-color: gray;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 10px;
+        }
+
+        .toggle.circle {
+            border-radius: 50%;
+        }
+
+        .toggle.active {
+            background-color: green;
+        }
+
+        .circle-indicator {
+            width: 16px;
+            height: 16px;
+            margin: 0px 2px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active .circle-indicator {
+            transform: translateX(20px);
+            /* Move the circle to the right when active */
+        }
+
+        .option-text {
+            transition: color 0.3s;
+            margin: 0 5px;
         }
     </style>
 </head>
 
 <body>
-    <h1>Telemetry <span id="telemetryStatusSpan"></span></h1>
 
-    <label><input type="checkbox" id="toggleTelemetry"> Allow Server Telemetry</label>
-    <br><br>
-    <button onclick="fetch('/telemetry/reset');showTelemetryStatus();">Reset Telemetry Data</button>
-    <br><br>
-    <label><input type="checkbox" id="autoUpdate"> Allow Client Auto Update</label>
-    <br><br>
-    <table id="apiTable">
-        <thead>
-            <tr>
-                <th onclick="sortTable(0)">Path</th>
-                <th onclick="sortTable(1)">Method</th>
-                <th onclick="sortTable(2)">Status</th>
-                <th onclick="sortTable(3)">Description</th>
-                <th onclick="sortTable(4)" style="text-align: center;">Request <br> Count</th>
-                <th onclick="sortTable(5)" style="text-align: center;">Average response time<br> (sec)</th>
-                <th style="text-align: center;">Auto<br>Update</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+    <div class="header">
+        <h1>OAS-Telemetry</h1>
+        <div class="links">
+            <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">Documentation</a>
+            <a target="_blank" href="https://www.npmjs.com/package/@oas-tools/oas-telemetry">NPM</a>
+            <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">GitHub</a>
+        </div>
+    </div>
+    <div class="page">
+        <div class="panel-conainer">
+            <!-- Panel 1 -->
+            <div class="panel open" id="panel1">
+                <div class="panel-header" onclick="togglePanel('panel1')">Telemetry Management</div>
+                <div class="panel-content">
+                    <div class="spaced-row">
+                        <div id="toggleTelemetry"></div>
+                        <button onclick="fetch('/telemetry/reset');fetchTelemetryStatus();">Reset Telemetry
+                            Data</button>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Panel 2 -->
+            <div class="panel open" id="panel2">
+                <div class="panel-header" onclick="togglePanel('panel2')">Heap Stats</div>
+                <div class="panel-content">
+                    <div class="spaced-row">
+                        <div id="heapAutoUpdate"></div>
+                        <button onclick="populateHeapStats()">Update</button>
+                    </div>
+                    <table id="heapStatsTable">
+                        <thead>
+                            <tr>
+                                <th>Stat Name</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+
+            <!-- Panel 3 -->
+            <div class="panel no-user-select open" id="panel3">
+                <div class="panel-header" onclick="togglePanel('panel3')">Telemetry Endpoints</div>
+                <div class="panel-content">
+                    <div class="spaced-row">
+                        <div id="autoUpdateApiTable"></div>
+                    </div>
+
+                    <table id="apiTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Path</th>
+                                <th onclick="sortTable(1)">Method</th>
+                                <th onclick="sortTable(2)">Status</th>
+                                <th onclick="sortTable(3)">Description</th>
+                                <th onclick="sortTable(4)" style="text-align: center;">Request Count</th>
+                                <th onclick="sortTable(5)" style="text-align: center;">Average response time (sec)
+                                </th>
+                                <th style="text-align: center;">Options</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Scripts -->
     <script>
-        let LOG = false;
+        // Open Close Panel
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            panel.classList.toggle('open');
+        }
+        /**
+         * Create a toggle component
+         * @param {string} title - Title of the toggle
+         * @param {string} falseText - Text to display when false
+         * @param {string} falseColor - Color of the text when false
+         * @param {string} trueText - Text to display when true
+         * @param {string} trueColor - Color of the text when true
+         * @param {function} handler - Function to call when the toggle is clicked
+         * @param {boolean} defaultValue - Default value of the toggle
+         * @returns {HTMLDivElement} - The toggle component
+         */
+        function createToggle(title, falseText, falseColor, trueText, trueColor, handler, defaultValue = false) {
+            const container = document.createElement('div');
+            container.className = 'toggle-container';
+
+            const label = document.createElement('span');
+            label.textContent = title + ':';
+            label.style.marginRight = '10px';
+
+            const falseTextSpan = document.createElement('span');
+            falseTextSpan.className = 'option-text';
+            falseTextSpan.textContent = falseText;
+            falseTextSpan.style.color = defaultValue ? 'gray' : falseColor;
+
+            const toggle = document.createElement('div');
+            toggle.className = 'toggle';
+            const circleIndicator = document.createElement('div');
+            circleIndicator.className = 'circle-indicator';
+            toggle.appendChild(circleIndicator);
+
+            toggle.addEventListener('click', () => {
+                toggle.classList.toggle('active');
+                const isActive = toggle.classList.contains('active');
+
+                // Update colors. Not selected option to default color, selected option to active color
+                falseTextSpan.style.color = isActive ? 'gray' : falseColor;
+                trueTextSpan.style.color = isActive ? trueColor : 'gray';
+
+                handler(isActive);
+            });
+            toggle.classList.toggle('active', defaultValue);
+
+            const trueTextSpan = document.createElement('span');
+            trueTextSpan.className = 'option-text';
+            trueTextSpan.textContent = trueText; // Always display trueText
+            trueTextSpan.style.color = defaultValue ? trueColor : 'gray';
+
+            container.appendChild(label);
+            container.appendChild(falseTextSpan);
+            container.appendChild(toggle);
+            container.appendChild(trueTextSpan);
+
+            return container;
+        }
+
+        const localStorageManager = {
+            get: (key) => {
+                const value = localStorage.getItem(key);
+                return value ? JSON.parse(value) : null;
+            },
+            set: (key, value) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        };
+
+    </script>
+    <script>
+        let LOG = true;
 
 
         let intervalTimer = {
@@ -68,7 +335,14 @@
             period: 2000,
             subscribers: [],
             start: function () {
+                this.disabled = false;
                 this.interval = setInterval(() => this.tick(), this.period);
+                log("interval started with period: " + this.period);
+            },
+            stop: function () {
+                this.disabled = true;
+                clearInterval(this.interval);
+                log("interval stopped");
             },
             tick: function () {
                 if (this.disabled) return;
@@ -82,10 +356,6 @@
                 this.subscribers.pop(callback)
             }
         }
-
-
-
-
 
         function log(s) {
             if (LOG) console.log(s);
@@ -106,6 +376,17 @@
             }
         }
 
+        async function fetchTelemetryStatus() {
+            const response = await fetch("/telemetry/status");
+            if (!response.ok) {
+                throw new Error("ERROR getting the Status");
+                return false;
+            }
+            tStatus = await response.json();
+
+            log("tStatus: " + JSON.stringify(tStatus, null, 2));
+            return tStatus.active;
+        }
 
         function getPathRegEx(path) {
             let pathComponents = path.split("/");
@@ -122,7 +403,7 @@
                     }
                 }
             });
-            
+
             // Allow an optional trailing slash
             pathRegExpStr += "/?$";
 
@@ -236,11 +517,12 @@
             cellRequestCount.textContent = requestCount;
             cellAverageResponseTime.textContent = requestCount ? averageResponseTime.toFixed(3) : "--";
 
-            // setTimeout(() => loadStats(path, method, status, cellRequestCount, cellAverageResponseTime), 2000);
         }
 
-        function populateOASTable(apiSpec) {
+        async function populateApiTable() {
+            const apiSpec = await fetchSpec()
             const tableBody = document.getElementById('apiTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = "";
             Object.keys(apiSpec.paths).forEach(path => {
                 Object.keys(apiSpec.paths[path]).forEach(method => {
                     Object.keys(apiSpec.paths[path][method].responses).forEach(responseType => {
@@ -271,31 +553,38 @@
                                 + apiSpec.paths[path][method].responses[responseType].description;
 
                             row.detailPath = `/telemetry/detail/${responseType}/${method.toLowerCase()}${fullPath}`;
-                            const cellCheckbox = row.insertCell(6);
+                            const cellOptions = row.insertCell(6);
 
-                            // Create and insert checkbox
-                            const checkbox = document.createElement('input');
-                            checkbox.type = 'checkbox';
-                            cellCheckbox.appendChild(checkbox);
-                            cellCheckbox.style.textAlign = 'center';
-                            // class to search for the checkboxes
-                            checkbox.className = 'autoUpdateCheckbox';
-                            checkbox.disabled = intervalTimer.disabled;
 
-                            // Add event listener to handle checkbox auto-update
-                            checkbox.addEventListener('change', function () {
-                                if (this.checked)
-                                    intervalTimer.subscribe(() =>
-                                        loadStats(fullPath, method.toLowerCase(), responseType, cellRequestCount, cellAverageResponseTime)
-                                    );
-                                else
-                                    intervalTimer.unsubscribe(() =>
-                                        loadStats(fullPath, method.toLowerCase(), responseType, cellRequestCount, cellAverageResponseTime)
-                                    );
-                            });
+                            // Create a button for updating the endpoint spaced row but centered
+                            const updateButton = document.createElement('button');
+                            updateButton.textContent = "Update";
+                            updateButton.onclick = () => loadStats(path, method, responseType, cellRequestCount, cellAverageResponseTime);
+                            cellOptions.appendChild(updateButton);
+                            cellOptions.style.display = "flex";
+                            cellOptions.style.justifyContent = "center";
+                            loadStats(path, method, responseType, cellRequestCount, cellAverageResponseTime);
 
                         }
                     });
+                });
+            });
+        }
+
+        function populateHeapStats() {
+            // heapstats at /telemetry/heapstats
+            const tableBody = document.getElementById('heapStatsTable').getElementsByTagName('tbody')[0];
+            fetch('/telemetry/heapstats').then(response => response.json()).then(heapStats => {
+                tableBody.innerHTML = "";
+                Object.keys(heapStats).forEach(statName => {
+                    const row = tableBody.insertRow();
+                    const cellStatName = row.insertCell(0);
+                    const cellValue = row.insertCell(1);
+                    cellStatName.textContent = statName;
+                    //format always to 3 decimals (if number)
+                    const formattedValue = typeof heapStats[statName] === 'number' ? heapStats[statName].toFixed(3) : heapStats[statName];
+                    cellValue.textContent = heapStats[statName];
+                    cellValue.style.textAlign = "right";
                 });
             });
         }
@@ -323,50 +612,51 @@
             }
         }
 
-        document.getElementById('autoUpdate').addEventListener('change', function () {
-            const autoUpdateDisabled = !this.checked;
-            intervalTimer.disabled = autoUpdateDisabled;
-            // Disable/Enable all the checkboxes
-            const checkboxes = document.getElementsByClassName('autoUpdateCheckbox');
-            for (let i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].disabled = autoUpdateDisabled;
+        document.getElementById('toggleTelemetry').appendChild(createToggle(
+            'Telemetry status',
+            'Stopped', 'red', // false state
+            'Active', 'green', // true state
+            async (status) => {
+                const response = await fetch('/telemetry/' + (status ? 'start' : 'stop'));
+                if (!response.ok) {
+                    throw new Error("ERROR setting the Telemetry status");
+                }
             }
-        });
+        ));
 
-        async function showTelemetryStatus() {
-            const tss = document.getElementById("telemetryStatusSpan");
-            const response = await fetch("/telemetry/status");
-            if (!response.ok) {
-                throw new Error("ERROR getting the Status");
-                return false;
+        document.getElementById('autoUpdateApiTable').appendChild(createToggle(
+            'Auto Update',
+            'Manual', 'orange', // false state
+            'Auto', 'green', // true state
+            (status) => {
+                const callback = () => { populateApiTable(); };
+                if (status) {
+                    intervalTimer.subscribe(callback);
+                } else {
+                    intervalTimer.unsubscribe(callback);
+                }
             }
-            tStatus = await response.json();
+        ));
 
-            log(tStatus);
-            if (tStatus.active) {
-                tss.textContent = "active";
-                tss.style.color = "#009900";
-            } else {
-                tss.textContent = "stopped";
-                tss.style.color = "#666666";
+        document.getElementById('heapAutoUpdate').appendChild(createToggle(
+            'Auto Update',
+            'Manual', 'orange', // false state
+            'Auto', 'green', // true state
+            (status) => {
+                if (status) {
+                    intervalTimer.subscribe(populateHeapStats);
+                } else {
+                    intervalTimer.unsubscribe(populateHeapStats);
+                }
             }
-            return tStatus.active;
-        }
-
-        document.getElementById('toggleTelemetry').addEventListener('change', function () {
-            if (this.checked) {
-                fetch('/telemetry/start').then(showTelemetryStatus());
-            } else {
-                fetch('/telemetry/stop').then(showTelemetryStatus());
-            }
-        });
+        ));
 
         window.onload = async function () {
-            document.getElementById('autoUpdate').checked = !intervalTimer.disabled; // Default to false
-            const activeTelemetry = await showTelemetryStatus();
-            document.getElementById('toggleTelemetry').checked = activeTelemetry; // Default to not toggled
-            const apiSpec = await fetchSpec()
-            populateOASTable(apiSpec);
+            document.getElementById('autoUpdateApiTable').querySelector('.toggle').classList.toggle('active', localStorageManager.get('autoUpdateApiTable'));
+            const activeTelemetry = await fetchTelemetryStatus();
+            document.getElementById('toggleTelemetry').querySelector('.toggle').classList.toggle('active', activeTelemetry);
+            populateApiTable();
+            populateHeapStats();
             intervalTimer.start();
         };
     </script>

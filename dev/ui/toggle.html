@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Toggle Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        /* all borders in red */
+        /* * {
+            border: 1px solid rgb(74, 40, 210);
+        } */
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            min-width: 40px;
+            min-height: 20px;
+            border-radius: 12px;
+            background-color: gray;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 10px;
+        }
+
+        .toggle.circle {
+            border-radius: 50%;
+        }
+
+        .toggle.active {
+            background-color: green;
+        }
+
+        .circle-indicator {
+            width: 16px;
+            height: 16px;
+            margin: 0px 2px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active .circle-indicator {
+            transform: translateX(20px); /* Move the circle to the right when active */
+        }
+
+        .option-text {
+            transition: color 0.3s;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Toggle Components</h2>
+    
+    <div id="toggleContainer"></div>
+
+    <script>
+
+        const toggleContainer = document.getElementById('toggleContainer');
+
+        toggleContainer.appendChild(createToggle(
+            'Telemetry status',
+            'Stopped', 'red', // false state
+            'Active', 'green', // true state
+            (status) => console.log('Telemetry is now:', status)
+        ));
+
+        toggleContainer.appendChild(createToggle(
+            'Update Heapstats',
+            'Manual', 'orange', // false state
+            'Auto', 'green', // true state
+            (status) => console.log('Heapstats is now:', status)
+        ));
+
+        toggleContainer.appendChild(createToggle(
+            'Update Endpoint Data',
+            'Manual', 'orange', // false state
+            'Auto', 'green', // true state
+            (status) => console.log('Endpoint Data is now:', status)
+        ));
+    </script>
+</body>
+</html>
