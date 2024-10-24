@@ -31,6 +31,7 @@ export class InMemoryExporter {
                         cleanSpans.forEach((t)=>{
                             dbglog(`Sending trace <${t._id}> to plugin (Plugin #${i}) <${p.name}>`);
                             dbglog(`Trace: \n<${JSON.stringify(t,null,2)}`);
+                            //TODO: This should be called newSpan instead of newTrace
                             p.newTrace(t);
                         });
                     });

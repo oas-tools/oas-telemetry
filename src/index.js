@@ -1,22 +1,23 @@
 // telemetryMiddleware.js
 import { inMemoryExporter } from './telemetry.js';
-import { Router,json } from 'express';
+import { Router, json } from 'express';
 import v8 from 'v8';
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import ui from './ui.js'
 import axios from 'axios';
+import { requireFromString, importFromString } from "import-from-string";
 
-let dbglog = ()=>{};
+let dbglog = () => { };
 
-if(process.env.OTDEBUG == "true")
+if (process.env.OTDEBUG == "true")
     dbglog = console.log;
 
-let  plugins = [];
+let plugins = [];
 
 let telemetryStatus = {
-    active : true
+    active: true
 };
 
 let baseURL = '/telemetry';
@@ -52,18 +53,18 @@ export default function oasTelemetry(tlConfig) {
     router.use(json());
 
     router.get(baseURL, mainPage);
-    router.get(baseURL+"/detail/*", detailPage);
-    router.get(baseURL+"/spec", specLoader);
-    router.get(baseURL+"/api", apiPage);
-    router.get(baseURL+"/start", startTelemetry);
-    router.get(baseURL+"/stop", stopTelemetry);
-    router.get(baseURL+"/status", statusTelemetry);
-    router.get(baseURL+"/reset", resetTelemetry);
-    router.get(baseURL+"/list", listTelemetry);
-    router.post(baseURL+"/find", findTelemetry);
-    router.get(baseURL+"/heapStats", heapStats);
-    router.get(baseURL+"/plugins", listPlugins);
-    router.post(baseURL+"/plugins", registerPlugin);
+    router.get(baseURL + "/detail/*", detailPage);
+    router.get(baseURL + "/spec", specLoader);
+    router.get(baseURL + "/api", apiPage);
+    router.get(baseURL + "/start", startTelemetry);
+    router.get(baseURL + "/stop", stopTelemetry);
+    router.get(baseURL + "/status", statusTelemetry);
+    router.get(baseURL + "/reset", resetTelemetry);
+    router.get(baseURL + "/list", listTelemetry);
+    router.post(baseURL + "/find", findTelemetry);
+    router.get(baseURL + "/heapStats", heapStats);
+    router.get(baseURL + "/plugins", listPlugins);
+    router.post(baseURL + "/plugins", registerPlugin);
     return router;
 }
 
@@ -136,7 +137,6 @@ const specLoader = (req, res) => {
     }
 }
 
-
 const startTelemetry = (req, res) => {
     telemetryConfig.exporter.start();
     res.send('Telemetry started');
@@ -150,7 +150,6 @@ const statusTelemetry = (req, res) => {
     const status = !telemetryConfig.exporter._stopped || false;
     res.send({ active: status });
 }
-
 
 const resetTelemetry = (req, res) => {
     telemetryConfig.exporter.reset();
@@ -173,8 +172,8 @@ const heapStats = (req, res) => {
 
     // Round stats to MB
     var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
-      map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
-      return map;
+        map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
+        return map;
     }, {});
     roundedHeapStats['units'] = 'MB';
 
@@ -201,7 +200,7 @@ const findTelemetry = (req, res) => {
                 res.status(404).send({ spansCount: 0, spans: [], error: err });
                 return;
             }
-            
+
             const spans = docs;
             res.send({ spansCount: spans.length, spans: spans });
         });
@@ -209,47 +208,80 @@ const findTelemetry = (req, res) => {
 }
 
 const listPlugins = (req, res) => {
-    res.send(plugins.map((p)=>{
+    res.send(plugins.map((p) => {
         return {
-          id:p.id, 
-          url:p.url, 
-          active:p.active
+            id: p.id,
+            url: p.url,
+            active: p.active
         };
     }));
 }
 
-const registerPlugin = (req, res) => {
+const registerPlugin = async (req, res) => {
     let pluginResource = req.body;
-    dbglog(`Plugin Registration Request: = ${JSON.stringify(req.body,null,2)}...`);
+    dbglog(`Plugin Registration Request: = ${JSON.stringify(req.body, null, 2)}...`);
     dbglog(`Getting plugin at ${pluginResource.url}...`);
-    
-    axios
-    .get(pluginResource.url)
-    .then((response) => {
-      dbglog(`Plugin fetched.`);
-      const pluginCode = response.data;
-      dbglog("Plugin size: "+pluginCode.length);
-      var plugin;
-      eval(pluginCode);
-      plugin.load(pluginResource.config);
-      if(plugin.isConfigured()){
+    let pluginCode;
+    if (!pluginResource.url && !pluginResource.code) {
+        res.status(400).send(`Plugin code or URL must be provided`);
+        return;
+    }
+
+    let module;
+    try {
+        if (pluginResource.code) {
+            pluginCode = pluginResource.code
+        } else {
+            const response = await axios.get(pluginResource.url);
+            pluginCode = response.data;
+        }
+        if(!pluginCode){
+            res.status(400).send(`Plugin code could not be loaded`);
+            return;
+        }
+
+        dbglog("Plugin size: " + pluginCode?.length);
+        if (pluginResource?.moduleFormat && pluginResource.moduleFormat.toUpperCase() == "ESM") {
+            console.log("ESM detected")
+            module = await importFromString(pluginCode)
+        } else {
+            console.log("CJS detected (default)")
+            module = await requireFromString(pluginCode)
+            console.log(module)
+        }
+    } catch (error) {
+        console.error(`Error loading plugin: ${error}`);
+        res.status(400).send(`Error loading plugin: ${error}`);
+        return;
+    }
+
+    if (module.plugin == undefined) {
+        res.status(400).send(`Plugin code should export a "plugin" object`);
+        console.log("Error in plugin code: no plugin object exported")
+        return;
+    }
+    for (let requiredFunction of ["load", "getName", "isConfigured"]) {
+        if (module.plugin[requiredFunction] == undefined) {
+            res.status(400).send(`The plugin code exports a "plugin" object, however it should have a "${requiredFunction}" method`);
+            console.log("Error in plugin code: some required functions are missing")
+            return;
+        }
+    }
+
+    let plugin = module.plugin
+    if (plugin.isConfigured()) {
         dbglog(`Loaded plugin <${plugin.getName()}>`);
         pluginResource.plugin = plugin;
         pluginResource.name = plugin.getName();
-        
         pluginResource.active = true;
         plugins.push(pluginResource);
         inMemoryExporter.activatePlugin(pluginResource.plugin);
         res.status(201).send(`Plugin registered`);
-      }else{
+    } else {
         console.error(`Plugin <${plugin.getName()}> can not be configured`);
         res.status(400).send(`Plugin configuration problem`);
-      }
+    }
 
-    }).catch((err) => console.error("registerPlugin:"+err));
-  
-    
+
 }
-
-
 
