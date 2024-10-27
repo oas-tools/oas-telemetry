@@ -8,6 +8,7 @@ import yaml from 'js-yaml';
 import ui from './ui.js'
 import axios from 'axios';
 import { requireFromString, importFromString } from "import-from-string";
+import {installDependencies} from "dynamic-installer"
 
 let dbglog = () => { };
 
@@ -238,6 +239,14 @@ const registerPlugin = async (req, res) => {
         if(!pluginCode){
             res.status(400).send(`Plugin code could not be loaded`);
             return;
+        }
+        //install dependencies if any
+        if (pluginResource.install) {
+            const dependenciesStatus = await installDependencies(pluginResource.install);
+            if (!dependenciesStatus.success) {
+                res.status(400).send(`Error installing dependencies: ${dependenciesStatus.details}`);
+                return;
+            }
         }
 
         dbglog("Plugin size: " + pluginCode?.length);
