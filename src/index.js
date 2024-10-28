@@ -8,7 +8,7 @@ import yaml from 'js-yaml';
 import ui from './ui.js'
 import axios from 'axios';
 import { requireFromString, importFromString } from "import-from-string";
-import {installDependencies} from "dynamic-installer"
+import { installDependencies } from "dynamic-installer"
 
 let dbglog = () => { };
 
@@ -236,7 +236,7 @@ const registerPlugin = async (req, res) => {
             const response = await axios.get(pluginResource.url);
             pluginCode = response.data;
         }
-        if(!pluginCode){
+        if (!pluginCode) {
             res.status(400).send(`Plugin code could not be loaded`);
             return;
         }
@@ -244,8 +244,12 @@ const registerPlugin = async (req, res) => {
         if (pluginResource.install) {
             const dependenciesStatus = await installDependencies(pluginResource.install);
             if (!dependenciesStatus.success) {
-                res.status(400).send(`Error installing dependencies: ${dependenciesStatus.details}`);
-                return;
+                if (pluginResource.install.ignoreErrors === true) {
+                    console.warn(`Warning: Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
+                } else {
+                    res.status(400).send(`Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
+                    return;
+                }
             }
         }
 
@@ -278,6 +282,13 @@ const registerPlugin = async (req, res) => {
     }
 
     let plugin = module.plugin
+    try {
+        await plugin.load(pluginResource.config);
+    } catch (error) {
+        console.error(`Error loading plugin configuration: ${error}`);
+        res.status(400).send(`Error loading plugin configuration: ${error}`);
+        return;
+    }
     if (plugin.isConfigured()) {
         dbglog(`Loaded plugin <${plugin.getName()}>`);
         pluginResource.plugin = plugin;
