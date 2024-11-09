@@ -254,6 +254,7 @@ const registerPlugin = async (req, res) => {
         }
 
         dbglog("Plugin size: " + pluginCode?.length);
+        dbglog("Plugin format: " + pluginResource?.moduleFormat);
         if (pluginResource?.moduleFormat && pluginResource.moduleFormat.toUpperCase() == "ESM") {
             console.log("ESM detected")
             module = await importFromString(pluginCode)
@@ -268,20 +269,22 @@ const registerPlugin = async (req, res) => {
         return;
     }
 
-    if (module.plugin == undefined) {
-        res.status(400).send(`Plugin code should export a "plugin" object`);
-        console.log("Error in plugin code: no plugin object exported")
+// Check if the plugin is in module.default or module.plugin (supports default syntax)
+const plugin = module.default?.plugin || module.plugin;
+
+if (plugin == undefined) {
+    res.status(400).send(`Plugin code should export a "plugin" object`);
+    console.log("Error in plugin code: no plugin object exported");
+    return;
+}
+for (let requiredFunction of ["load", "getName", "isConfigured"]) {
+    if (plugin[requiredFunction] == undefined) {
+        res.status(400).send(`The plugin code exports a "plugin" object, however it should have a "${requiredFunction}" method`);
+        console.log("Error in plugin code: some required functions are missing");
         return;
     }
-    for (let requiredFunction of ["load", "getName", "isConfigured"]) {
-        if (module.plugin[requiredFunction] == undefined) {
-            res.status(400).send(`The plugin code exports a "plugin" object, however it should have a "${requiredFunction}" method`);
-            console.log("Error in plugin code: some required functions are missing")
-            return;
-        }
-    }
+}
 
-    let plugin = module.plugin
     try {
         await plugin.load(pluginResource.config);
     } catch (error) {

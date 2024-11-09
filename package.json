@@ -47,7 +47,7 @@
     "@opentelemetry/resources": "^1.24.0",
     "@opentelemetry/sdk-node": "^0.49.1",
     "axios": "^1.6.8",
-    "dynamic-installer": "^1.0.1",
+    "dynamic-installer": "^1.1.1",
     "express": "^4.19.2",
     "import-from-string": "^0.0.4",
     "js-yaml": "^4.1.0",
