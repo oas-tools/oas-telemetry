@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telemetry Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            display: inline-block;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header .links {
+            display: flex;
+            align-items: center;
+        }
+        .links a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 30px;
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+            flex-grow: 1;
+        }
+        .login-container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .login-container label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .login-container input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background-color: #0056b3;
+        }
+        .notification {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .notification.error {
+            background-color: #FF0000;
+        }
+        .notification.success {
+            background-color: #00FF00;
+        }
+        @media (max-width: 600px) {
+            .login-container {
+                margin: 20px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header">
+            <h1>OAS-Telemetry</h1>
+            <div class="links">
+                <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">Documentation</a>
+                <a target="_blank" href="https://www.npmjs.com/package/@oas-tools/oas-telemetry">NPM</a>
+                <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">GitHub</a>
+                <script>
+                    // Check if the user is logged in
+                    fetch('/telemetry/check')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.valid) {
+                                const logoutLink = document.createElement('a');
+                                logoutLink.href = '/telemetry/logout';
+                                logoutLink.textContent = 'Logout';
+                                document.querySelector('.links').appendChild(logoutLink);
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                </script>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="login-container">
+            <h1>Login</h1>
+            <form id="loginForm">
+                <label for="password">Password:</label>
+                <input type="text" id="password" name="password" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </main>
+    <div id="notification" class="notification"></div>
+    <script>
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification ' + type;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const password = document.getElementById('password').value;
+            console.log(password);
+            try {
+                const response = await fetch('/telemetry/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                console.log("Response:", response);
+                const result = await response.json();
+                console.log(result);
+                if (result.valid) {
+                    showNotification('Login successful', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/telemetry';
+                    }, 1000);
+                } else {
+                    showNotification('Invalid API Key', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+
+                showNotification('An error occurred while checking the API Key.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

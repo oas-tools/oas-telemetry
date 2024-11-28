@@ -32,6 +32,7 @@
             display: flex;
             align-items: center;
         }
+
         .links a {
             color: #fff;
             text-decoration: none;
@@ -48,6 +49,7 @@
             width: fit-content;
             margin: 20px auto;
         }
+
         .panel {
             background-color: #fff;
             border: 1px solid #ddd;
@@ -65,14 +67,14 @@
         .panel-content {
             display: none;
             padding: 15px;
-            
+
             /* items margin */
             >* {
                 margin: 5px 0;
             }
-            
+
         }
-        
+
         .panel.open .panel-content {
             display: flex;
             flex-direction: column;
@@ -176,6 +178,21 @@
             margin: 0 5px;
         }
     </style>
+    <script>
+        async function checkTelemetryStatus() {
+            try {
+                const response = await fetch('/telemetry/check');
+                const data = await response.json();
+                if (!data.valid) {
+                    window.location.href = '/telemetry/login';
+                }
+            } catch (error) {
+                console.error('Error checking telemetry status:', error);
+            }
+        }
+
+        setInterval(checkTelemetryStatus, 5000); // Check every 5 seconds
+    </script>
 </head>
 
 <body>
@@ -186,6 +203,20 @@
             <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">Documentation</a>
             <a target="_blank" href="https://www.npmjs.com/package/@oas-tools/oas-telemetry">NPM</a>
             <a target="_blank" href="https://github.com/oas-tools/oas-telemetry">GitHub</a>
+            <script>
+                // Check if the user is logged in
+                fetch('/telemetry/check')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.valid) {
+                            const logoutLink = document.createElement('a');
+                            logoutLink.href = '/telemetry/logout';
+                            logoutLink.textContent = 'Logout';
+                            document.querySelector('.links').appendChild(logoutLink);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            </script>
         </div>
     </div>
     <div class="page">
@@ -412,14 +443,18 @@
 
         async function fetchTracesByFind(path, method, status) {
             try {
+                let statusOr = [{ "attributes.http.status_code": parseInt(status) }]
+                if (status == "200") {
+                    statusOr.push({ "attributes.http.status_code": 304 }); //Some servers return 304 instead of 200
+                }
                 log(`Fetching traces for <${path}> - ${method} - ${status} `);
                 const body = {
                     "flags": { "containsRegex": true },
-                    "config": { "regexIds": ["attributes.http.target"] },
+                    "config": { "regexIds": ["attributes.http.target", "attributes.http.status_code"] },
                     "search": {
                         "attributes.http.target": getPathRegEx(path),
                         "attributes.http.method": method.toUpperCase(),
-                        "attributes.http.status_code": parseInt(status)
+                        "$or": statusOr
                     }
                 };
                 log("body: " + JSON.stringify(body, null, 2));
@@ -448,37 +483,37 @@
         }
 
         function calculateTiming(startSecInput, startNanoSecInput, endSecInput, endNanoSecInput, precision = 3) {
-            let startSec = parseFloat(startSecInput);
-            let startNanoSec = parseFloat(startNanoSecInput);
-            let endSec = parseFloat(endSecInput);
-            let endNanoSec = parseFloat(endNanoSecInput);
+            // Convert inputs to numbers
+            let startSec = parseInt(startSecInput);
+            let startNanoSec = parseInt(startNanoSecInput);
+            let endSec = parseInt(endSecInput);
+            let endNanoSec = parseInt(endNanoSecInput);
 
-            let startNanoSecParsed = parseFloat("0." + startNanoSec);
-            let endNanoSecParsed = parseFloat("0." + endNanoSec);
+            // Convert nanoseconds to fractional seconds and add to seconds
+            let preciseStart = startSec + startNanoSec / 1e9; // Nanoseconds to seconds
+            let preciseEnd = endSec + endNanoSec / 1e9; // Nanoseconds to seconds
 
-            let preciseStart = parseFloat(startSec + startNanoSecParsed);
-            let preciseEnd = parseFloat(endSec + endNanoSecParsed);
-            let preciseDuration = parseFloat(preciseEnd - preciseStart);
+            // Calculate duration
+            let preciseDuration = preciseEnd - preciseStart;
 
-            let startDate = new Date(preciseStart.toFixed(precision) * 1000);
-            let startTS = startDate.toISOString();
-
-            let endDate = new Date(preciseEnd.toFixed(precision) * 1000);
-            let endTS = endDate.toISOString();
+            // Create Date objects and ISO timestamps
+            let startDate = new Date(preciseStart * 1000);
+            let endDate = new Date(preciseEnd * 1000);
 
             return {
-                preciseStart: preciseStart,
-                preciseEnd: preciseEnd,
-                preciseDuration: preciseDuration,
-                start: parseFloat(preciseStart.toFixed(precision)),
-                end: parseFloat(preciseEnd.toFixed(precision)),
-                duration: parseFloat(preciseDuration.toFixed(precision)),
-                startDate: startDate,
-                endDate: endDate,
-                startTS: startTS,
-                endTS: endTS
+                preciseStart: preciseStart, // Precise start time in seconds
+                preciseEnd: preciseEnd,     // Precise end time in seconds
+                preciseDuration: preciseDuration, // Duration in seconds
+                start: parseFloat(preciseStart.toFixed(precision)), // Rounded start time
+                end: parseFloat(preciseEnd.toFixed(precision)),     // Rounded end time
+                duration: parseFloat(preciseDuration.toFixed(precision)), // Rounded duration
+                startDate: startDate,       // Date object for start time
+                endDate: endDate,           // Date object for end time
+                startTS: startDate.toISOString(), // ISO timestamp for start
+                endTS: endDate.toISOString()      // ISO timestamp for end
             };
         }
+
 
         function parseTraceInfo(t) {
             const ep = t.attributes.http.target;

@@ -1,8 +1,8 @@
 import { ExportResultCode } from '@opentelemetry/core';
 
-let dbglog = ()=>{};
+let dbglog = () => { };
 
-if(process.env.OTDEBUG == "true")
+if (process.env.OTDEBUG == "true")
     dbglog = console.log;
 
 //import in memory database
@@ -14,25 +14,26 @@ export class InMemoryExporter {
         this._stopped = true;
     };
 
-    static plugins = [];
+    // Overrided by dynamic exporter
+    plugins = [];
 
     export(readableSpans, resultCallback) {
         try {
             if (!this._stopped) {
                 // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
                 const cleanSpans = readableSpans
-                .map(nestedSpan => removeCircularRefs(nestedSpan))// to avoid JSON parsing error
-                .map(span => applyNesting(span))// to avoid dot notation in keys (neDB does not support dot notation in keys)
-                .filter(span => !span.attributes?.http?.target?.includes("/telemetry"));// to avoid telemetry spans
-
+                    .map(nestedSpan => removeCircularRefs(nestedSpan))// to avoid JSON parsing error
+                    .map(span => applyNesting(span))// to avoid dot notation in keys (neDB does not support dot notation in keys)
+                    .filter(span => !span.attributes?.http?.target?.includes("/telemetry"));// to avoid telemetry spans
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err, newDoc) => {
-                    InMemoryExporter.plugins.forEach((p,i)=>{                        
-                        cleanSpans.forEach((t)=>{
-                            dbglog(`Sending trace <${t._id}> to plugin (Plugin #${i}) <${p.name}>`);
-                            dbglog(`Trace: \n<${JSON.stringify(t,null,2)}`);
+                    // p = {name, plugin
+                    this.plugins.forEach((pluginResource, i) => {
+                        cleanSpans.forEach((t) => {
+                            dbglog(`Sending trace <${t._id}> to plugin (Plugin #${i}) <${pluginResource.name}>`);
+                            dbglog(`Trace: \n<${JSON.stringify(t, null, 2)}`);
                             //TODO: This should be called newSpan instead of newTrace
-                            p.newTrace(t);
+                            pluginResource.plugin.newTrace(t);
                         });
                     });
                     if (err) {
@@ -57,6 +58,10 @@ export class InMemoryExporter {
     stop() {
         this._stopped = true;
     };
+
+    isRunning() {
+        return !this._stopped;
+    };
     shutdown() {
         this._stopped = true;
         this._spans = new dataStore();
@@ -68,17 +73,17 @@ export class InMemoryExporter {
     forceFlush() {
         return Promise.resolve();
     };
+    //err,docs
+    find(search, callback) {
+        this._spans.find(search, callback);
+    }
     reset() {
         this._spans = new dataStore();
     };
     getFinishedSpans() {
-        return this._spans;
+        return this._spans.getAllData();
     };
-    activatePlugin(plugin){
-        dbglog(`Activating plugin <${plugin.getName()}>...`);
-        InMemoryExporter.plugins.push(plugin);
-        dbglog(`Plugin <${plugin.getName()}> active (Total active plugins: ${InMemoryExporter.plugins.length})`);
-    }
+
 }
 
 function removeCircularRefs(obj) {
@@ -100,7 +105,7 @@ function removeCircularRefs(obj) {
         // }
         return value;
     }
-    
+
     // Convert the object to a string and then parse it back
     // This will trigger the replacer function to handle circular references
     const jsonString = JSON.stringify(obj, replacer);

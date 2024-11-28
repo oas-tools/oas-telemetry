@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import ui from '../../src/ui.js';
+import ui from '../../src/services/uiService.js';
 
 
 // Construct __dirname manually for ES modules
@@ -12,30 +12,25 @@ const __dirname = path.dirname(__filename);
 const mainHtmlPath = path.join(__dirname, 'main.html');
 const detailHtmlPath = path.join(__dirname, 'detail.html');
 
-// Function to unescape special characters
+// Unescapes special characters
 function unescapeHtml(content) {
     return content
         .replace(/\\`/g, '`')   // Unescape backticks
         .replace(/\\\$/g, '$'); // Unescape dollar signs
 }
 
+// Generalize the process for all properties in the ui object
+const htmlFiles = Object.keys(ui());
 
+htmlFiles.forEach(key => {
+    const htmlContent = ui()[key];
+    if (!htmlContent) {
+        console.error(`ERROR: Could not extract HTML content for ${key}.`);
+        process.exit(1);
+    }
 
-// Extract the main and detail HTML content
-const mainHtmlMatch = ui().main;
-const detailHtmlMatch = ui().detail;
-
-if (!mainHtmlMatch || !detailHtmlMatch) {
-    console.error("ERROR: Could not extract HTML content from ui.js.");
-    process.exit(1);
-}
-
-// Unescape and store the HTML content
-const mainHtmlContent = unescapeHtml(mainHtmlMatch);
-const detailHtmlContent = unescapeHtml(detailHtmlMatch);
-
-// Write the content back to the original HTML files
-fs.writeFileSync(mainHtmlPath, mainHtmlContent, 'utf-8');
-fs.writeFileSync(detailHtmlPath, detailHtmlContent, 'utf-8');
-
-console.log('HTML import completed: main.html and detail.html have been restored.');
+    const unescapedHtmlContent = unescapeHtml(htmlContent);
+    const htmlFilePath = path.join(__dirname, `${key}.html`);
+    fs.writeFileSync(htmlFilePath, unescapedHtmlContent, 'utf-8');
+    console.log(`HTML import completed: ${key}.html has been restored.`);
+});

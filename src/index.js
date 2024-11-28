@@ -1,310 +1,85 @@
-// telemetryMiddleware.js
-import { inMemoryExporter } from './telemetry.js';
+import './openTelemetry.js';
+import { globalOasTlmConfig } from './config.js';
+import cookieParser from 'cookie-parser';
 import { Router, json } from 'express';
-import v8 from 'v8';
-import { readFileSync, existsSync } from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
-import ui from './ui.js'
-import axios from 'axios';
-import { requireFromString, importFromString } from "import-from-string";
-import { installDependencies } from "dynamic-installer"
+import { authMiddleware } from './middleware/authMiddleware.js';
+import authRoutes from './routes/authRoutes.js';
+import { telemetryRoutes } from './routes/telemetryRoutes.js';
+import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';
+
 
 let dbglog = () => { };
 
 if (process.env.OTDEBUG == "true")
     dbglog = console.log;
 
-let plugins = [];
-
-let telemetryStatus = {
-    active: true
-};
-
-let baseURL = '/telemetry';
-
-let telemetryConfig = {
-    exporter: inMemoryExporter,
-    specFileName: ""
-};
-
-export default function oasTelemetry(tlConfig) {
-    if (tlConfig) {
-        dbglog('Telemetry config provided');
-        telemetryConfig = tlConfig;
-        if (telemetryConfig.exporter == undefined)
-            telemetryConfig.exporter = inMemoryExporter;
+/**
+ * Returns the Oas Telemetry middleware. The parameters are the same as `globalOasTlmConfig`.
+ * All parameters are optional. However, either `spec` or `specFileName` must be provided to enable endpoint filtering.
+ * 
+ * @param {Object} OasTlmConfig Configuration object.
+ * @param {string} [OasTlmConfig.baseURL="/telemetry"] The base URL for the telemetry routes.
+ * @param {Object} [OasTlmConfig.spec] The OpenAPI spec object.
+ * @param {string} [OasTlmConfig.specFileName] Alternative to `spec`: the path to the OpenAPI spec file.
+ * @param {boolean} [OasTlmConfig.autoActivate=true] Whether to start telemetry automatically on load.
+ * @param {number} [OasTlmConfig.apiKeyMaxAge=1800000] The maximum age of the API key in milliseconds.
+ * @param {string} [OasTlmConfig.defaultApiKey] The default API key to use.
+ * @param {OasTlmExporter} [OasTlmConfig.exporter=InMemoryExporter] The exporter to use. Must implement the `OasTlmExporter` interface.
+ * @returns {Router} The middleware router for Oas Telemetry.
+ */
+export default function oasTelemetry(OasTlmConfig) {
+    const router = Router();
+    if (process.env.OASTLM_MODULE_DISABLED === 'true') {
+        return router; 
+    };
+    if (OasTlmConfig) {
+        console.log("User provided config");
+        // Global = user-provided || default, for each key
+        for (const key in globalOasTlmConfig) {
+            globalOasTlmConfig[key] = OasTlmConfig[key] ?? globalOasTlmConfig[key];
+        }
     }
+    console.log("baseURL: ", globalOasTlmConfig.baseURL);
+    globalOasTlmConfig.dynamicExporter.changeExporter( OasTlmConfig.exporter ?? new InMemoryExporter() );
 
-    if (telemetryConfig.spec)
+    if (globalOasTlmConfig.spec)
         dbglog(`Spec content provided`);
     else {
-        if (telemetryConfig.specFileName != "")
-            dbglog(`Spec file used for telemetry: ${telemetryConfig.specFileName}`);
+        if (globalOasTlmConfig.specFileName != "")
+            dbglog(`Spec file used for telemetry: ${globalOasTlmConfig.specFileName}`);
         else {
             console.error("No spec available !");
         }
     }
 
-    const router = Router();
-
-    if (telemetryConfig.baseURL)
-        baseURL = telemetryConfig.baseURL;
-
+    router.use(cookieParser());
+    const baseURL = globalOasTlmConfig.baseURL;
     router.use(json());
+    router.use(baseURL, authRoutes);
+    router.use(baseURL, authMiddleware); // Add the auth middleware
+    router.use(baseURL, telemetryRoutes);
 
-    router.get(baseURL, mainPage);
-    router.get(baseURL + "/detail/*", detailPage);
-    router.get(baseURL + "/spec", specLoader);
-    router.get(baseURL + "/api", apiPage);
-    router.get(baseURL + "/start", startTelemetry);
-    router.get(baseURL + "/stop", stopTelemetry);
-    router.get(baseURL + "/status", statusTelemetry);
-    router.get(baseURL + "/reset", resetTelemetry);
-    router.get(baseURL + "/list", listTelemetry);
-    router.post(baseURL + "/find", findTelemetry);
-    router.get(baseURL + "/heapStats", heapStats);
-    router.get(baseURL + "/plugins", listPlugins);
-    router.post(baseURL + "/plugins", registerPlugin);
+    if (globalOasTlmConfig.autoActivate) {
+        globalOasTlmConfig.dynamicExporter.exporter?.start();
+    }
+
     return router;
 }
 
-const apiPage = (req, res) => {
-    let text = `
-    <h1>Telemetry API routes:</h1>
-    <ul>
-        <li><a href="/telemetry/start">/telemetry/start</a></li>
-        <li><a href="/telemetry/stop">/telemetry/stop</a></li>
-        <li><a href="/telemetry/status">/telemetry/status</a></li>
-        <li><a href="/telemetry/reset">/telemetry/reset</a></li>
-        <li><a href="/telemetry/list">/telemetry/list</a></li>
-        <li><a href="/telemetry/heapStats">/telemetry/heapStats</a></li>
-        <li>/telemetry/find [POST]</li>
-    </ul>
-    `;
-    res.send(text);
-}
-
-const mainPage = (req, res) => {
-    res.set('Content-Type', 'text/html');
-    res.send(ui().main);
-}
-const detailPage = (req, res) => {
-    res.set('Content-Type', 'text/html');
-    res.send(ui().detail);
-}
-
-const specLoader = (req, res) => {
-    if (telemetryConfig.specFileName) {
-        try {
-            const data = readFileSync(telemetryConfig.specFileName,
-                { encoding: 'utf8', flag: 'r' });
-
-            const extension = path.extname(telemetryConfig.specFileName);
-
-            let json = data;
-
-            if (extension == yaml)
-                json = JSON.stringify(yaml.SafeLoad(data), null, 2);
-
-            res.setHeader('Content-Type', 'application/json');
-            res.send(json);
-
-        } catch (e) {
-            console.error(`ERROR loading spec file ${telemetryConfig.specFileName}: ${e}`)
-        }
-    } else {
-        if (telemetryConfig.spec) {
-            let spec = false;
-
-            try {
-                spec = JSON.parse(telemetryConfig.spec);
-            } catch (ej) {
-                try {
-                    spec = JSON.stringify(yaml.load(telemetryConfig.spec), null, 2);
-                } catch (ey) {
-                    console.error(`Error parsing spec: ${ej} - ${ey}`);
-                }
-            }
-
-            if (!spec) {
-                res.status(404);
-            } else {
-                res.setHeader('Content-Type', 'application/json');
-                res.send(spec);
-            }
-
-        }
-    }
-}
-
-const startTelemetry = (req, res) => {
-    telemetryConfig.exporter.start();
-    res.send('Telemetry started');
-}
-const stopTelemetry = (req, res) => {
-    telemetryConfig.exporter.stop();
-
-    res.send('Telemetry stopped');
-}
-const statusTelemetry = (req, res) => {
-    const status = !telemetryConfig.exporter._stopped || false;
-    res.send({ active: status });
-}
-
-const resetTelemetry = (req, res) => {
-    telemetryConfig.exporter.reset();
-    res.send('Telemetry reset');
-}
-const listTelemetry = (req, res) => {
-    const spansDB = telemetryConfig.exporter.getFinishedSpans();
-    spansDB.find({}, (err, docs) => {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        const spans = docs;
-        res.send({ spansCount: spans.length, spans: spans });
-    });
-}
-
-const heapStats = (req, res) => {
-    var heapStats = v8.getHeapStatistics();
-
-    // Round stats to MB
-    var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
-        map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
-        return map;
-    }, {});
-    roundedHeapStats['units'] = 'MB';
-
-    res.send(roundedHeapStats);
-}
-
-const findTelemetry = (req, res) => {
-    const spansDB = telemetryConfig.exporter.getFinishedSpans();
-    const body = req.body;
-    const search = body?.search ? body.search : {};
-    if (body?.flags?.containsRegex) {
-        try {
-            body.config?.regexIds?.forEach(regexId => {
-                search[regexId] = new RegExp(search[regexId]);
-            });
-        } catch (e) {
-            console.error(e);
-            res.status(404).send({ spansCount: 0, spans: [], error: e });
-            return;
-        }
-        spansDB.find(search, (err, docs) => {
-            if (err) {
-                console.error(err);
-                res.status(404).send({ spansCount: 0, spans: [], error: err });
-                return;
-            }
-
-            const spans = docs;
-            res.send({ spansCount: spans.length, spans: spans });
-        });
-    }
-}
-
-const listPlugins = (req, res) => {
-    res.send(plugins.map((p) => {
-        return {
-            id: p.id,
-            url: p.url,
-            active: p.active
-        };
-    }));
-}
-
-const registerPlugin = async (req, res) => {
-    let pluginResource = req.body;
-    dbglog(`Plugin Registration Request: = ${JSON.stringify(req.body, null, 2)}...`);
-    dbglog(`Getting plugin at ${pluginResource.url}...`);
-    let pluginCode;
-    if (!pluginResource.url && !pluginResource.code) {
-        res.status(400).send(`Plugin code or URL must be provided`);
-        return;
-    }
-
-    let module;
-    try {
-        if (pluginResource.code) {
-            pluginCode = pluginResource.code
-        } else {
-            const response = await axios.get(pluginResource.url);
-            pluginCode = response.data;
-        }
-        if (!pluginCode) {
-            res.status(400).send(`Plugin code could not be loaded`);
-            return;
-        }
-        //install dependencies if any
-        if (pluginResource.install) {
-            const dependenciesStatus = await installDependencies(pluginResource.install);
-            if (!dependenciesStatus.success) {
-                if (pluginResource.install.ignoreErrors === true) {
-                    console.warn(`Warning: Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
-                } else {
-                    res.status(400).send(`Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
-                    return;
-                }
-            }
-        }
-
-        dbglog("Plugin size: " + pluginCode?.length);
-        dbglog("Plugin format: " + pluginResource?.moduleFormat);
-        if (pluginResource?.moduleFormat && pluginResource.moduleFormat.toUpperCase() == "ESM") {
-            console.log("ESM detected")
-            module = await importFromString(pluginCode)
-        } else {
-            console.log("CJS detected (default)")
-            module = await requireFromString(pluginCode)
-            console.log(module)
-        }
-    } catch (error) {
-        console.error(`Error loading plugin: ${error}`);
-        res.status(400).send(`Error loading plugin: ${error}`);
-        return;
-    }
-
-// Check if the plugin is in module.default or module.plugin (supports default syntax)
-const plugin = module.default?.plugin || module.plugin;
-
-if (plugin == undefined) {
-    res.status(400).send(`Plugin code should export a "plugin" object`);
-    console.log("Error in plugin code: no plugin object exported");
-    return;
-}
-for (let requiredFunction of ["load", "getName", "isConfigured"]) {
-    if (plugin[requiredFunction] == undefined) {
-        res.status(400).send(`The plugin code exports a "plugin" object, however it should have a "${requiredFunction}" method`);
-        console.log("Error in plugin code: some required functions are missing");
-        return;
-    }
-}
-
-    try {
-        await plugin.load(pluginResource.config);
-    } catch (error) {
-        console.error(`Error loading plugin configuration: ${error}`);
-        res.status(400).send(`Error loading plugin configuration: ${error}`);
-        return;
-    }
-    if (plugin.isConfigured()) {
-        dbglog(`Loaded plugin <${plugin.getName()}>`);
-        pluginResource.plugin = plugin;
-        pluginResource.name = plugin.getName();
-        pluginResource.active = true;
-        plugins.push(pluginResource);
-        inMemoryExporter.activatePlugin(pluginResource.plugin);
-        res.status(201).send(`Plugin registered`);
-    } else {
-        console.error(`Plugin <${plugin.getName()}> can not be configured`);
-        res.status(400).send(`Plugin configuration problem`);
-    }
 
 
-}
-
+/**
+ * @typedef OasTlmExporter
+ * Represents an exporter that processes and manages telemetry data.
+ * Any custom exporter must implement these methods.
+ * 
+ * @method {void} start() Starts the exporter, allowing it to process data.
+ * @method {void} stop() Stops the exporter and halts data processing.
+ * @method {void} reset() Resets the internal state of the exporter (e.g., clears buffers or data stores).
+ * @method {boolean} isRunning() Returns whether the exporter is actively processing data.
+ * @method {Array} getFinishedSpans() Retrieves the collected spans from the exporter.
+ * @method {any} export(ReadableSpan, SpanExporterResultCallback) Exports spans.
+ * @method {Promise<void>} shutdown() Gracefully shuts down the exporter, flushing data if necessary.
+ * @method {Promise<void>} forceFlush() Exports any pending data that has not yet been processed.
+ * @property {Array} plugins An array of plugins that can be activated by the exporter.
+ */

@@ -65,15 +65,17 @@ const spec = { "paths": {
                 }
             }
 
-app.use(oasTelemetry({
-    spec : JSON.stringify(spec)
-}))
+const oasTlmConfig = {
+    spec : JSON.stringify(spec),
+    baseURL: "/telemetry",
+}
+app.use(oasTelemetry(oasTlmConfig));
 
 app.use(express.json());
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
-    console.log(`Telemetry portal available at http://localhost:${port}/telemetry`);
+    console.log(`Telemetry portal available at http://localhost:${port}${oasTlmConfig.baseURL}`);
 });
 
 let pets =[{ name: "rocky"},{ name: "pikachu"}];
