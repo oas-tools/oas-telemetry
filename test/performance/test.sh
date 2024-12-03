@@ -36,7 +36,7 @@ echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js &  
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -45,7 +45,7 @@ echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js & 
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -54,7 +54,7 @@ echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/index.js &  
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "NO_TLM HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -66,7 +66,7 @@ echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "TLM ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -74,7 +74,7 @@ echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &  
-        curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+        curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "TLM TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -82,7 +82,7 @@ echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexTelemetry.js &  
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "TLM HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -93,7 +93,7 @@ echo "----------- 1 (ONES of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexJaeger.js &
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "JAEGER ONES $i" $concurrentUsers $requests $requestDelay $problemSizeA_ONES $problemSizeB_ONES && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -101,7 +101,7 @@ echo "----------- 2 (TENS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexJaeger.js &  
-        curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+        curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "JAEGER TENS $i" $concurrentUsers $requests $requestDelay $problemSizeA_TENS $problemSizeB_TENS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
@@ -109,7 +109,7 @@ echo "----------- 3 (HUNDREDS of ms in response)---------"
 for i in {1..5}
 do
     node ks-api/indexJaeger.js &  
-    curl --max-time 90 http://localhost:8080/ ## Wait for the server to start
+    curl --max-time 200 http://localhost:8080/ ## Wait for the server to start
     node test "JAEGER HUNDREDS $i" $concurrentUsers $requests $requestDelay $problemSizeA_HUNDREDS $problemSizeB_HUNDREDS && kill -9 `ps ax | grep node | grep -v grep | awk '{print $1}'`
 done
 
