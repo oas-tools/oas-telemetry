@@ -1,12 +1,11 @@
 import DynamicExporter from "./exporters/dynamicExporter.js";
 
 //Environment variables
-//OASTLM_API_KEY = 'oas-telemetry-api-key' //Cookie value for the API key
 //OASTLM_MODULE_DISABLED = 'true' //Disables the module (empty middleware and no tracing)
 
 export const globalOasTlmConfig = {
     dynamicExporter: new DynamicExporter(),
-    baseURL: "/telemetry4",
+    baseURL: "/telemetry",
     spec: null,
     specFileName: "",
     autoActivate: true,
