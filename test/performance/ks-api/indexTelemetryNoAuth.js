@@ -24,7 +24,7 @@ var spec = fs.readFileSync(path.join(__dirname, '/api/oas-doc.yaml'), 'utf8');
 var oasDoc = jsyaml.safeLoad(spec);
 //CHANGE 2
 // Now you can use the oasTelemetry middleware, configured with the default options, passing the OAS Spec
-app.use(oasTelemetry({ spec: spec }))
+app.use(oasTelemetry({ spec: spec, authEnabled: false }));
 
 var options_object = {
   controllers: path.join(__dirname, './controllers'),

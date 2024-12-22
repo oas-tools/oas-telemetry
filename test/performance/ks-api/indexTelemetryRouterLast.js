@@ -24,7 +24,6 @@ var spec = fs.readFileSync(path.join(__dirname, '/api/oas-doc.yaml'), 'utf8');
 var oasDoc = jsyaml.safeLoad(spec);
 //CHANGE 2
 // Now you can use the oasTelemetry middleware, configured with the default options, passing the OAS Spec
-app.use(oasTelemetry({ spec: spec }))
 
 var options_object = {
   controllers: path.join(__dirname, './controllers'),
@@ -54,13 +53,14 @@ app.get('/', function (req, res) {
 const v8 = require('v8');
 app.get('/heapStats', function (req, res) {
   var heapStats = v8.getHeapStatistics();
-
+  
   // Round stats to MB
   var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
     map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
     return map;
   }, {});
   roundedHeapStats['units'] = 'MB';
-
+  
   res.send(roundedHeapStats);
 });
+app.use(oasTelemetry({ spec: spec }))

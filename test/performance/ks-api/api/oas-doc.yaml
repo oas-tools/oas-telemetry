@@ -11,7 +11,7 @@ info:
     url: 'http://www.isa.us.es'
   license:
     name: MIT
-    url: 'http: //opensource.org/licenses/MIT'
+    url: 'http://opensource.org/licenses/MIT'
 paths:
   /api/v1/problems:
     post:

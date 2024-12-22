@@ -1,0 +1,8 @@
+# This is with repository ROOT as context
+*
+!package.json
+!package-lock.json
+!./dist/
+!./test/performance/ks-api/
+**/node_modules
+

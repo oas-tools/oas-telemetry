@@ -6,7 +6,7 @@ if (process.env.OTDEBUG == "true")
     dbglog = console.log;
 
 //import in memory database
-import dataStore from 'nedb';
+import dataStore from '@seald-io/nedb';
 
 export class InMemoryExporter {
     constructor() {

@@ -1,30 +1,28 @@
 'use strict';
-//CHANGE 1
-// this MUST be the first line in your file (before any imports)
-const oasTelemetry = require('../../../dist/index.cjs');
+
 var fs = require('fs'),
   http = require('http'),
   path = require('path');
 
 var express = require("express");
 var app = express();
-
 var bodyParser = require('body-parser');
 app.use(bodyParser.json({
   strict: false,
   limit: '50mb'
 }));
-
-
+// =======================
+// This was to test if the performance issue when using node:20-alpine was due to the nedb package. (It was, do not ask how long it took to figure it out :D)
+// This means that is highly recommended to use the official node:20 image instead of the alpine one.
+const nedb = require('@seald-io/nedb');
+const db = new nedb({ filename: 'db.json', autoload: true });
+// =======================
 var oasTools = require('oas-tools');
 var jsyaml = require('js-yaml');
 var serverPort = process.env.PORT || 8080;
 
 var spec = fs.readFileSync(path.join(__dirname, '/api/oas-doc.yaml'), 'utf8');
 var oasDoc = jsyaml.safeLoad(spec);
-//CHANGE 2
-// Now you can use the oasTelemetry middleware, configured with the default options, passing the OAS Spec
-app.use(oasTelemetry({ spec: spec }))
 
 var options_object = {
   controllers: path.join(__dirname, './controllers'),

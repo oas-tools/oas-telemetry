@@ -8,7 +8,7 @@ import { globalOasTlmConfig } from './config.js';
 
   // DynamicExporter allows changing to any exporter at runtime;
   const traceExporter = globalOasTlmConfig.dynamicExporter;
-
+//  Alternative 1: Using NodeSDK
   const sdk = new NodeSDK({
     resource: new Resource({
       service: 'oas-telemetry-service'
@@ -20,3 +20,17 @@ import { globalOasTlmConfig } from './config.js';
   if (process.env.OASTLM_MODULE_DISABLED !== 'true') {
     sdk.start()
   }
+
+// Alternative 2:
+// const provider = new NodeTracerProvider();
+// provider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
+
+// if (process.env.OASTLM_MODULE_DISABLED !== 'true') {
+//   provider.register();
+//   registerInstrumentations({
+//     instrumentations: [
+//       new HttpInstrumentation(),
+//       new ExpressInstrumentation(),
+//     ],
+//   });
+// }

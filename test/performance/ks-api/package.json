@@ -13,7 +13,16 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@oas-tools/oas-telemetry": "^0.1.5",
+    "@oas-tools/oas-telemetry": "^0.5.1",
+    "@opentelemetry/exporter-jaeger": "^1.29.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.56.0",
+    "@opentelemetry/instrumentation": "^0.56.0",
+    "@opentelemetry/instrumentation-express": "^0.46.0",
+    "@opentelemetry/instrumentation-http": "^0.56.0",
+    "@opentelemetry/resources": "^1.29.0",
+    "@opentelemetry/sdk-trace-base": "^1.29.0",
+    "@opentelemetry/sdk-trace-node": "^1.29.0",
+    "@risingstack/jaeger": "^2.5.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "js-yaml": "^3.3.0",

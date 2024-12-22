@@ -22,6 +22,7 @@ if (process.env.OTDEBUG == "true")
  * @param {Object} [OasTlmConfig.spec] The OpenAPI spec object.
  * @param {string} [OasTlmConfig.specFileName] Alternative to `spec`: the path to the OpenAPI spec file.
  * @param {boolean} [OasTlmConfig.autoActivate=true] Whether to start telemetry automatically on load.
+ * @param {boolean} [OasTlmConfig.authEnabled=true] Whether to enable authentication middleware.
  * @param {number} [OasTlmConfig.apiKeyMaxAge=1800000] The maximum age of the API key in milliseconds.
  * @param {string} [OasTlmConfig.defaultApiKey] The default API key to use.
  * @param {OasTlmExporter} [OasTlmConfig.exporter=InMemoryExporter] The exporter to use. Must implement the `OasTlmExporter` interface.
@@ -51,12 +52,10 @@ export default function oasTelemetry(OasTlmConfig) {
             console.error("No spec available !");
         }
     }
-
-    router.use(cookieParser());
+    let allAuthMiddlewares = getWrappedMiddlewares(() => globalOasTlmConfig.authEnabled, [cookieParser(),authRoutes,authMiddleware]);
     const baseURL = globalOasTlmConfig.baseURL;
     router.use(json());
-    router.use(baseURL, authRoutes);
-    router.use(baseURL, authMiddleware); // Add the auth middleware
+    router.use(baseURL, allAuthMiddlewares);
     router.use(baseURL, telemetryRoutes);
 
     if (globalOasTlmConfig.autoActivate) {
@@ -65,7 +64,6 @@ export default function oasTelemetry(OasTlmConfig) {
 
     return router;
 }
-
 
 
 /**
@@ -83,3 +81,32 @@ export default function oasTelemetry(OasTlmConfig) {
  * @method {Promise<void>} forceFlush() Exports any pending data that has not yet been processed.
  * @property {Array} plugins An array of plugins that can be activated by the exporter.
  */
+
+/**
+ * This function wraps the provided middleware functions with a condition callback.
+ * If the condition callback returns true, the middleware/router will be executed.
+ * If the condition callback returns false, the middleware/router will be skipped.
+ * 
+ * @callback {function} conditionCallback A callback function that returns a boolean to determine if the middleware should be used.
+ * @param {Array} middlewares An array of middleware or routers to be wrapped.
+ * @returns {Array} An array of wrapped middleware functions.
+ */
+function getWrappedMiddlewares(conditionCallback, middlewares) {
+    return middlewares.map(middleware => {
+        return function (req, res, next) {
+            if (conditionCallback()) {
+                if (typeof middleware === 'function') {
+                    // look for handle property, if it exists, it's a router. If not call middleware
+                    if (middleware.handle) {
+                        middleware.handle(req, res, next);
+                    } else {
+                        middleware(req, res, next);
+                    }
+                }
+            } else {
+                next();
+            }
+        };
+    }
+    );
+}

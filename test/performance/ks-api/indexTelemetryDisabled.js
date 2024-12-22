@@ -1,6 +1,7 @@
 'use strict';
 //CHANGE 1
 // this MUST be the first line in your file (before any imports)
+process.env.OASTLM_MODULE_DISABLED = 'true';
 const oasTelemetry = require('../../../dist/index.cjs');
 var fs = require('fs'),
   http = require('http'),
