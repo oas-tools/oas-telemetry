@@ -9,7 +9,7 @@ export const globalOasTlmConfig = {
     spec: null,
     specFileName: "",
     autoActivate: true,
-    authEnabled: true,
+    authEnabled: false,
     apiKeyMaxAge: 1000 * 60 * 60, // 1 hour
     password: "oas-telemetry-password",
     jwtSecret: "oas-telemetry-secret",

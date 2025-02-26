@@ -55,6 +55,7 @@ export const findTelemetry = (req, res) => {
             res.status(404).send({ spansCount: 0, spans: [], error: e });
             return;
         }
+    }
         globalOasTlmConfig.dynamicExporter.exporter.find(search,(err, docs) => {
             if (err) {
                 console.error(err);
@@ -64,5 +65,5 @@ export const findTelemetry = (req, res) => {
             const spans = docs;
             res.send({ spansCount: spans.length, spans: spans });
         });
-    }
+    
 }
