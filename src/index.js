@@ -6,6 +6,7 @@ import { authMiddleware } from './middleware/authMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import { telemetryRoutes } from './routes/telemetryRoutes.js';
 import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';
+import metricsRoutes from './routes/metricsRoutes.js';
 
 
 let dbglog = () => { };
@@ -57,6 +58,7 @@ export default function oasTelemetry(OasTlmConfig) {
     router.use(json());
     router.use(baseURL, allAuthMiddlewares);
     router.use(baseURL, telemetryRoutes);
+    router.use(baseURL + "/metrics", metricsRoutes);
 
     if (globalOasTlmConfig.autoActivate) {
         globalOasTlmConfig.dynamicExporter.exporter?.start();

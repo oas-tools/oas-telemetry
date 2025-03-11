@@ -10,25 +10,22 @@ Overall, **OAS Telemetry** will serve as a valuable tool for developers looking 
 
 The package now supports both **ES Module (ESM)** and **CommonJS (CJS)** formats, making it compatible with a wide range of applications. Furthermore, **OAS Telemetry** provides a range of plugins to extend its functionality, enabling developers to tailor telemetry data collection, alerting, and reporting to meet specific requirements. See the [Telemetry Plugins](#telemetry-plugins) section for more information.
 
-
-
-
 ## Usage
 
 This section provides an overview of how to install and integrate **OAS Telemetry** into your EXISTING **Express.js** application. If you want to create a new example express application with **OAS Telemetry** integrated, refer to the [Full Examples](#full-examples) section at the end of this document.
 
-
 First, install the package using npm:
+
 ```sh
 npm install @oas-tools/oas-telemetry
 ```
-
 
 You can integrate the middleware into your Express application. The `spec` option is the OpenAPI Specification (OAS) content in JSON or YAML format. While this configuration is optional, it is recommended for the UI to function correctly.
 
 ### Using ES Modules (ESM)
 
 Add the following lines to your `index.js` file:
+
 ```js
 // This import MUST be at the top of the file
 import oasTelemetry from '@oas-tools/oas-telemetry';
@@ -44,6 +41,7 @@ app.use(oasTelemetry({
 ### Using CommonJS
 
 Add the following lines to your `index.js` file:
+
 ```js
 // This require MUST be at the top of the file
 const oasTelemetry = require('@oas-tools/oas-telemetry');
@@ -61,6 +59,7 @@ For complete examples of a working API with OAS Telemetry enabled, refer to the 
 ## Custom Configuration
 
 You can also customize the telemetry configuration by passing options to the middleware function. For example:
+
 ```js
 const customTelemetryConfig = {
     spec: /* OAS content in json or yaml */, // Highly recommended
@@ -82,6 +81,52 @@ app.use(oasTelemetry(customTelemetryConfig));
 
 You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-telemetry` if you set the `baseURL` option). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
 
+## Metrics Development (Temporary)
+
+This feature is currently in development. The following endpoints are available under <baseURL>/metrics (e.g., /telemetry/metrics):
+
+- GET /
+- POST /find
+- GET /reset
+
+Expect an array of metrics objects. Each object includes data like a timestamp, cpuUsageData, processCpuUsageData, memoryData, and processMemoryData. Example snippet for one CPU core (followed by others in the array):
+
+```json
+{
+    "timestamp": 1741717005911,
+    "cpuUsageData": [
+        {
+            "cpuNumber": "0",
+            "idle": 60486.234000000004,
+            "user": 1364.515,
+            "system": 1246.796,
+            "interrupt": 167,
+            "nice": 0,
+            "userP": 0.009375623379214043,
+            "systemP": 0.002992220227408737,
+            "idleP": 0.9850388988629563,
+            "interruptP": 0,
+            "niceP": 0
+        }
+    ],
+    "processCpuUsageData": {
+        "user": 0.968,
+        "system": 0.32799999999999996,
+        "userP": 0,
+        "systemP": 0
+    },
+    "memoryData": {
+        "used": 15726522368,
+        "free": 18437427200,
+        "usedP": 0.4603250668280579,
+        "freeP": 0.539674933171942
+    },
+    "processMemoryData": 75988992,
+    "_id": "6mXKM8uK7xSOqJVT"
+}
+```
+
+The shape of these objects may change as development continues.
 
 ## API Telemetry Endpoints
 
@@ -104,11 +149,11 @@ OAS Telemetry supports a range of plugins to extend its functionality, allowing 
 One example plugin is the **Outlier Alert Over Messaging** plugin, which can be configured to send anomaly alerts to messaging platforms like Telegram. This plugin is especially useful for monitoring abnormal response times in your API, notifying selected channels to allow rapid responses to potential issues. For setup details, refer to its [README documentation](https://github.com/oas-tools/oas-telemetry-plugin-outlier-messaging/blob/main/README.md).
 
 OAS Telemetry plugins are flexible and support both ES Modules (ESM) and CommonJS (CJS) formats, regardless of whether your application is using ESM or CJS. This compatibility ensures that plugins work seamlessly in all configurations:
+
 - ESM applications can use plugins in either ESM or CJS format.
 - CJS applications can use plugins in either CJS or ESM format.
 
 This flexibility makes it easy to incorporate a wide variety of plugins in your preferred module system.
-
 
 ## Accessing Telemetry Data
 
@@ -117,7 +162,9 @@ Using OAS Telemetry, you can access telemetry data through the UI, the `/telemet
 Note: if authentication is enabled, you must provide the correct credentials to access the telemetry data.
 
 ### Simple Search Example
+
 To perform a simple search, send a POST request to the `/telemetry/find` endpoint with the following JSON payload:
+
 ```json
 {
     "search": {
@@ -132,7 +179,9 @@ To perform a simple search, send a POST request to the `/telemetry/find` endpoin
 ```
 
 ### Complex Search Example
+
 For more complex searches using regex, additional parsing on the server and extra attributes in the POST request are required. Send a POST request to the `/telemetry/find` endpoint with the following JSON payload:
+
 ```json
 {
     "flags": {
@@ -153,19 +202,25 @@ For more complex searches using regex, additional parsing on the server and extr
 ```
 
 ## Full Examples
+
 To run these examples, follow these steps:
 
 1. Create a new folder for your project.
 2. Navigate to the folder and initialize a new Node.js project:
+
     ```sh
     npm init -y
     ```
+
 3. Install the **OAS Telemetry** package:
+
     ```sh
     npm install @oas-tools/oas-telemetry
     ```
+
 4. Save the example code as `index.js` in the project folder.
 5. Run the application:
+
     ```sh
     node index.js
     ```
@@ -173,6 +228,7 @@ To run these examples, follow these steps:
 Your project folder should now contain the necessary files to run the example with **OAS Telemetry** integrated.
 
 ### Simple Example [ES Module](https://nodejs.org/docs/latest/api/esm.html) (*.mjs)
+
 ```js index.mjs
 import oasTelemetry from '@oas-tools/oas-telemetry';
 import express from 'express';
@@ -280,6 +336,7 @@ app.get("/api/v1/clinics", (req, res) => {
 ```
 
 ### Simple Example [Common.js Module](https://nodejs.org/docs/latest/api/modules.html) (*.cjs)
+
 ```js index.cjs
 let oasTelemetry = require('@oas-tools/oas-telemetry');
 let express = require('express');
@@ -383,5 +440,3 @@ app.get("/api/v1/clinics", (req, res) => {
     res.send(clinics);
 });
 ```
-
-
