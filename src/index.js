@@ -42,7 +42,7 @@ export default function oasTelemetry(OasTlmConfig) {
         }
     }
     console.log("baseURL: ", globalOasTlmConfig.baseURL);
-    globalOasTlmConfig.dynamicExporter.changeExporter( OasTlmConfig.exporter ?? new InMemoryExporter() );
+    globalOasTlmConfig.dynamicExporter.changeExporter( globalOasTlmConfig.exporter ?? new InMemoryExporter() );
 
     if (globalOasTlmConfig.spec)
         dbglog(`Spec content provided`);
