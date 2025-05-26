@@ -31,8 +31,16 @@ if (process.env.OTDEBUG == "true")
  */
 export default function oasTelemetry(OasTlmConfig) {
     const router = Router();
+    router.use((req, res, next) => {
+        if (req.body !== undefined) {
+          return next(); // Ya parseado, evitar json()
+        }
+      
+        return json()(req, res, next);
+      });
+
     if (process.env.OASTLM_MODULE_DISABLED === 'true') {
-        return router; 
+        return router;
     };
     if (OasTlmConfig) {
         console.log("User provided config");
@@ -42,7 +50,7 @@ export default function oasTelemetry(OasTlmConfig) {
         }
     }
     console.log("baseURL: ", globalOasTlmConfig.baseURL);
-    globalOasTlmConfig.dynamicExporter.changeExporter( globalOasTlmConfig.exporter ?? new InMemoryExporter() );
+    globalOasTlmConfig.dynamicExporter.changeExporter(globalOasTlmConfig.exporter ?? new InMemoryExporter());
 
     if (globalOasTlmConfig.spec)
         dbglog(`Spec content provided`);
@@ -53,9 +61,8 @@ export default function oasTelemetry(OasTlmConfig) {
             console.error("No spec available !");
         }
     }
-    let allAuthMiddlewares = getWrappedMiddlewares(() => globalOasTlmConfig.authEnabled, [cookieParser(),authRoutes,authMiddleware]);
+    let allAuthMiddlewares = getWrappedMiddlewares(() => globalOasTlmConfig.authEnabled, [cookieParser(), authRoutes, authMiddleware]);
     const baseURL = globalOasTlmConfig.baseURL;
-    router.use(json());
     router.use(baseURL, allAuthMiddlewares);
     router.use(baseURL, telemetryRoutes);
     router.use(baseURL + "/metrics", metricsRoutes);
