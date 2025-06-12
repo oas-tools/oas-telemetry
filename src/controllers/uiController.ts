@@ -3,8 +3,9 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import ui from '../services/uiService.js';
+import { Request, Response } from 'express';
 
-export const apiPage = (req, res) => {
+export const apiPage = (req: Request, res: Response) => {
     const baseURL = globalOasTlmConfig.baseURL;
     let text = `
     <h1>Telemetry API routes:</h1>
@@ -21,25 +22,26 @@ export const apiPage = (req, res) => {
     res.send(text);
 }
 
-export const mainPage = (req, res) => {
+export const mainPage = (req: Request, res: Response) => {
     const baseURL = globalOasTlmConfig.baseURL;
     res.set('Content-Type', 'text/html');
     res.send(ui(baseURL).main);
 }
 
-export const detailPage = (req, res) => {
+export const detailPage = (req: Request, res: Response) => {
     const baseURL = globalOasTlmConfig.baseURL;
     res.set('Content-Type', 'text/html');
     res.send(ui(baseURL).detail);
 }
 
-export const specLoader = (req, res) => {
+export const specLoader = (req: Request, res: Response) => {
     if (globalOasTlmConfig.specFileName) {
         try {
             const data = readFileSync(globalOasTlmConfig.specFileName, { encoding: 'utf8', flag: 'r' });
             const extension = path.extname(globalOasTlmConfig.specFileName);
             let json = data;
-            if (extension == yaml)
+            if (extension == "yaml")
+                //@ts-ignore
                 json = JSON.stringify(yaml.SafeLoad(data), null, 2);
             res.setHeader('Content-Type', 'application/json');
             res.send(json);
@@ -47,22 +49,22 @@ export const specLoader = (req, res) => {
             console.error(`ERROR loading spec file ${globalOasTlmConfig.specFileName}: ${e}`);
         }
     } else if (globalOasTlmConfig.spec) {
-            let spec = false;
+        let spec = null;
+        try {
+            spec = JSON.parse(globalOasTlmConfig.spec);
+        } catch (ej) {
             try {
-                spec = JSON.parse(globalOasTlmConfig.spec);
-            } catch (ej) {
-                try {
-                    spec = JSON.stringify(yaml.load(globalOasTlmConfig.spec), null, 2);
-                } catch (ey) {
-                    console.error(`Error parsing spec: ${ej} - ${ey}`);
-                }
+                spec = JSON.stringify(yaml.load(globalOasTlmConfig.spec), null, 2);
+            } catch (ey) {
+                console.error(`Error parsing spec: ${ej} - ${ey}`);
             }
-            if (!spec) {
-                res.status(404);
-            } else {
-                res.setHeader('Content-Type', 'application/json');
-                res.send(spec);
-            }
+        }
+        if (!spec) {
+            res.status(404);
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(spec);
+        }
     } else {
         res.status(404);
     }

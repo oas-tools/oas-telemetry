@@ -8,7 +8,19 @@ let prevOsData = {
   cpus: cpus(),
 };
 
-export function getCpuUsageData() {
+export function getCpuUsageData(): Array<{
+  cpuNumber: string;
+  idle: number;
+  user: number;
+  system: number;
+  interrupt: number;
+  nice: number;
+  userP: number;
+  systemP: number;
+  idleP: number;
+  interruptP: number;
+  niceP: number;
+}> {
   const currentTime = Date.now();
   const timeElapsed = currentTime - prevOsData.time;
   const currentOsData = { time: currentTime, cpus: cpus() };
@@ -54,10 +66,12 @@ let prevProcData = {
   usage: process.cpuUsage(),
 };
 
-
-
-
-export function getProcessCpuUsageData() {
+export function getProcessCpuUsageData(): {
+  user: number;
+  system: number;
+  userP: number;
+  systemP: number;
+} {
   const currentTime = Date.now();
   const currentUsage = process.cpuUsage();
   const prevUsage = prevProcData.usage;
@@ -79,7 +93,12 @@ export function getProcessCpuUsageData() {
   };
 }
 
-export function getMemoryData() {
+export function getMemoryData(): {
+  used: number;
+  free: number;
+  usedP: number;
+  freeP: number;
+} {
   const total = totalmem();
   const free = freemem();
   const used = total - free;
@@ -87,16 +106,16 @@ export function getMemoryData() {
   const usedP = used / total;
 
   return {
-    used: used,
-    free: free,
-    usedP: usedP,
-    freeP: freeP,
+    used,
+    free,
+    usedP,
+    freeP,
   };
 }
 
-export function getProcessMemoryData() {
-  if (process.memoryUsage.rss) {
-    return process.memoryUsage.rss();
+export function getProcessMemoryData(): number {
+  if (process.memoryUsage().rss) {
+    return process.memoryUsage().rss;
   }
-  return process.memoryUsage().rss;
+  return 0;
 }

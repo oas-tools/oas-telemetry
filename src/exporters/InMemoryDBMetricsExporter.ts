@@ -2,25 +2,29 @@ import { ExportResultCode } from '@opentelemetry/core';
 import dataStore from '@seald-io/nedb';
 
 export class InMemoryDBMetricsExporter {
+
+    private _metrics: dataStore<Record<string, any>>;
+    private _stopped: boolean;
+
     constructor() {
         this._metrics = new dataStore();
         this._stopped = false;
     }
 
-    export(metrics, resultCallback) {
+    export(metrics: any, resultCallback: any) {
         try {
             if (!this._stopped) {
                 // metrics = metrics?.scopeMetrics;
                 // const cleanMetrics = metrics.map(metric => applyNesting(metric));
                 this._metrics.insert(metrics, (err, newDoc) => {
                     if (err) {
-                        console.error('Insertion Error:', err); 
+                        console.error('Insertion Error:', err);
                         return;
                     }
                 });
             }
             setTimeout(() => resultCallback({ code: ExportResultCode.SUCCESS }), 0);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error exporting metrics\n' + error.message + '\n' + error.stack);
             return resultCallback({
                 code: ExportResultCode.FAILED,
@@ -51,7 +55,7 @@ export class InMemoryDBMetricsExporter {
         return Promise.resolve();
     }
 
-    find(search, callback) {
+    find(search: any, callback: any) {
         this._metrics.find(search, callback);
     }
 
@@ -64,12 +68,12 @@ export class InMemoryDBMetricsExporter {
     }
 }
 
-function convertToNestedObject(obj) {
+function convertToNestedObject(obj: any) {
     const result = {};
 
     for (const key in obj) {
         const keys = key.split('.');
-        let temp = result;
+        let temp: any = result;
 
         for (let i = 0; i < keys.length; i++) {
             const currentKey = keys[i];
@@ -96,14 +100,14 @@ function convertToNestedObject(obj) {
  * @param {Object} obj - The object to apply nesting to.
  * @returns {Object} - The transformed object with nested structures.
  */
-function applyNesting(obj) {
+function applyNesting(obj: any) {
 
 
-        for (const key in obj) {
-            if (typeof obj[key] === 'object' && obj[key] !== null) {
-                obj[key] = applyNesting(obj[key]);
-            }
+    for (const key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            obj[key] = applyNesting(obj[key]);
         }
+    }
 
 
     return obj;

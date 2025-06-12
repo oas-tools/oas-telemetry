@@ -1,12 +1,14 @@
-import { metrics } from "@opentelemetry/api";
+import { GlobalOasTlmConfig } from "@types";
 import DynamicExporter from "./exporters/dynamicExporter.js";
 import { InMemoryDBMetricsExporter } from "./exporters/InMemoryDBMetricsExporter.js";
 
 //Environment variables
 //OASTLM_MODULE_DISABLED = 'true' //Disables the module (empty middleware and no tracing)
 
-export const globalOasTlmConfig = {
-    dynamicExporter: new DynamicExporter(),
+
+
+export const globalOasTlmConfig: GlobalOasTlmConfig = {
+    dynamicSpanExporter: new DynamicExporter(),
     metricsExporter: new InMemoryDBMetricsExporter(),
     systemMetricsInterval: 1000 * 5, // 5 seconds
     baseURL: "/telemetry",
@@ -18,6 +20,5 @@ export const globalOasTlmConfig = {
     password: "oas-telemetry-password",
     jwtSecret: "oas-telemetry-secret",
 };
-//5 name alternatives. one for globals 
 
-export default {globalOasTlmConfig}
+export default { globalOasTlmConfig };

@@ -1,10 +1,12 @@
-export class ConsoleExporter {
+import { OasTlmExporter } from "../types";
+
+export class ConsoleExporter implements OasTlmExporter {
 
     // PLUGIN SYSTEM -----------------------------------------------------------
     plugins = [];
 
     // OPEN TELEMETRY EXPORTER INTERFACE ---------------------------------------
-    export(readableSpans, resultCallback) {
+    export(readableSpans: any, resultCallback: any) {
         console.log('ConsoleExporter | Received spans: ', readableSpans.length);
         setTimeout(() => resultCallback({ code: 0 }), 0);
     }
@@ -35,13 +37,13 @@ export class ConsoleExporter {
         return true;
     }
 
-    find(search, callback) {
+    find(search: any, callback: any) {
         console.log("Getting finished spans");
         callback(null, []);
         return [];
     }
 
-    async getFinishedSpans() {
+    getFinishedSpans(): any[] {
         return [];
     }
 }
