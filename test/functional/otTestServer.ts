@@ -68,6 +68,7 @@ const spec = { "paths": {
 const oasTlmConfig = {
     spec : JSON.stringify(spec),
     baseURL: "/telemetry",
+    authEnabled: true,
 }
 app.use(oasTelemetry(oasTlmConfig));
 
@@ -96,9 +97,9 @@ app.get("/api/v1/pets/:name", (req, res) => {
     let name = req.params.name;
     let filterdPets = pets.filter((p)=>(p.name==name));
     if(filterdPets.length > 0)
-        return res.send(filterdPets[0]);
+        res.send(filterdPets[0]);
     else
-        return res.sendStatus(404);
+        res.sendStatus(404);
 });
 app.get("/api/v1/clinics", (req, res) => {
     res.send(clinics);

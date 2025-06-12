@@ -7,56 +7,53 @@ import authRoutes from './routes/authRoutes.js';
 import { telemetryRoutes } from './routes/telemetryRoutes.js';
 import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';
 import metricsRoutes from './routes/metricsRoutes.js';
+import { OasTlmInputConfig } from '@types';
+import logger from './utils/logger.js';
 
-
-let dbglog = () => { };
-
-if (process.env.OTDEBUG == "true")
-    dbglog = console.log;
 
 /**
  * Returns the Oas Telemetry middleware. The parameters are the same as `globalOasTlmConfig`.
  * All parameters are optional. However, either `spec` or `specFileName` must be provided to enable endpoint filtering.
  * 
- * @param {Object} OasTlmConfig Configuration object.
- * @param {string} [OasTlmConfig.baseURL="/telemetry"] The base URL for the telemetry routes.
- * @param {Object} [OasTlmConfig.spec] The OpenAPI spec object.
- * @param {string} [OasTlmConfig.specFileName] Alternative to `spec`: the path to the OpenAPI spec file.
- * @param {boolean} [OasTlmConfig.autoActivate=true] Whether to start telemetry automatically on load.
- * @param {boolean} [OasTlmConfig.authEnabled=true] Whether to enable authentication middleware.
- * @param {number} [OasTlmConfig.apiKeyMaxAge=1800000] The maximum age of the API key in milliseconds.
- * @param {string} [OasTlmConfig.defaultApiKey] The default API key to use.
- * @param {OasTlmExporter} [OasTlmConfig.exporter=InMemoryExporter] The exporter to use. Must implement the `OasTlmExporter` interface.
+ * @param {Object} oasTlmInputConfig Configuration object.
+ * @param {string} [oasTlmInputConfig.baseURL="/telemetry"] The base URL for the telemetry routes.
+ * @param {Object} [oasTlmInputConfig.spec] The OpenAPI spec object.
+ * @param {string} [oasTlmInputConfig.specFileName] Alternative to `spec`: the path to the OpenAPI spec file.
+ * @param {boolean} [oasTlmInputConfig.autoActivate=true] Whether to start telemetry automatically on load.
+ * @param {boolean} [oasTlmInputConfig.authEnabled=true] Whether to enable authentication middleware.
+ * @param {number} [oasTlmInputConfig.apiKeyMaxAge=1800000] The maximum age of the API key in milliseconds.
+ * @param {string} [oasTlmInputConfig.defaultApiKey] The default API key to use.
+ * @param {OasTlmExporter} [oasTlmInputConfig.exporter=InMemoryExporter] The exporter to use. Must implement the `OasTlmExporter` interface.
  * @returns {Router} The middleware router for Oas Telemetry.
  */
-export default function oasTelemetry(OasTlmConfig) {
+export default function oasTelemetry(oasTlmInputConfig: OasTlmInputConfig): Router {
     const router = Router();
     router.use((req, res, next) => {
         if (req.body !== undefined) {
-          return next(); // Ya parseado, evitar json()
+            return next(); // Ya parseado, evitar json()
         }
-      
+
         return json()(req, res, next);
-      });
+    });
 
     if (process.env.OASTLM_MODULE_DISABLED === 'true') {
         return router;
     };
-    if (OasTlmConfig) {
-        console.log("User provided config");
-        // Global = user-provided || default, for each key
+    if (oasTlmInputConfig) {
+        logger.info("User provided config");
+        // Override global config with user provided config
         for (const key in globalOasTlmConfig) {
-            globalOasTlmConfig[key] = OasTlmConfig[key] ?? globalOasTlmConfig[key];
+            globalOasTlmConfig[key] = oasTlmInputConfig[key] ?? globalOasTlmConfig[key];
         }
     }
-    console.log("baseURL: ", globalOasTlmConfig.baseURL);
-    globalOasTlmConfig.dynamicExporter.changeExporter(globalOasTlmConfig.exporter ?? new InMemoryExporter());
+    logger.info("baseURL: ", globalOasTlmConfig.baseURL);
+    globalOasTlmConfig.dynamicSpanExporter.changeExporter(globalOasTlmConfig.exporter ?? new InMemoryExporter());
 
     if (globalOasTlmConfig.spec)
-        dbglog(`Spec content provided`);
+        logger.info(`Spec content provided`);
     else {
         if (globalOasTlmConfig.specFileName != "")
-            dbglog(`Spec file used for telemetry: ${globalOasTlmConfig.specFileName}`);
+            logger.info(`Spec file used for telemetry: ${globalOasTlmConfig.specFileName}`);
         else {
             console.error("No spec available !");
         }
@@ -68,7 +65,7 @@ export default function oasTelemetry(OasTlmConfig) {
     router.use(baseURL + "/metrics", metricsRoutes);
 
     if (globalOasTlmConfig.autoActivate) {
-        globalOasTlmConfig.dynamicExporter.exporter?.start();
+        globalOasTlmConfig.dynamicSpanExporter.exporter?.start();
     }
 
     return router;
@@ -100,9 +97,9 @@ export default function oasTelemetry(OasTlmConfig) {
  * @param {Array} middlewares An array of middleware or routers to be wrapped.
  * @returns {Array} An array of wrapped middleware functions.
  */
-function getWrappedMiddlewares(conditionCallback, middlewares) {
+function getWrappedMiddlewares(conditionCallback: { (): boolean; (): any; }, middlewares: any[]) {
     return middlewares.map(middleware => {
-        return function (req, res, next) {
+        return function (req: any, res: any, next: () => void) {
             if (conditionCallback()) {
                 if (typeof middleware === 'function') {
                     // look for handle property, if it exists, it's a router. If not call middleware

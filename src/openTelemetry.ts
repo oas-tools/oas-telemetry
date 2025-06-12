@@ -4,15 +4,15 @@ import { Resource } from '@opentelemetry/resources';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { globalOasTlmConfig } from './config.js';
 import { getCpuUsageData, getProcessCpuUsageData, getMemoryData, getProcessMemoryData } from './systemMetrics.js'; // Import system metrics functions
-
+import logger from './utils/logger.js';
 // DynamicExporter allows changing to any exporter at runtime;
-const traceExporter = globalOasTlmConfig.dynamicExporter;
+const dynamicSpanExporter = globalOasTlmConfig.dynamicSpanExporter;
 // Alternative 1: Using NodeSDK
 const sdk = new NodeSDK({
   resource: new Resource({
     service: 'oas-telemetry-service'
   }),
-  traceExporter,
+  traceExporter: dynamicSpanExporter,
   instrumentations: [new HttpInstrumentation()]
 });
 
@@ -25,7 +25,7 @@ setInterval(() => {
   const processMemoryData = getProcessMemoryData();
 
   const metrics = {
-    timestamp: Date.now(), 
+    timestamp: Date.now(),
     cpuUsageData,
     processCpuUsageData,
     memoryData,
@@ -34,10 +34,10 @@ setInterval(() => {
 
   // Export the collected metrics using the InMemoryDBMetricsExporter
   const inMemoryDbMetricExporter = globalOasTlmConfig.metricsExporter;
-  inMemoryDbMetricExporter.export(metrics, (result) => {});
+  inMemoryDbMetricExporter.export(metrics, (result: any) => { }); // TODO: refine type of `result`
 }, globalOasTlmConfig.systemMetricsInterval);
 
-console.log('✅ OpenTelemetry System Metrics initialized.');
+logger.info('✅ OpenTelemetry System Metrics initialized.');
 
 if (process.env.OASTLM_MODULE_DISABLED !== 'true') {
   sdk.start()

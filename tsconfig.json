@@ -7,8 +7,19 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationDir": "./dist/types",
-    "outDir": "./dist/esm", 
-    "rootDir": "./src"
+    "outDir": "./dist/esm",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@types": [
+        "types/index"
+      ],
+      "@types/*": [
+        "types/*"
+      ]
+    },
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
