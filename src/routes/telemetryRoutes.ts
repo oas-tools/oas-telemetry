@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { mainPage, detailPage , specLoader, apiPage} from '../controllers/uiController.js';
+import { mainPage, detailPage, specLoader, apiPage } from '../controllers/uiController.js';
 import {
     startTelemetry,
     stopTelemetry,
@@ -12,9 +12,6 @@ import {
 import { listPlugins, registerPlugin } from '../controllers/pluginController.js';
 
 export const telemetryRoutes = Router();
-
-
-
 
 // Main Pages
 telemetryRoutes.get('/', mainPage);

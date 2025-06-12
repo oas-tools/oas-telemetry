@@ -1,7 +1,7 @@
-//let oasTelemetry = require('@oas-tools/oas-telemetry');
-let oasTelemetry = require('../../dist/cjs/index.cjs');
+//import oasTelemetry from '@oas-tools/oas-telemetry';
+import oasTelemetry from '../../src/index.js';
 
-let express = require('express');
+import express from 'express';
 
 const app = express();
 const port = 3000;
@@ -65,15 +65,18 @@ const spec = { "paths": {
                 }
             }
 
-app.use(oasTelemetry({
-    spec : JSON.stringify(spec)
-}))
+const oasTlmConfig = {
+    spec : JSON.stringify(spec),
+    baseURL: "/telemetry",
+    authEnabled: true,
+}
+app.use(oasTelemetry(oasTlmConfig));
 
 app.use(express.json());
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
-    console.log(`Telemetry portal available at http://localhost:${port}/telemetry`);
+    console.log(`Telemetry portal available at http://localhost:${port}${oasTlmConfig.baseURL}`);
 });
 
 let pets =[{ name: "rocky"},{ name: "pikachu"}];
@@ -94,9 +97,9 @@ app.get("/api/v1/pets/:name", (req, res) => {
     let name = req.params.name;
     let filterdPets = pets.filter((p)=>(p.name==name));
     if(filterdPets.length > 0)
-        return res.send(filterdPets[0]);
+        res.send(filterdPets[0]);
     else
-        return res.sendStatus(404);
+        res.sendStatus(404);
 });
 app.get("/api/v1/clinics", (req, res) => {
     res.send(clinics);
