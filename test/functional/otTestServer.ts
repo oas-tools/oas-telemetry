@@ -68,7 +68,7 @@ const spec = { "paths": {
 const oasTlmConfig = {
     spec : JSON.stringify(spec),
     baseURL: "/telemetry",
-    authEnabled: true,
+    // authEnabled: true,
 }
 app.use(oasTelemetry(oasTlmConfig));
 

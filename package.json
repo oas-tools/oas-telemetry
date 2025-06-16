@@ -10,34 +10,17 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "devImportUi": "node dev/ui/importUiToHtml.js",
-    "devExportUi": "node dev/ui/exportHtmlToUi.js",
-    "dev": "tsx test/functional/otTestServer.ts",
-    "start:esm": "node test/functional/otTestServer.mjs",
-    "start:cjs": "node test/functional/otTestServer.cjs",
-    "build": "npm run build:esm && npm run build:cjs",
-    "build:esm": "tsc -p tsconfig.json",
-    "build:cjs": "babel dist/esm -d dist/cjs --out-file-extension .cjs",
-    "devUi": "nodemon --watch dev/ui src --ext html --exec \"npm run devExportUi && npm run build && node test/functional/otTestServer.cjs\"",
-    "devUiEsm": "nodemon --watch dev/ui --ext html --exec \"npm run devExportUi && node test/functional/otTestServer.mjs\"",
-    "publish": "npm run build && npm publish",
-    "testPerformance": "npm i && cd test/performance/ && ./test.sh",
-    "pretest": "npm run build",
-    "test": "npm run testCJS && npm run testMJS",
-    "build:dockerTest": "npm run build && docker build -t oastlm-test-ks-api -f ./test/performance/ks-api/Dockerfile .",
-    "testCJS": "npm run preTestCJS && npm run launchTestCJS && npm run postTestCJS",
-    "preTestCJS": "node test/functional/otTestServer.cjs &",
-    "launchTestCJS": "npx -y wait-on http://localhost:3000/api/v1/pets && npm run sendRequests && sleep 4 && npm run checkRequestsLog",
-    "postTestCJS": "kill `ps -uax | grep \"node test/functional/otTestServer\" | grep -v \"grep\" | grep -v \"sh\" | awk '{print $2}'`",
-    "testMJS": "npm run preTestMJS && npm run launchTestMJS && npm run postTestMJS",
-    "preTestMJS": "node test/functional/otTestServer.mjs &",
-    "launchTestMJS": "npx -y wait-on http://localhost:3000/api/v1/pets && npm run sendRequests && sleep 4 && npm run checkRequestsLog",
-    "postTestMJS": "kill `ps -uax | grep \"node test/functional/otTestServer\" | grep -v \"grep\" | grep -v \"sh\" | awk '{print $2}'`",
-    "sendRequests": "npx -y newman run test/functional/request-collection.json -e test/functional/request-environment.json",
-    "checkRequestsLog": "npx -y newman run test/functional/request-collection-check.json -e test/functional/request-environment.json",
-    "launchKSApi": "npm run build; (cd test/performance/ks-api ; node indexTelemetry.js)",
-    "launchDevel": "export OTDEBUG=true && npm run launchKSApi"
+    "clean": "rm -rf dist",
+    "build": "npm run build -w packages/ui && npm run build -w packages/lib",
+    "dev": "concurrently \"npm run dev -w packages/lib\" \"npm run dev -w packages/ui\"",
+    "esm": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.mjs",
+    "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.cjs",
+    "publishToNpm": "npm run build && npm publish"
   },
+  "workspaces": [
+    "packages/lib",
+    "packages/ui"
+  ],
   "files": [
     "dist"
   ],
@@ -47,48 +30,10 @@
   "exports": {
     ".": {
       "require": "./dist/cjs/index.cjs",
-      "import": "./dist/esm/index.js",
-      "types": "./dist/types/index.d.ts"
+      "import": "./dist/esm/index.js"
     }
   },
-  "dependencies": {
-    "@opentelemetry/host-metrics": "^0.35.5",
-    "@opentelemetry/instrumentation-http": "^0.51.0",
-    "@opentelemetry/resources": "^1.24.0",
-    "@opentelemetry/sdk-node": "^0.49.1",
-    "@seald-io/nedb": "^4.0.4",
-    "axios": "^1.6.8",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^16.5.0",
-    "dynamic-installer": "^1.1.1",
-    "express": "^4.19.2",
-    "flatted": "^3.3.2",
-    "import-from-string": "^0.0.4",
-    "js-yaml": "^4.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "react-router-dom": "^7.6.2",
-    "readline": "^1.3.0",
-    "v8": "^0.1.0"
-  },
   "devDependencies": {
-    "@babel/cli": "^7.24.1",
-    "@babel/core": "^7.24.4",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-object-rest-spread": "^7.20.7",
-    "@babel/preset-env": "^7.24.4",
-    "@opentelemetry/api": "^1.8.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.43.0",
-    "@types/cookie-parser": "^1.4.9",
-    "@types/express": "^5.0.3",
-    "@types/js-yaml": "^4.0.9",
-    "@types/jsonwebtoken": "^9.0.9",
-    "@types/react": "^19.1.8",
-    "@types/react-router-dom": "^5.3.3",
-    "apipecker": "^1.3.1",
-    "babel-plugin-add-module-exports": "^1.0.4",
-    "babel-plugin-module-extension": "^0.1.3",
-    "nodemon": "^3.1.0",
-    "tsx": "^4.20.1",
-    "typescript": "^5.8.3"
+    "concurrently": "^9.1.2"
   }
 }

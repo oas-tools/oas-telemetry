@@ -1,0 +1,236 @@
+{
+  "spansCount": 2,
+  "spans": [
+    {
+      "attributes": {
+        "http": {
+          "url": "http://localhost:3000/.well-known/appspecific/com.chrome.devtools.json",
+          "host": "localhost:3000",
+          "method": "GET",
+          "scheme": "http",
+          "target": "/.well-known/appspecific/com.chrome.devtools.json",
+          "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+          "flavor": "1.1",
+          "status_code": 404,
+          "status_text": "NOT FOUND"
+        },
+        "net": {
+          "host": {
+            "name": "localhost",
+            "ip": "::1",
+            "port": 3000
+          },
+          "transport": "ip_tcp",
+          "peer": {
+            "ip": "::1",
+            "port": 60679
+          }
+        }
+      },
+      "links": {},
+      "events": {},
+      "_droppedAttributesCount": 0,
+      "_droppedEventsCount": 0,
+      "_droppedLinksCount": 0,
+      "status": {
+        "code": 0
+      },
+      "endTime": {
+        "0": 1750019394,
+        "1": 612706900
+      },
+      "_ended": true,
+      "_duration": {
+        "0": 0,
+        "1": 1706900
+      },
+      "name": "GET",
+      "_spanContext": {
+        "traceId": "6384a454fc9f7f8b92c2a81ba52a1196",
+        "spanId": "1301cf345acd798d",
+        "traceFlags": 1
+      },
+      "kind": 1,
+      "_performanceStartTime": 5237358.5167,
+      "_performanceOffset": -18.093505859375,
+      "_startTimeProvided": false,
+      "startTime": {
+        "0": 1750019394,
+        "1": 611000000
+      },
+      "resource": {
+        "_attributes": {
+          "service": "oas-telemetry-service",
+          "telemetry": {
+            "sdk": {
+              "language": "nodejs",
+              "name": "opentelemetry",
+              "version": "1.22.0"
+            }
+          },
+          "process": {
+            "pid": 35224,
+            "executable": {
+              "name": "npm run esm",
+              "path": "C:\\Program Files\\nodejs\\node.exe"
+            },
+            "command_args": {
+              "0": "C:\\Program Files\\nodejs\\node.exe",
+              "1": "C:\\Personal\\ISA\\telemetry\\oas-telemetry\\test\\functional\\otTestServer.mjs"
+            },
+            "runtime": {
+              "version": "22.11.0",
+              "name": "nodejs",
+              "description": "Node.js"
+            },
+            "command": "C:\\Personal\\ISA\\telemetry\\oas-telemetry\\test\\functional\\otTestServer.mjs",
+            "owner": "manol"
+          }
+        },
+        "asyncAttributesPending": false,
+        "_syncAttributes": {
+          "service": "oas-telemetry-service",
+          "telemetry": {
+            "sdk": {
+              "language": "nodejs",
+              "name": "opentelemetry",
+              "version": "1.22.0"
+            }
+          }
+        },
+        "_asyncAttributesPromise": {}
+      },
+      "instrumentationLibrary": {
+        "name": "@opentelemetry/instrumentation-http",
+        "version": "0.51.1"
+      },
+      "_spanLimits": {
+        "attributeValueLengthLimit": null,
+        "attributeCountLimit": 128,
+        "linkCountLimit": 128,
+        "eventCountLimit": 128,
+        "attributePerEventCountLimit": 128,
+        "attributePerLinkCountLimit": 128
+      },
+      "_attributeValueLengthLimit": null,
+      "_spanProcessor": "oas-telemetry skips this field to avoid circular reference",
+      "_id": "gq82RetRe9qG3oVt"
+    },
+    {
+      "attributes": {
+        "http": {
+          "url": "http://localhost:3000/api/v1/pets",
+          "host": "localhost:3000",
+          "method": "POST",
+          "scheme": "http",
+          "target": "/api/v1/pets",
+          "user_agent": "PostmanRuntime/7.44.0",
+          "request_content_length_uncompressed": 15,
+          "flavor": "1.1",
+          "status_code": 201,
+          "status_text": "CREATED"
+        },
+        "net": {
+          "host": {
+            "name": "localhost",
+            "ip": "::1",
+            "port": 3000
+          },
+          "transport": "ip_tcp",
+          "peer": {
+            "ip": "::1",
+            "port": 59910
+          }
+        }
+      },
+      "links": {},
+      "events": {},
+      "_droppedAttributesCount": 0,
+      "_droppedEventsCount": 0,
+      "_droppedLinksCount": 0,
+      "status": {
+        "code": 0
+      },
+      "endTime": {
+        "0": 1750014165,
+        "1": 964201300
+      },
+      "_ended": true,
+      "_duration": {
+        "0": 0,
+        "1": 107201300
+      },
+      "name": "POST",
+      "_spanContext": {
+        "traceId": "fbd154896583e5d5d38bb29ba2cd7229",
+        "spanId": "cb80d69574b8ad85",
+        "traceFlags": 1
+      },
+      "kind": 1,
+      "_performanceStartTime": 8587.3662,
+      "_performanceOffset": -0.943115234375,
+      "_startTimeProvided": false,
+      "startTime": {
+        "0": 1750014165,
+        "1": 857000000
+      },
+      "resource": {
+        "_attributes": {
+          "service": "oas-telemetry-service",
+          "telemetry": {
+            "sdk": {
+              "language": "nodejs",
+              "name": "opentelemetry",
+              "version": "1.22.0"
+            }
+          },
+          "process": {
+            "pid": 35224,
+            "executable": {
+              "name": "npm run esm",
+              "path": "C:\\Program Files\\nodejs\\node.exe"
+            },
+            "command_args": {
+              "0": "C:\\Program Files\\nodejs\\node.exe",
+              "1": "C:\\Personal\\ISA\\telemetry\\oas-telemetry\\test\\functional\\otTestServer.mjs"
+            },
+            "runtime": {
+              "version": "22.11.0",
+              "name": "nodejs",
+              "description": "Node.js"
+            },
+            "command": "C:\\Personal\\ISA\\telemetry\\oas-telemetry\\test\\functional\\otTestServer.mjs",
+            "owner": "manol"
+          }
+        },
+        "asyncAttributesPending": false,
+        "_syncAttributes": {
+          "service": "oas-telemetry-service",
+          "telemetry": {
+            "sdk": {
+              "language": "nodejs",
+              "name": "opentelemetry",
+              "version": "1.22.0"
+            }
+          }
+        },
+        "_asyncAttributesPromise": {}
+      },
+      "instrumentationLibrary": {
+        "name": "@opentelemetry/instrumentation-http",
+        "version": "0.51.1"
+      },
+      "_spanLimits": {
+        "attributeValueLengthLimit": null,
+        "attributeCountLimit": 128,
+        "linkCountLimit": 128,
+        "eventCountLimit": 128,
+        "attributePerEventCountLimit": 128,
+        "attributePerLinkCountLimit": 128
+      },
+      "_attributeValueLengthLimit": null,
+      "_spanProcessor": "oas-telemetry skips this field to avoid circular reference",
+      "_id": "l17BihoaZ1xlN1bZ"
+    }
+  ]
+}
