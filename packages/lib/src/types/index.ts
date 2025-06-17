@@ -1,7 +1,7 @@
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import DynamicExporter from 'exporters/dynamicExporter';
-import { InMemoryDBMetricsExporter } from 'exporters/InMemoryDBMetricsExporter';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
+import DynamicExporter from 'exporters/dynamicExporter.js';
+import { InMemoryDBMetricsExporter } from 'exporters/InMemoryDBMetricsExporter.js';
+
 export interface OasTlmExporter extends SpanExporter {
     plugins: PluginResource[];
     export: (readableSpans: ReadableSpan[], resultCallback: (result: { code: number }) => void) => void;
@@ -31,7 +31,7 @@ export interface PluginImpl {
 };
 export interface OasTlmInputConfig {
     baseURL?: string;
-    spec?: object;
+    spec?: object | string;
     specFileName?: string;
     autoActivate?: boolean;
     authEnabled?: boolean;

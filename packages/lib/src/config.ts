@@ -1,4 +1,4 @@
-import { GlobalOasTlmConfig } from "@types";
+import { type GlobalOasTlmConfig } from "./types/index.js";
 import DynamicExporter from "./exporters/dynamicExporter.js";
 import { InMemoryDBMetricsExporter } from "./exporters/InMemoryDBMetricsExporter.js";
 

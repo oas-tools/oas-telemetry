@@ -1,6 +1,6 @@
 import { OasTlmExporter, PluginResource } from "../types/index.js";
 import { ConsoleExporter } from "./consoleExporter.js";
-import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
+import { SpanExporter } from '@opentelemetry/sdk-trace-base';
 
 
 /**
@@ -31,7 +31,7 @@ export class DynamicExporter implements SpanExporter {
         this.exporter.plugins.push(pluginResource);
     }
     activatePlugin(pluginId: string) {
-        let plugins = this.exporter.plugins;
+        const plugins = this.exporter.plugins;
         if (plugins) {
             // plugin.active = true;
             plugins.forEach((plugin: PluginResource) => {
@@ -44,7 +44,7 @@ export class DynamicExporter implements SpanExporter {
 
 
     constructor() {
-        let defaultExporter = new ConsoleExporter();
+        const defaultExporter = new ConsoleExporter();
         this.exporter = defaultExporter;
         this.export = (readableSpans: any, resultCallback: any) => defaultExporter.export(readableSpans, resultCallback);
         this.shutdown = () => defaultExporter.shutdown();

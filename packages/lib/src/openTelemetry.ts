@@ -34,7 +34,7 @@ setInterval(() => {
 
   // Export the collected metrics using the InMemoryDBMetricsExporter
   const inMemoryDbMetricExporter = globalOasTlmConfig.metricsExporter;
-  inMemoryDbMetricExporter.export(metrics, (result: any) => { }); // TODO: refine type of `result`
+  inMemoryDbMetricExporter.export(metrics, () => { });
 }, globalOasTlmConfig.systemMetricsInterval);
 
 logger.info('✅ OpenTelemetry System Metrics initialized.');

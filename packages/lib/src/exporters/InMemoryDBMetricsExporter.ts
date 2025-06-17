@@ -16,7 +16,7 @@ export class InMemoryDBMetricsExporter {
             if (!this._stopped) {
                 // metrics = metrics?.scopeMetrics;
                 // const cleanMetrics = metrics.map(metric => applyNesting(metric));
-                this._metrics.insert(metrics, (err, newDoc) => {
+                this._metrics.insert(metrics, (err: any, _newDoc: any) => {
                     if (err) {
                         console.error('Insertion Error:', err);
                         return;
@@ -66,50 +66,5 @@ export class InMemoryDBMetricsExporter {
     getFinishedMetrics() {
         return this._metrics.getAllData();
     }
-}
-
-function convertToNestedObject(obj: any) {
-    const result = {};
-
-    for (const key in obj) {
-        const keys = key.split('.');
-        let temp: any = result;
-
-        for (let i = 0; i < keys.length; i++) {
-            const currentKey = keys[i];
-
-            if (i === keys.length - 1) {
-                // Last key, set the value
-                temp[currentKey] = obj[key];
-            } else {
-                // Intermediate key, ensure the object exists
-                if (!temp[currentKey]) {
-                    temp[currentKey] = {};
-                }
-                temp = temp[currentKey];
-            }
-        }
-    }
-
-    return result;
-}
-
-/**
- * Applies nesting to all dot-separated keys within an object.
- * 
- * @param {Object} obj - The object to apply nesting to.
- * @returns {Object} - The transformed object with nested structures.
- */
-function applyNesting(obj: any) {
-
-
-    for (const key in obj) {
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-            obj[key] = applyNesting(obj[key]);
-        }
-    }
-
-
-    return obj;
 }
 

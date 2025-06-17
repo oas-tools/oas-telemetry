@@ -13,8 +13,8 @@
     "clean": "rm -rf dist",
     "build": "npm run build -w packages/ui && npm run build -w packages/lib",
     "dev": "concurrently \"npm run dev -w packages/lib\" \"npm run dev -w packages/ui\"",
-    "esm": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.mjs",
-    "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.cjs",
+    "esm": "npm run build:esm -w packages/lib",
+    "cjs": "npm run build:cjs -w packages/lib",
     "publishToNpm": "npm run build && npm publish"
   },
   "workspaces": [

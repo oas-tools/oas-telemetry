@@ -7,20 +7,21 @@ import { importFromString, requireFromString } from 'import-from-string';
 import { installDependencies } from 'dynamic-installer';
 import logger from '../utils/logger.js';
 import { Request, Response } from 'express';
+import { PluginResource } from '../types/index.js';
 
 export const listPlugins = (req: Request, res: Response) => {
-    res.send(globalOasTlmConfig.dynamicSpanExporter.getPlugins().map((p) => {
+    res.send(globalOasTlmConfig.dynamicSpanExporter.getPlugins().map((plugin: PluginResource) => {
         return {
-            id: p.id,
-            name: p.name,
-            url: p.url,
-            active: p.active
+            id: plugin.id,
+            name: plugin.name,
+            url: plugin.url,
+            active: plugin.active
         };
     }));
 }
 
 export const registerPlugin = async (req: Request, res: Response) => {
-    let pluginResource = req.body;
+    const pluginResource = req.body;
     logger.info(`Plugin Registration Request: = ${JSON.stringify(req.body, null, 2)}...`);
     logger.info(`Getting plugin at ${pluginResource.url}...`);
     let pluginCode;
@@ -76,7 +77,7 @@ export const registerPlugin = async (req: Request, res: Response) => {
         logger.info("Error in plugin code: no plugin object exported");
         return;
     }
-    for (let requiredFunction of ["load", "getName", "isConfigured"]) {
+    for (const requiredFunction of ["load", "getName", "isConfigured"]) {
         if (plugin[requiredFunction] == undefined) {
             res.status(400).send(`The plugin code exports a "plugin" object, however it should have a "${requiredFunction}" method`);
             logger.info("Error in plugin code: some required functions are missing");

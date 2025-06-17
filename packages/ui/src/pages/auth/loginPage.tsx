@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { TelemetryHeader } from "@/components/pages/telemetry-header"
 import { Lock, AlertCircle, CheckCircle } from "lucide-react"
 
 interface LoginPageProps {
@@ -53,7 +52,6 @@ export default function LoginPage({ onLogin, onNavigateToLanding }: LoginPagePro
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TelemetryHeader onNavigateToLanding={onNavigateToLanding} />
 
       <main className="flex items-center justify-center py-16">
         <Card className="w-full max-w-md">

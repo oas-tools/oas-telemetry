@@ -3,7 +3,7 @@ import {
     listMetrics,
     findMetrics,
     resetMetrics
-} from '../controllers/metricsController.js';
+} from './metricsController.js';
 
 export const metricsRoutes = Router();
 

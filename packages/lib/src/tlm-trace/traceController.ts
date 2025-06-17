@@ -1,4 +1,3 @@
-import v8 from 'v8';
 import { globalOasTlmConfig } from '../config.js';
 import { Request, Response } from 'express';
 
@@ -33,24 +32,12 @@ export const listTelemetry = async (req: Request, res: Response) => {
     }
 };
 
-export const heapStats = (req: Request, res: Response) => {
-    var heapStats = v8.getHeapStatistics();
-    var roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
-        //@ts-ignore
-        map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
-        return map;
-    }, {});
-    // @ts-ignore
-    roundedHeapStats['units'] = 'MB';
-    res.send(roundedHeapStats);
-};
-
 export const findTelemetry = (req: Request, res: Response) => {
     const body = req.body;
     const search = body?.search ? body.search : {};
     if (body?.flags?.containsRegex) {
         try {
-            //@ts-ignore
+            //@ts-expect-error yes
             body.config?.regexIds?.forEach(regexId => {
                 if (search[regexId]) search[regexId] = new RegExp(search[regexId]);
             });

@@ -14,7 +14,7 @@ export const uiRoutes = Router();
 uiRoutes.use(express.static(staticFilesPath));
 
 
-uiRoutes.get('*', (req, res) => {
+uiRoutes.get('*', (_req, res) => {
     // Serve the index.html file for all routes
     res.sendFile(path.join(staticFilesPath, 'index.html'));
 });

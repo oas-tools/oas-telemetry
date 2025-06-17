@@ -1,13 +1,12 @@
 import { Request, Response } from 'express';
 import { globalOasTlmConfig } from '../config.js';
-import ui from '../services/uiService.js';
 import jwt from 'jsonwebtoken';
 
 export const login = (req: Request, res: Response) => {
     try {
         const { password } = req.body;
         if (password === globalOasTlmConfig.password) {
-            let options = {
+            const options = {
                 maxAge: globalOasTlmConfig.apiKeyMaxAge,
                 httpOnly: true,
                 secure: true,
@@ -43,7 +42,3 @@ export const check = (req: Request, res: Response) => {
     res.status(200).json({ valid: false, message: 'Invalid API Key' });
 };
 
-export const loginPage = (req: Request, res: Response) => {
-    const baseURL = globalOasTlmConfig.baseURL;
-    res.send(ui(baseURL).login);
-};

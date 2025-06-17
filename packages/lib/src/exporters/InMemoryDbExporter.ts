@@ -1,6 +1,6 @@
 import { ExportResultCode } from '@opentelemetry/core';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { OasTlmExporter, PluginResource } from '../types';
+import { OasTlmExporter, PluginResource } from '../types/index.js';
 //import in memory database
 import dataStore from '@seald-io/nedb';
 import logger from '../utils/logger.js';
@@ -29,7 +29,7 @@ export class InMemoryExporter implements OasTlmExporter {
                     .map(span => applyNesting(span))// to avoid dot notation in keys (neDB does not support dot notation in keys)
                     .filter(span => !span?.attributes?.http?.target?.includes("/telemetry"));// to avoid telemetry spans
                 // Insert spans into the in-memory database
-                this._spans.insert(cleanSpans, (err, newDoc) => {
+                this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
                     // p = {name, plugin
                     this.plugins.forEach((pluginResource, i) => {
                         cleanSpans.forEach((span) => {
@@ -90,7 +90,7 @@ export class InMemoryExporter implements OasTlmExporter {
 }
 
 function removeCircularRefs(obj: any): any {
-    const seen = new WeakMap(); // Used to keep track of visited objects
+    // const seen = new WeakMap(); // Used to keep track of visited objects
 
 
     // Replacer function to handle circular references
