@@ -1,5 +1,5 @@
 //import oasTelemetry from '@oas-tools/oas-telemetry';
-import oasTelemetry from '../../../../dist/esm/index.js';
+import oasTelemetry from '../../dist/esm/index.js';
 
 import express from 'express';
 

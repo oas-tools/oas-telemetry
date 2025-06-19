@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { Request, Response } from 'express';
-import v8 from 'v8';
+import v8 from 'node:v8';
 
 
 export const specLoader = (_req: Request, res: Response) => {

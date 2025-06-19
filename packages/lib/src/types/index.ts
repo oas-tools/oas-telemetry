@@ -1,6 +1,6 @@
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
-import DynamicExporter from 'exporters/dynamicExporter.js';
-import { InMemoryDBMetricsExporter } from 'exporters/InMemoryDBMetricsExporter.js';
+import DynamicExporter from '../exporters/dynamicExporter';
+import { InMemoryDBMetricsExporter } from '../exporters/InMemoryDBMetricsExporter';
 
 export interface OasTlmExporter extends SpanExporter {
     plugins: PluginResource[];

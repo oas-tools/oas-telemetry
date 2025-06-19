@@ -5,9 +5,10 @@ import { fileURLToPath } from 'url';
 const customFilename = fileURLToPath(import.meta.url);
 const customDirname = path.dirname(customFilename);
 const staticFilesPath = path.join(customDirname, "../../ui");
+console.log(`Serving static files from: ${staticFilesPath}`);
 export const uiRoutes = Router();
 
-// This only works once the app is built:
+// This only works once the app is built: src/ --> dist/esm/
 // This file: dist/esm/routes/
 // UI bundle: dist/ui/
 // For development, the UI is served separately.

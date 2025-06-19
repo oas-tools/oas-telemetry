@@ -8,6 +8,7 @@ import authRoutes from './tlm-auth/authRoutes.js';
 import uiRoutes from './tlm-ui/uiRoutes.js';
 import traceRoutes from "./tlm-trace/traceRoutes.js";
 import { authMiddleware } from "./tlm-auth/authMiddleware.js";
+import utilsRoutes from "./tlm-util/utilRoutes.js";
 
 export const configureRoutes = (router: Router) => {
     if (process.env.OAS_TLM_ENV === 'development') {
@@ -34,6 +35,8 @@ export const configureRoutes = (router: Router) => {
     router.use(baseURL + "/oas-telemetry-ui", uiRoutes);
     router.use(baseURL + "/traces", traceRoutes);
     router.use(baseURL + "/metrics", metricsRoutes);
+
+    router.use(baseURL + "/utils", utilsRoutes);
 
     //redirect to the UI when accessing the base URL
     router.get(baseURL, (req, res) => {

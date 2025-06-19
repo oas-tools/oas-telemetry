@@ -1,39 +1,25 @@
 {
-  "name": "@oas-tools/oas-telemetry",
-  "version": "0.6.2",
-  "description": "This package exports an Express middleware that traces requests and responses of an Express application using OpenTelemetry.",
-  "author": "Manuel Otero",
-  "contributors": [
-    "Alejandro Santisteban",
-    "Pablo Fernandez"
-  ],
-  "license": "Apache-2.0",
-  "type": "module",
+  "name": "oas-telemetry-workspace",
+  "description": "Collection packages for OAS-Telemetry",
+  "private": true,
   "scripts": {
-    "clean": "rm -rf dist",
-    "build": "npm run build -w packages/ui && npm run build -w packages/lib",
     "dev": "concurrently \"npm run dev -w packages/lib\" \"npm run dev -w packages/ui\"",
-    "esm": "npm run build:esm -w packages/lib",
-    "cjs": "npm run build:cjs -w packages/lib",
+    "clean": "rm -rf packages/lib/dist",
+    "build": "npm run build -w packages/ui && npm run build -w packages/lib",
+    "build:esm": "npm run build:esm -w packages/lib",
+    "build:cjs": "npm run build:cjs -w packages/lib",
+    "build:ui": "npm run build -w packages/ui",
     "publishToNpm": "npm run build && npm publish"
   },
-  "workspaces": [
-    "packages/lib",
-    "packages/ui"
-  ],
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/cjs/index.cjs",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/cjs/index.cjs",
-      "import": "./dist/esm/index.js"
-    }
+  "engines": {
+    "node": ">=18"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "devDependencies": {
+    "apipecker": "^1.5.0",
+    "axios": "^1.10.0",
     "concurrently": "^9.1.2"
   }
 }
