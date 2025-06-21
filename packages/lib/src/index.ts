@@ -1,4 +1,4 @@
-import './openTelemetry.js';
+import './instrumentation/index.js';
 import { globalOasTlmConfig } from './config.js';
 import { Router } from 'express';
 import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';

@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'];
-const currentLogLevel = (process.env.OAS_TLM_LOG_LEVEL || 'INFO').toUpperCase();
-const serviceName = process.env.OAS_TLM_SERVICE_NAME || 'OAS-TLM';
+const currentLogLevel = (process.env.OASTLM_LOG_LEVEL || 'INFO').toUpperCase();
+const serviceName = process.env.OASTLM_SERVICE_NAME || 'OAS-TLM';
 
 function log(level: string, ...messages: any[]) {
   if (LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(currentLogLevel)) {

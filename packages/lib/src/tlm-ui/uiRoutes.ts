@@ -1,11 +1,18 @@
 import express, { Router } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import logger from '../utils/logger.js';
+
+let relativePath = '../../ui';
+
+if (process.env.OASTLM_ENV === 'development') {
+    relativePath = '../../dist/ui';
+    logger.warn('🚧 This process is serving the OASTLM UI from the build directory, but you are in development mode. For live updates, run the React app separately and access it at http://localhost:5173/.');
+}
 
 const customFilename = fileURLToPath(import.meta.url);
 const customDirname = path.dirname(customFilename);
-const staticFilesPath = path.join(customDirname, "../../ui");
-console.log(`Serving static files from: ${staticFilesPath}`);
+const staticFilesPath = path.join(customDirname, relativePath);
 export const uiRoutes = Router();
 
 // This only works once the app is built: src/ --> dist/esm/

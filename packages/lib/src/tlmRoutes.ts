@@ -9,9 +9,10 @@ import uiRoutes from './tlm-ui/uiRoutes.js';
 import traceRoutes from "./tlm-trace/traceRoutes.js";
 import { authMiddleware } from "./tlm-auth/authMiddleware.js";
 import utilsRoutes from "./tlm-util/utilRoutes.js";
+import logRoutes from './tlm-log/logRoutes.js';
 
 export const configureRoutes = (router: Router) => {
-    if (process.env.OAS_TLM_ENV === 'development') {
+    if (process.env.OASTLM_ENV === 'development') {
         logger.info("Running in development mode, enabling CORS for all origins");
         router.use(cors({
             origin: '*', // Permitir todas las solicitudes en desarrollo
@@ -35,8 +36,8 @@ export const configureRoutes = (router: Router) => {
     router.use(baseURL + "/oas-telemetry-ui", uiRoutes);
     router.use(baseURL + "/traces", traceRoutes);
     router.use(baseURL + "/metrics", metricsRoutes);
-
     router.use(baseURL + "/utils", utilsRoutes);
+    router.use(baseURL + "/logs", logRoutes); // Add log routes
 
     //redirect to the UI when accessing the base URL
     router.get(baseURL, (req, res) => {

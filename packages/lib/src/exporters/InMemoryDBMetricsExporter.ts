@@ -1,5 +1,7 @@
 import { ExportResultCode } from '@opentelemetry/core';
 import dataStore from '@seald-io/nedb';
+import { applyNesting } from '../utils/circular.js';
+import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
 
 export class InMemoryDBMetricsExporter {
 
@@ -11,12 +13,12 @@ export class InMemoryDBMetricsExporter {
         this._stopped = false;
     }
 
-    export(metrics: any, resultCallback: any) {
+    export(metrics: ResourceMetrics, resultCallback: any) {
         try {
             if (!this._stopped) {
                 // metrics = metrics?.scopeMetrics;
-                // const cleanMetrics = metrics.map(metric => applyNesting(metric));
-                this._metrics.insert(metrics, (err: any, _newDoc: any) => {
+                const cleanMetrics = applyNesting(metrics);
+                this._metrics.insert(cleanMetrics, (err: any, _newDoc: any) => {
                     if (err) {
                         console.error('Insertion Error:', err);
                         return;

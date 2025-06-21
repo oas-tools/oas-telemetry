@@ -1,6 +1,7 @@
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import DynamicExporter from '../exporters/dynamicExporter';
 import { InMemoryDBMetricsExporter } from '../exporters/InMemoryDBMetricsExporter';
+import { InMemoryLogRecordExporter } from '../exporters/InMemoryLogRecordExporter';
 
 export interface OasTlmExporter extends SpanExporter {
     plugins: PluginResource[];
@@ -44,7 +45,8 @@ export interface OasTlmInputConfig {
 export interface GlobalOasTlmConfig {
     dynamicSpanExporter: DynamicExporter;
     metricsExporter: InMemoryDBMetricsExporter;
-    systemMetricsInterval: number;
+    logExporter: InMemoryLogRecordExporter; // Add log exporter
+    metricsExporterInterval: number;
     baseURL: string;
     spec: any | null; // TODO
     specFileName: string;

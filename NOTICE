@@ -1,0 +1,8 @@
+This software includes code derived from the OpenTelemetry JavaScript SDK
+(https://github.com/open-telemetry/opentelemetry-js).
+
+Some components, such as custom exporters, are based on the structure and patterns
+defined by OpenTelemetry, with modifications and adaptations specific to this project.
+
+Original code licensed under the Apache License, Version 2.0.  
+Copyright © The OpenTelemetry Authors.

@@ -83,6 +83,7 @@ const pets =[{ name: "rocky"},{ name: "pikachu"}];
 const clinics =[{ name: "Pet Heaven"},{ name: "Pet Care"}];
 
 app.get("/api/v1/pets", (req, res) => {
+    console.log("GET /api/v1/pets called, this log should be associated with the request in telemetry");
     res.send(pets);
 });
 app.post("/api/v1/pets", (req, res) => {

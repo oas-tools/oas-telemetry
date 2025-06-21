@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { globalOasTlmConfig } from '../config.js';
 import jwt from 'jsonwebtoken';
+import logger from '../utils/logger.js';
 
 export const login = (req: Request, res: Response) => {
     try {
@@ -19,7 +20,7 @@ export const login = (req: Request, res: Response) => {
         }
         res.status(400).json({ valid: false, message: 'Invalid API Key' });
     } catch (error) {
-        console.log("Error: ", error);
+        logger.log("Error: ", error);
         res.status(500).json({ valid: false, message: 'Internal server error' });
     }
 };

@@ -1,6 +1,7 @@
 import { type GlobalOasTlmConfig } from "./types/index.js";
 import DynamicExporter from "./exporters/dynamicExporter.js";
 import { InMemoryDBMetricsExporter } from "./exporters/InMemoryDBMetricsExporter.js";
+import { InMemoryLogRecordExporter } from "./exporters/InMemoryLogRecordExporter.js";
 
 //Environment variables
 //OASTLM_MODULE_DISABLED = 'true' //Disables the module (empty middleware and no tracing)
@@ -10,7 +11,8 @@ import { InMemoryDBMetricsExporter } from "./exporters/InMemoryDBMetricsExporter
 export const globalOasTlmConfig: GlobalOasTlmConfig = {
     dynamicSpanExporter: new DynamicExporter(),
     metricsExporter: new InMemoryDBMetricsExporter(),
-    systemMetricsInterval: 1000 * 5, // 5 seconds
+    logExporter: new InMemoryLogRecordExporter(), 
+    metricsExporterInterval: 1000 * 30, // milliseconds
     baseURL: "/telemetry",
     spec: null,
     specFileName: "",
