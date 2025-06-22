@@ -1,0 +1,80 @@
+{
+  "name": "@oas-tools/oas-telemetry",
+  "version": "0.7.0-alpha.1",
+  "description": "Automatically collects and stores telemetry data in memory using OpenTelemetry. Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.",
+  "author": "Manuel Otero",
+  "contributors": [
+    "Alejandro Santisteban",
+    "Pablo Fernandez"
+  ],
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx test/functional/otTestServer.ts",
+    "esm": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.mjs",
+    "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/functional/otTestServer.cjs",
+    "build": "npm run build:esm && npm run build:cjs",
+    "build:esm": "tsc -p tsconfig.json",
+    "build:cjs": "babel ./dist/esm -d ./dist/cjs --out-file-extension .cjs --config-file ./.babelrc",
+    "lint": "eslint --ext .ts . --fix"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/index.cjs",
+      "import": "./dist/esm/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@opentelemetry/core": "^2.0.1",
+    "@opentelemetry/host-metrics": "^0.36.0",
+    "@opentelemetry/instrumentation": "^0.202.0",
+    "@opentelemetry/instrumentation-http": "^0.51.0",
+    "@opentelemetry/sdk-logs": "^0.202.0",
+    "@opentelemetry/sdk-metrics": "^2.0.1",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "@opentelemetry/semantic-conventions": "^1.34.0",
+    "@seald-io/nedb": "^4.0.4",
+    "axios": "^1.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "dynamic-installer": "^1.1.1",
+    "express": "^4.21.2",
+    "import-from-string": "^0.0.4",
+    "js-yaml": "^4.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "minisearch": "^7.1.2",
+    "openai": "^5.6.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.1",
+    "@babel/core": "^7.24.4",
+    "@babel/plugin-transform-class-properties": "^7.27.1",
+    "@babel/plugin-transform-object-rest-spread": "^7.27.3",
+    "@babel/preset-env": "^7.24.4",
+    "@eslint/js": "^9.29.0",
+    "@opentelemetry/api": "^1.8.0",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/js-yaml": "^4.0.9",
+    "@types/jsonwebtoken": "^9.0.9",
+    "babel-plugin-add-module-exports": "^1.0.4",
+    "babel-plugin-module-extension": "^0.1.3",
+    "babel-plugin-transform-import-meta": "^2.3.3",
+    "eslint": "^9.29.0",
+    "eslint-plugin-import": "^2.32.0",
+    "tsx": "^4.20.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.34.1"
+  }
+}
