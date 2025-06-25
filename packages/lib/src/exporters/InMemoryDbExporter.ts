@@ -5,6 +5,7 @@ import { OasTlmExporter, PluginResource } from '../types/index.js';
 import dataStore from '@seald-io/nedb';
 import logger from '../utils/logger.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
+import { globalOasTlmConfig } from '../config.js';
 
 
 export class InMemoryExporter implements OasTlmExporter {
@@ -26,9 +27,15 @@ export class InMemoryExporter implements OasTlmExporter {
             if (!this._stopped) {
                 // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
                 const cleanSpans = readableSpans
-                    .map(nestedSpan => removeCircularRefs(nestedSpan))// to avoid JSON parsing error
-                    .map(span => applyNesting(span))// to avoid dot notation in keys (neDB does not support dot notation in keys)
-                    .filter(span => !span?.attributes?.http?.target?.includes("/telemetry"));// to avoid telemetry spans
+                    .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
+                    .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
+                    .filter(span => {
+                        const target = span?.attributes?.http?.target;                        // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils'
+                        if (target && target.includes(globalOasTlmConfig.baseURL)) {
+                            return target.includes(globalOasTlmConfig.baseURL+'/utils');
+                        }
+                        return true;
+                    });
                 // Insert spans into the in-memory database
                 this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
                     // p = {name, plugin
@@ -87,6 +94,14 @@ export class InMemoryExporter implements OasTlmExporter {
     getFinishedSpans() {
         return this._spans.getAllData();
     };
+    /**
+     * Inserts spans into the in-memory database.
+     * @param spans - The spans to insert.
+     * @param callback - The callback to execute after insertion.
+     */
+    insert(spans: any[], callback: (err: any, newDocs: any[]) => void): void {
+        this._spans.insert(spans, callback);
+    }
 
 }
 

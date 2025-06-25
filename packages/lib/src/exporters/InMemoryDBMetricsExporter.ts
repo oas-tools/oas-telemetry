@@ -16,8 +16,8 @@ export class InMemoryDBMetricsExporter {
     export(metrics: ResourceMetrics, resultCallback: any) {
         try {
             if (!this._stopped) {
-                // metrics = metrics?.scopeMetrics;
-                const cleanMetrics = applyNesting(metrics);
+                const scopeMetrics = metrics?.scopeMetrics;
+                const cleanMetrics = applyNesting(scopeMetrics);
                 this._metrics.insert(cleanMetrics, (err: any, _newDoc: any) => {
                     if (err) {
                         console.error('Insertion Error:', err);
@@ -67,6 +67,15 @@ export class InMemoryDBMetricsExporter {
 
     getFinishedMetrics() {
         return this._metrics.getAllData();
+    }
+
+    /**
+     * Inserts metrics into the in-memory database.
+     * @param metrics - The metrics to insert.
+     * @param callback - The callback to execute after insertion.
+     */
+    insert(metrics: any[], callback: (err: any, newDocs: any[]) => void): void {
+        this._metrics.insert(metrics, callback);
     }
 }
 

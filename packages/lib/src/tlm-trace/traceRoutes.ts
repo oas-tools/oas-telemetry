@@ -5,13 +5,15 @@ import {
     statusTelemetry,
     resetTelemetry,
     listTelemetry,
-    findTelemetry
+    findTelemetry,
+    insertTracesToDb
 } from './traceController.js';
 
 export const traceRoutes = Router();
 
 
 traceRoutes.get('/', listTelemetry);
+traceRoutes.post('/', insertTracesToDb);
 traceRoutes.post('/find', findTelemetry);
 
 // Telemetry Control
