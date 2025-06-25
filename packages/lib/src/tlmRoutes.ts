@@ -26,7 +26,7 @@ export const configureRoutes = (router: Router) => {
         if (req.body !== undefined) {
             return next(); // Already parsed, no need to parse again.
         }
-        return json()(req, res, next);
+        return json({limit:'10mb'})(req, res, next);
     });
 
     const allAuthMiddlewares = getWrappedMiddlewares(() => globalOasTlmConfig.authEnabled, [cookieParser(), authRoutes, authMiddleware]);

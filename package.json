@@ -9,7 +9,7 @@
     "build:esm": "npm run build:esm -w packages/lib",
     "build:cjs": "npm run build:cjs -w packages/lib",
     "build:ui": "npm run build -w packages/ui",
-    "publishToNpm": "npm run build && npm publish"
+    "publishToNpm": "npm run build && npm publish -w packages/lib"
   },
   "engines": {
     "node": ">=18"

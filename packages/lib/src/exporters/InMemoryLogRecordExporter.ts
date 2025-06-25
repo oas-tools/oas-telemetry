@@ -9,6 +9,8 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
 
     private _db: Datastore;
     private _miniSearch: MiniSearch;
+    private _stopped: boolean;
+
 
     constructor() {
         this._db = new Datastore();
@@ -17,6 +19,7 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
             storeFields: ['_id'],
             idField: '_id',
         });
+        this._stopped = false;
     }
     /*
     * SUPER WARNING:
@@ -33,6 +36,12 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         logs: ReadableLogRecord[],
         resultCallback: (result: ExportResult) => void
     ) {
+
+        if (this._stopped) {
+            resultCallback({ code: ExportResultCode.SUCCESS });
+            return;
+        }
+
         const logsToInsert = logs.map(logRecord => {
             // Remove circular references first, then apply nesting, then export info
             const formattedLog = this._formatLogRecord(logRecord);
@@ -41,16 +50,8 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
             return nestedLog;
         });
 
-        this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
-            if (err) {
-                console.dir(err);
-                resultCallback({ code: ExportResultCode.FAILED });
-                return;
-            }
-            // console.dir(newDocs, { depth: 3 });
-            newDocs.forEach((doc: any) => this._miniSearch.add(doc));
-            resultCallback({ code: ExportResultCode.SUCCESS });
-        });
+        this._insertLogs(logsToInsert, resultCallback);
+        
     }
 
     reset(): void {
@@ -83,8 +84,37 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         this._db.find(query, callback);
     }
 
+    insert(data: any[], callback: (err: any, newDocs: any[]) => void): void {
+        this._insertLogs(data, (result: ExportResult) => {
+            if (result.code === ExportResultCode.SUCCESS) {
+                this._db.find({}, (err: any, docs: any[]) => {
+                    if (err) {
+                        console.dir(err);
+                        callback(err, []);
+                        return;
+                    }
+                    callback(null, docs);
+                });
+            } else {   
+                callback(new Error('Failed to insert logs'), []);
+            }
+        });
+    }
 
-    getFinishedSpans(): any[] {
+    start() {
+        this._stopped = false;
+    }
+
+    stop() {
+        this._stopped = true;
+    }
+
+    isRunning() {
+        return !this._stopped;
+    }
+
+
+    getFinishedLogs(): any[] {
         return this._db.getAllData();
     }
 
@@ -111,5 +141,19 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
             body: logRecord.body,
             attributes: logRecord.attributes,
         };
+    }
+
+    private  _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
+        this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
+            if (err) {
+                console.dir(err);
+                resultCallback({ code: ExportResultCode.FAILED });
+                return;
+            }
+            // console.dir(newDocs, { depth: 3 });
+            newDocs.forEach((doc: any) => this._miniSearch.add(doc));
+            resultCallback({ code: ExportResultCode.SUCCESS });
+        });
+        return;
     }
 }

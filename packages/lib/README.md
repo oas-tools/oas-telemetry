@@ -32,8 +32,6 @@ npm install @oas-tools/oas-telemetry
 
 Then add the .env file to your project root directory. This file contains the environment variables used by the telemetry middleware. You can find an example of the .env file in the [`.env.example`](.env.example) file in the root of the repository. The `.env` file is optional, but it is needed for the ai chat.
 
-
-
 You can integrate the middleware into your Express application. The `spec` option is the OpenAPI Specification (OAS) content in JSON or YAML format. While this configuration is optional, it is recommended for the UI to function correctly.
 
 ### Using ES Modules (ESM)
@@ -46,6 +44,7 @@ import oasTelemetry from '@oas-tools/oas-telemetry';
 import { readFileSync } from 'fs';
 
 // ...rest of your code here creating an express app
+// NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
 
 app.use(oasTelemetry({
     spec: readFileSync('./spec/oas.yaml', { encoding: 'utf8', flag: 'r' })
@@ -62,6 +61,7 @@ const oasTelemetry = require('@oas-tools/oas-telemetry');
 const { readFileSync } = require('fs');
 
 // ...rest of your code here creating an express app
+// NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
 
 app.use(oasTelemetry({
     spec: readFileSync('./spec/oas.yaml', { encoding: 'utf8', flag: 'r' })
@@ -94,6 +94,61 @@ app.use(oasTelemetry(customTelemetryConfig));
 ## Telemetry UI
 
 You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-telemetry` if you set the `baseURL` option). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
+
+## Rest API Endpoints Overview
+
+### Authentication Endpoints
+
+- `POST /login`: Log in to the system.
+- `GET /logout`: Log out of the system.
+- `GET /check`: Check authentication status.
+
+### Metrics Endpoints
+
+- `GET /metrics`: List all metrics.
+- `POST /metrics`: Insert metrics into the database.
+- `POST /metrics/find`: Search metrics.
+- `GET /metrics/start`: Start metrics data collection.
+- `GET /metrics/stop`: Stop metrics data collection.
+- `GET /metrics/status`: Get metrics status.
+- `GET /metrics/reset`: Reset metrics data.
+
+### Logs Endpoints
+
+- `GET /logs`: List all logs.
+- `POST /logs`: Insert logs into the database.
+- `POST /logs/find`: Search logs.
+- `GET /logs/start`: Start logs data collection.
+- `GET /logs/stop`: Stop logs data collection.
+- `GET /logs/status`: Get logs status.
+- `GET /logs/reset`: Reset logs data.
+
+### Traces Endpoints
+
+- `GET /traces`: List all traces.
+- `POST /traces`: Insert traces into the database.
+- `POST /traces/find`: Search traces.
+- `GET /traces/start`: Start traces data collection.
+- `GET /traces/stop`: Stop traces data collection.
+- `GET /traces/status`: Get traces status.
+- `GET /traces/reset`: Reset traces data.
+
+### AI Endpoints
+
+- `POST /ai/chat`: Interact with the AI agent.
+- `POST /ai/microservices`: Configure known microservices.
+- `GET /ai/microservices`: Retrieve the list of known microservices.
+
+### UI Endpoints
+
+- `GET *`: Serve the telemetry UI.
+
+### Utility Endpoints
+
+- `GET /utils/spec`: Load the OpenAPI specification.
+- `GET /utils/heapStats`: Show v8 heap statistics.
+- `GET /utils/generateLog`: Generate a log message.
+- `GET /utils/wait/:seconds?`: Wait for a specified number of seconds.
 
 ## Metrics Development (Temporary)
 
@@ -144,50 +199,6 @@ Expect an array of metrics objects. Each object includes data like a timestamp, 
 ```
 
 The shape of these objects may change as development continues.
-
-## API Telemetry Endpoints
-
-OAS Telemetry middleware adds the following endpoints to your Express application:
-
-- /telemetry/start: Start telemetry data collection.
-- /telemetry/stop: Stop telemetry data collection.
-- /telemetry/status: Get status of telemetry.
-- /telemetry/reset: Reset telemetry data.
-- /telemetry/list: List all telemetry data.
-- /telemetry/find (POST): Search telemetry data.
-- /telemetry/heapStats: Shows v8 heapStats.
-- /telemetry/plugins: List all plugins.
-- /telemetry/plugins (POST): Add a plugin.
-
-Alpha version of npm:
-
-Traces:
-
-- /telemetry/traces/start: Start traces data collection.
-- /telemetry/traces/stop: Stop traces data collection.
-- /telemetry/traces/status: Get status of traces collection.
-- /telemetry/traces/reset: Reset traces data.
-- /telemetry/traces: List all traces data.
-- /telemetry/traces/find (POST): Search traces data.
-
-Metrics:
-
-- /telemetry/metrics: list all metrics data.
-- /telemetry/metrics/find (POST): Search metrics data.
-
-Logs:
-
-- /telemetry/logs: List all logs data.
-- /telemetry/logs/find (POST): Search logs data.
-
-Utils:
-
-- /telemetry/utils/heapStats: Shows v8 heapStats.
-
-Plugins:
-
-- /telemetry/plugins: List all plugins.
-- /telemetry/plugins (POST): Add a plugin.
 
 ## Telemetry Plugins
 
