@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { globalOasTlmConfig } from '../config.js';
+import { inMemoryDbMetricExporter } from '../telemetry/telemetryRegistry.js';
+import { convertRegexRecursively } from '../utils/regexUtils.js';
 
 export const listMetrics = async (req: Request, res: Response) => {
     try {
-        const metrics = globalOasTlmConfig.metricsExporter.getFinishedMetrics();
+        const metrics = inMemoryDbMetricExporter.getFinishedMetrics();
         res.send({ metricsCount: metrics.length, metrics: metrics });
     } catch (err) {
         console.error(err);
@@ -13,8 +14,18 @@ export const listMetrics = async (req: Request, res: Response) => {
 
 export const findMetrics = (req: Request, res: Response) => {
     const body = req.body;
-    const search = body?.search ? body.search : {};
-    globalOasTlmConfig.metricsExporter.find(search, (err: any, docs: any) => {
+    const query = body?.query ? body.query : {};
+
+    let processedQuery;
+    try {
+        processedQuery = convertRegexRecursively(query);
+    } catch (error: any) {
+        console.error(error.message);
+        res.status(400).send({ error: error.message });
+        return; // Exit if invalid regex was encountered
+    }
+
+    inMemoryDbMetricExporter.find(processedQuery, (err: any, docs: any) => {
         if (err) {
             console.error(err);
             res.status(404).send({ metricsCount: 0, metrics: [], error: err });
@@ -26,7 +37,7 @@ export const findMetrics = (req: Request, res: Response) => {
 }
 
 export const resetMetrics = (req: Request, res: Response) => {
-    globalOasTlmConfig.metricsExporter.reset();
+    inMemoryDbMetricExporter.reset();
     res.send('Metrics reset');
 }
 
@@ -47,12 +58,12 @@ export const insertMetricsToDb = async (req: Request, res: Response) => {
     try {
         let message = '';
         if (resetData) {
-            globalOasTlmConfig.metricsExporter.reset();
+            inMemoryDbMetricExporter.reset();
             message += 'Metrics Database reset. ';
         }
 
         await new Promise((resolve, reject) => {
-            globalOasTlmConfig.metricsExporter.insert(cleanedMetrics, (err: any, newDocs: any[]) => {
+            inMemoryDbMetricExporter.insert(cleanedMetrics, (err: any, newDocs: any[]) => {
                 if (err) {
                     console.error('Error inserting metrics:', err);
                     return reject(err);
@@ -70,16 +81,27 @@ export const insertMetricsToDb = async (req: Request, res: Response) => {
 };
 
 export const startMetrics = (req: Request, res: Response) => {
-    globalOasTlmConfig.metricsExporter.start();
+    inMemoryDbMetricExporter.enable();
     res.send('Metrics collection started');
 };
 
 export const stopMetrics = (req: Request, res: Response) => {
-    globalOasTlmConfig.metricsExporter.stop();
+    inMemoryDbMetricExporter.disable();
     res.send('Metrics collection stopped');
 };
 
 export const statusMetrics = (req: Request, res: Response) => {
-    const isRunning = globalOasTlmConfig.metricsExporter.isRunning() || false;
+    const isRunning = inMemoryDbMetricExporter.isEnabled() || false;
     res.send({ active: isRunning });
+};
+
+export const setRetentionTimeMetrics = (req: Request, res: Response) => {
+    const retentionTime = req.body.retentionTime;
+    if (typeof retentionTime !== 'number' || retentionTime <= 0) {
+        res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
+        return;
+    }
+
+    inMemoryDbMetricExporter.retentionTimeInSeconds = retentionTime;
+    res.send({ message: `Retention time set to ${retentionTime} seconds.` });
 };

@@ -1,48 +1,35 @@
-import './instrumentation/index.js';
-import { globalOasTlmConfig } from './config.js';
-import { Router } from 'express';
-import { InMemoryExporter } from './exporters/InMemoryDbExporter.js';
-import { OasTlmInputConfig } from './types/index.js';
+import "./config/bootConfig.js"; // Load environment variables before any other imports
+import './telemetry/initializeTelemetry.js';// Initialize OpenTelemetry instrumentation
 import logger from './utils/logger.js';
-import { configureRoutes } from './tlmRoutes.js';
+import { getConfig } from './config/config.js';
+import { Router } from 'express';
+import { configureRoutes } from './routesManager.js';
+import { UserConfig } from './config/config.types.js';
+import { configureTelemetry } from './telemetry/telemetryConfigurator.js';
+import { bootEnvVariables } from "./config/bootConfig.js";
 
 /**
- * Returns the Oas Telemetry middleware. The parameters are the same as `globalOasTlmConfig`.
+ * Returns the OAS-Telemetry middleware.
  * All parameters are optional. However, either `spec` or `specFileName` must be provided to enable endpoint filtering.
  */
-export default function oasTelemetry(oasTlmInputConfig: OasTlmInputConfig): Router {
+export default function oasTelemetry(oasTlmInputConfig?: UserConfig): Router {
     const router = Router();
 
-    if (process.env.OASTLM_MODULE_DISABLED === 'true') {
+    // This environment variable cannot be set via the config object,
+    // as it is required to disable OpenTelemetry SDK initialization,
+    // which occurs during the first import at the top of this file.
+    if (bootEnvVariables.OASTLM_BOOT_MODULE_DISABLED) {
         return router;
     }
-    
-    if (oasTlmInputConfig) {
-        logger.info("User provided config");
-        // Override global config with user provided config
-        for (const key in globalOasTlmConfig) {
-            globalOasTlmConfig[key] = oasTlmInputConfig[key] ?? globalOasTlmConfig[key];
-        }
-    }
-    
-    logger.info("BaseURL: ", globalOasTlmConfig.baseURL);
-    globalOasTlmConfig.dynamicSpanExporter.changeExporter(globalOasTlmConfig.exporter ?? new InMemoryExporter());
-    
-    if (globalOasTlmConfig.spec)
-        logger.info(`Spec content provided`);
-    else {
-        if (globalOasTlmConfig.specFileName != "")
-            logger.info(`Spec file used for telemetry: ${globalOasTlmConfig.specFileName}`);
-        else {
-            console.error("No spec available !");
-        }
-    }
-    
-    if (globalOasTlmConfig.autoActivate) {
-        globalOasTlmConfig.dynamicSpanExporter.exporter?.start();
-    }
+    const oasTlmConfig = getConfig(oasTlmInputConfig);
 
-    configureRoutes(router);
+    logger.info("BaseUrl: ", oasTlmConfig.general.baseUrl);
+    if (!oasTlmConfig.general.spec && !oasTlmConfig.general.specFileName)
+        logger.warn("No spec provided, endpoint filtering will not be available. Please provide either `spec` or `specFileName` in the configuration.");
+
+    configureTelemetry(oasTlmConfig);
+
+    configureRoutes(router, oasTlmConfig);
 
     return router;
 }

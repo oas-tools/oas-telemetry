@@ -1,16 +1,16 @@
 import axios from 'axios';
-import { globalOasTlmConfig } from '../config.js';
 import { ChatCompletionTool } from 'openai/resources/index.js';
 import logger from '../utils/logger.js';
 import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
 import { getKnownMicroservices } from './knownMicroservices.js';
+import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter } from '../telemetry/telemetryRegistry.js';
 
 const getTraces = async (searchInput: string) => {
     logger.debug("getTraces called with searchInput:", searchInput);
     try {
         const search = searchInput || {};
         const traces: any[] = await new Promise((resolve, reject) => {
-            globalOasTlmConfig.dynamicSpanExporter.exporter.find(search, (err: any, docs: any) => {
+            inMemoryDbSpanExporter.find(search, (err: any, docs: any) => {
                 if (err) reject(err);
                 else resolve(docs);
             });
@@ -43,7 +43,7 @@ const getLogs = async (startDate: Date, endDate: Date) => {
         }
         const logs: any[] = [];
         await new Promise<void>((resolve, reject) => {
-            globalOasTlmConfig.logExporter.find(nedbQuery, null, (err: any, docs: any) => {
+            inMemoryDbLogExporter.find(nedbQuery, null, (err: any, docs: any) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -66,7 +66,7 @@ const getMetrics = async (searchInput: Record<string, any>) => {
     try {
         const search = searchInput || {};
         const metrics: ResourceMetrics[] = await new Promise((resolve, reject) => {
-            globalOasTlmConfig.metricsExporter.find(search, (err: any, docs: ResourceMetrics[]) => {
+            inMemoryDbMetricExporter.find(search, (err: any, docs: ResourceMetrics[]) => {
                 if (err) reject(err);
                 else resolve(docs || []);
             });
@@ -89,23 +89,32 @@ const getCurrentTimestampInEpoch = () => {
 
 const startTelemetry = () => {
     logger.debug("Starting telemetry...");
-    globalOasTlmConfig.dynamicSpanExporter.exporter.start();
+    inMemoryDbSpanExporter.enable();
+    inMemoryDbLogExporter.enable();
+    inMemoryDbMetricExporter.enable();
 }
 
 const stopTelemetry = () => {
     logger.debug("Stopping telemetry...");
-    globalOasTlmConfig.dynamicSpanExporter.exporter.stop();
+    inMemoryDbSpanExporter.disable();
+    inMemoryDbLogExporter.disable();
+    inMemoryDbMetricExporter.disable();
 }
 
 const resetTelemetry = () => {
     logger.debug("Resetting telemetry...");
-    globalOasTlmConfig.dynamicSpanExporter.exporter.reset();
+    inMemoryDbSpanExporter.reset();
+    inMemoryDbLogExporter.reset();
+    inMemoryDbMetricExporter.reset();
 }
 
 const getTelemetryStatus = () => {
     logger.debug("Getting telemetry status...");
-    const isRunning = globalOasTlmConfig.dynamicSpanExporter.exporter.isRunning() || false;
-    return { active: isRunning };
+    return {
+        spansEnabled: inMemoryDbSpanExporter.isEnabled(),
+        logsEnabled: inMemoryDbLogExporter.isEnabled(),
+        metricsEnabled: inMemoryDbMetricExporter.isEnabled()
+    };
 }
 
 

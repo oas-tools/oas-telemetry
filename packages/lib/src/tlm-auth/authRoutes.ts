@@ -1,10 +1,13 @@
 import { Router } from 'express';
-import { login, logout, check } from './authController.js';
+import { getLogin, getLogout, getCheck } from './authController.js';
+import { OasTlmConfig } from "../config/config.types.js";
 
-const router = Router();
+export const getAuthRoutes = (oasTlmConfig: OasTlmConfig) => {
+    const router = Router();
 
-router.post('/login', login);
-router.get('/logout', logout);
-router.get('/check', check);
+    router.post('/login', getLogin(oasTlmConfig));
+    router.get('/logout', getLogout(oasTlmConfig));
+    router.get('/check', getCheck(oasTlmConfig));
 
-export default router;
+    return router;
+};

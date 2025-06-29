@@ -1,19 +1,21 @@
 import { Router, json } from "express";
 import logger from "./utils/logger.js";
 import cors from 'cors';
-import { globalOasTlmConfig } from "./config.js"
-import metricsRoutes from "./tlm-metric/metricsRoutes.js";
+import { getTraceRoutes } from "./tlm-trace/traceRoutes.js";
+import { getMetricsRoutes } from "./tlm-metric/metricsRoutes.js";
+import { getLogRoutes } from "./tlm-log/logRoutes.js";
 import cookieParser from 'cookie-parser';
-import authRoutes from './tlm-auth/authRoutes.js';
-import uiRoutes from './tlm-ui/uiRoutes.js';
-import traceRoutes from "./tlm-trace/traceRoutes.js";
-import { authMiddleware } from "./tlm-auth/authMiddleware.js";
-import utilsRoutes from "./tlm-util/utilRoutes.js";
-import logRoutes from './tlm-log/logRoutes.js';
-import aiRoutes from "./tlm-ai/aiRoutes.js";
+import { getAuthRoutes } from './tlm-auth/authRoutes.js';
+import { getUIRoutes } from './tlm-ui/uiRoutes.js';
+import { getAuthMiddleware } from "./tlm-auth/authMiddleware.js";
+import { getUtilsRoutes } from "./tlm-util/utilRoutes.js";
+import { getAIRoutes } from "./tlm-ai/aiRoutes.js";
+import { OasTlmConfig } from "./config/config.types.js";
+import { bootEnvVariables } from "./config/bootConfig.js";
+import { getPluginRoutes } from "./tlm-plugin/pluginRoutes.js";
 
-export const configureRoutes = (router: Router) => {
-    if (process.env.OASTLM_ENV === 'development') {
+export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
+    if (bootEnvVariables.OASTLM_BOOT_ENV === 'development') {
         logger.info("Running in development mode, enabling CORS for all origins");
         router.use(cors({
             origin: '*', // Permitir todas las solicitudes en desarrollo
@@ -26,32 +28,40 @@ export const configureRoutes = (router: Router) => {
         if (req.body !== undefined) {
             return next(); // Already parsed, no need to parse again.
         }
-        return json({limit:'10mb'})(req, res, next);
+        return json({ limit: '10mb' })(req, res, next);
     });
 
-    const allAuthMiddlewares = getWrappedMiddlewares(() => globalOasTlmConfig.authEnabled, [cookieParser(), authRoutes, authMiddleware]);
-    const baseURL = globalOasTlmConfig.baseURL;
+    const allAuthMiddlewares = getWrappedMiddlewares(
+        () => oasTlmConfig.auth.enabled,
+        [cookieParser(), getAuthRoutes(oasTlmConfig), getAuthMiddleware(oasTlmConfig)]
+    );
+    const baseUrl = oasTlmConfig.general.baseUrl;
 
-    router.use(baseURL, allAuthMiddlewares);
-    // WARNING: This path must be the same as the one used in the UI package App.tsx "oas-telemetry-ui"
-    router.use(baseURL + "/traces", traceRoutes);
-    router.use(baseURL + "/metrics", metricsRoutes);
-    router.use(baseURL + "/logs", logRoutes);
+    router.use(baseUrl, allAuthMiddlewares);
+    router.use(baseUrl + "/traces", getTraceRoutes());
+    router.use(baseUrl + "/metrics", getMetricsRoutes());
+    router.use(baseUrl + "/logs", getLogRoutes());
     router.use(
-        baseURL + "/ai",
+        baseUrl + "/ai",
         getWrappedMiddlewares(
-            () => process.env.OASTLM_AI_OPENAI_API_KEY !== null && process.env.OASTLM_AI_OPENAI_API_KEY !== "",
-            [aiRoutes]
+            () => oasTlmConfig.ai.openAIKey !== null,
+            [getAIRoutes(oasTlmConfig)]
         )
     );
-    
-    router.use(baseURL + "/oas-telemetry-ui", uiRoutes);
 
-    router.use(baseURL + "/utils", utilsRoutes);
+    // WARNING: This path must be the same as the one used in the UI package App.tsx "oas-telemetry-ui"
+    router.use(baseUrl + "/oas-telemetry-ui", getUIRoutes());
 
+    router.use(baseUrl + "/utils", getUtilsRoutes(oasTlmConfig));
+    router.use(baseUrl + "/plugins", getPluginRoutes());
+
+
+    router.get(baseUrl + '/health', (_req, res) => {
+        res.status(200).send({ status: 'OK' });
+    });
     //redirect to the UI when accessing the base URL
-    router.get(baseURL, (req, res) => {
-        res.redirect(baseURL + "/oas-telemetry-ui");
+    router.get(baseUrl, (req, res) => {
+        res.redirect(baseUrl + "/oas-telemetry-ui");
     });
 }
 
