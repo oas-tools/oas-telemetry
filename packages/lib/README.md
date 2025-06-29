@@ -1,24 +1,18 @@
 # OAS TELEMETRY
 
-**OAS Telemetry** offers an express middleware designed for collecting telemetry data using **Open Telemetry** in applications built using the **OpenAPI Specification (OAS)**. This middleware allows developers to easily incorporate telemetry functionality into their APIs.
+**OAS Telemetry** is an Express middleware for collecting telemetry data using **OpenTelemetry** in **OpenAPI Specification (OAS)**-based applications. It exposes endpoints for managing and analyzing telemetry data—such as starting/stopping collection, resetting, listing, and searching records—making integration with **Express.js** straightforward.
 
-**OAS Telemetry** provides a set of endpoints that can be accessed to perform various actions related to telemetry data, such as starting and stopping data collection, resetting telemetry data, listing collected data, and searching for specific telemetry records. These endpoints can be easily integrated into an **Express.js** application, providing developers with a convenient way to manage and analyze telemetry data.
-
-Additionally, **OAS Telemetry** offers customization options, allowing developers to configure the telemetry middleware according to their specific requirements.
-
-Overall, **OAS Telemetry** will serve as a valuable tool for developers looking to gain insights into the operation and performance of their **OAS-based APIs**, enabling them to monitor, debug, and optimize their applications effectively.
-
-The package now supports both **ES Module (ESM)** and **CommonJS (CJS)** formats, making it compatible with a wide range of applications. The ESM build targets the **ES2020** standard. Furthermore, **OAS Telemetry** provides a range of plugins to extend its functionality. See the [Telemetry Plugins](#telemetry-plugins) section for more information.
+The middleware is highly configurable and supports both **ES Module (ESM)** and **CommonJS (CJS)** formats (ESM targeting **ES2020**). Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
 
 > ⚠️ **Warning: Early Development Notice**
 >
 > **OAS Telemetry** is a functional and working package, but it is currently at version 0 and remains under active development. Features, APIs, and behavior are subject to change at any time. Please review the following current status before use:
 >
-> - **UI:** Migration to React is in progress. Most views are placeholders except for the AI agent, which is fully functional and can answer questions about metrics, traces, and logs.
-> - **Traces:** Semi-stable. Currently supports HTTP instrumentation; future updates will add propagators.
+> - **Traces:** Semi-stable. Currently supports HTTP instrumentation.
 > - **Logs:** Semi-stable. Supports fast search by message content and Mongo-like search (similar to traces).
-> - **Metrics:** Not stable. Currently uses OpenTelemetry host metrics. This area is subject to significant change to improve memory usage and data handling.
-> - **Configuration:** Not stable. All configuration options will be available as parameters at initialization and via environment variables (see the `.env.example` file). The configuration system is under active development and will change significantly in future releases.
+> - **Metrics:** Semi=stable. Currently uses OpenTelemetry host metrics. This area is subject to change to improve memory usage and data handling.
+> - **Configuration:** Semi-stable. All configuration options will be available as parameters at initialization and via environment variables (see the `.env.example` file). The configuration system is under active development and will change significantly in future releases.
+> - **UI:** Not stable. Migration to React is in progress. Most views are placeholders except for the AI agent, which is fully functional and can answer questions about metrics, traces, and logs.
 
 ## Usage
 
@@ -30,7 +24,7 @@ First, install the package using npm:
 npm install @oas-tools/oas-telemetry
 ```
 
-Then add the .env file to your project root directory. This file contains the environment variables used by the telemetry middleware. You can find an example of the .env file in the [`.env.example`](.env.example) file in the root of the repository. The `.env` file is optional, but it is needed for the ai chat.
+Then add the `.env` file to your project root directory. This file contains the environment variables used by the telemetry middleware. You can find an example of the `.env` file in the [`.env.example`](.env.example) file in the root of the repository. The `.env` file is optional, but it is needed for the AI chat.
 
 You can integrate the middleware into your Express application. The `spec` option is the OpenAPI Specification (OAS) content in JSON or YAML format. While this configuration is optional, it is recommended for the UI to function correctly.
 
@@ -41,14 +35,12 @@ Add the following lines to your `index.js` file:
 ```js
 // This import MUST be at the top of the file
 import oasTelemetry from '@oas-tools/oas-telemetry';
-import { readFileSync } from 'fs';
 
-// ...rest of your code here creating an express app
+// ...rest of your code here creating an express app and importing the OpenAPI spec
 // NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
 
-app.use(oasTelemetry({
-    spec: readFileSync('./spec/oas.yaml', { encoding: 'utf8', flag: 'r' })
-}));
+app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
+
 ```
 
 ### Using CommonJS
@@ -58,14 +50,12 @@ Add the following lines to your `index.js` file:
 ```js
 // This require MUST be at the top of the file
 const oasTelemetry = require('@oas-tools/oas-telemetry');
-const { readFileSync } = require('fs');
 
-// ...rest of your code here creating an express app
+// ...rest of your code here creating an express app and importing the OpenAPI spec
 // NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
 
-app.use(oasTelemetry({
-    spec: readFileSync('./spec/oas.yaml', { encoding: 'utf8', flag: 'r' })
-}));
+app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
+
 ```
 
 For complete examples of a working API with OAS Telemetry enabled, refer to the [Full Examples](#full-examples) section at the end of this document.
@@ -74,26 +64,82 @@ For complete examples of a working API with OAS Telemetry enabled, refer to the 
 
 You can also customize the telemetry configuration by passing options to the middleware function. For example:
 
+> **Note:** Although you can set configuration options programmatically, it is recommended to use the provided `.env.example` file as a template for your environment variables. Values set in the `.env` file will override any options passed directly to the middleware.
+
 ```js
-const customTelemetryConfig = {
-    spec: /* OAS content in json or yaml */, // Highly recommended
-    baseURL: "/custom-telemetry", //default is "/telemetry"
-    autoActivate: false, //default is true, whether to start telemetry data collection automatically
-    authEnabled: true, //default is false
+export const customTelemetryConfig = {
+  general: {
+    baseUrl: "/custom-telemetry",
+    specFileName: "oas.json",
+    spec: null,
+  },
+
+  auth: {
+    enabled: true,
     apiKeyMaxAge: 1000 * 60 * 30, // 30 minutes
-    password: "custom-password", //default is "oas-telemetry-password"
-    jwtSecret: "custom-secret", //default is "oas-telemetry-secret"
-    exporter: myCustomExporter, // Experimental, just for devs
+    password: "my-custom-password",
+    jwtSecret: "my-super-secret",
+  },
+
+  ai: {
+    openAIKey: process.env.YOUR_OPENAI_API_KEY, // Seteable via environment variable
+    openAIModel: "gpt-4o",
+    extraContextPrompts: [
+      "Provide clear, concise answers",
+      "Use professional tone",
+    ],
+  },
+
+  traces: {
+    extraExporters: [],
+    extraProcessors: [],
+    mainProcessorOptions: {
+      config: undefined,
+    },
+    memoryExporter: {
+      enabled: true,
+      retentionTime: 1000 * 60 * 120, // 2 hours
+    },
+    filters: [],
+  },
+
+  metrics: {
+    mainMetricReaderOptions: {
+      exportIntervalMillis: 1000 * 60,
+      metricProducers: [],
+    },
+    extraReaders: [],
+    memoryExporter: {
+      enabled: true,
+      retentionTime: 1000 * 60 * 120, // 2 hours
+    },
+    filters: [],
+  },
+
+  logs: {
+    extraExporters: [],
+    extraProcessors: [],
+    memoryExporter: {
+      enabled: true,
+      retentionTime: 1000 * 60 * 120, // 2 hours
+    },
+    filters: [],
+  },
+
+  plugins: {
+    enabled: true,
+    extraPlugins: [],
+  },
 };
 
 app.use(oasTelemetry(customTelemetryConfig));
 ```
 
-**Note:** To disable the module, set the environment variable `OASTLM_MODULE_DISABLED` to `'true'`.
+**Note:** To disable the module, set the environment variable `OASTLM_BOOT_MODULE_DISABLED` to `'true'`.
 
 ## Telemetry UI
 
-You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-telemetry` if you set the `baseURL` option). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
+You can access the telemetry UI at the endpoint `/telemetry` (or `/custom-telemetry` if you set the `baseURL` option). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
 
 ## Rest API Endpoints Overview
 
@@ -108,30 +154,30 @@ You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-teleme
 - `GET /metrics`: List all metrics.
 - `POST /metrics`: Insert metrics into the database.
 - `POST /metrics/find`: Search metrics.
-- `GET /metrics/start`: Start metrics data collection.
-- `GET /metrics/stop`: Stop metrics data collection.
+- `POST /metrics/start`: Start metrics data collection.
+- `POST /metrics/stop`: Stop metrics data collection.
 - `GET /metrics/status`: Get metrics status.
-- `GET /metrics/reset`: Reset metrics data.
+- `POST /metrics/reset`: Reset metrics data.
 
 ### Logs Endpoints
 
 - `GET /logs`: List all logs.
 - `POST /logs`: Insert logs into the database.
 - `POST /logs/find`: Search logs.
-- `GET /logs/start`: Start logs data collection.
-- `GET /logs/stop`: Stop logs data collection.
+- `POST /logs/start`: Start logs data collection.
+- `POST /logs/stop`: Stop logs data collection.
 - `GET /logs/status`: Get logs status.
-- `GET /logs/reset`: Reset logs data.
+- `POST /logs/reset`: Reset logs data.
 
 ### Traces Endpoints
 
 - `GET /traces`: List all traces.
 - `POST /traces`: Insert traces into the database.
 - `POST /traces/find`: Search traces.
-- `GET /traces/start`: Start traces data collection.
-- `GET /traces/stop`: Stop traces data collection.
+- `POST /traces/start`: Start traces data collection.
+- `POST /traces/stop`: Stop traces data collection.
 - `GET /traces/status`: Get traces status.
-- `GET /traces/reset`: Reset traces data.
+- `POST /traces/reset`: Reset traces data.
 
 ### AI Endpoints
 
@@ -139,9 +185,10 @@ You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-teleme
 - `POST /ai/microservices`: Configure known microservices.
 - `GET /ai/microservices`: Retrieve the list of known microservices.
 
-### UI Endpoints
+### Plugins Endpoints
 
-- `GET *`: Serve the telemetry UI.
+- `GET /plugins/list`: List all registered plugins.
+- `POST /plugins/register`: Register a new plugin.
 
 ### Utility Endpoints
 
@@ -149,58 +196,11 @@ You can access the telemetry UI in the endpoint `/telemetry` (or `/custom-teleme
 - `GET /utils/heapStats`: Show v8 heap statistics.
 - `GET /utils/generateLog`: Generate a log message.
 - `GET /utils/wait/:seconds?`: Wait for a specified number of seconds.
-
-## Metrics Development (Temporary)
-
-This feature is currently in development. The following endpoints are available under \<baseURL>/metrics (e.g., /telemetry/metrics):
-
-- GET /
-- POST /find
-- GET /reset
-
-Expect an array of metrics objects. Each object includes data like a timestamp, cpuUsageData, processCpuUsageData, memoryData, and processMemoryData. Example snippet for one CPU core (followed by others in the array):
-
-> **Warning**  
-> Stored metrics data now uses `@opentelemetry/host-metrics`, which is still in development. The data structure may change in future releases.
-
-```json
-{
-    "timestamp": 1741717005911,
-    "cpuUsageData": [
-        {
-            "cpuNumber": "0",
-            "idle": 60486.234000000004,
-            "user": 1364.515,
-            "system": 1246.796,
-            "interrupt": 167,
-            "nice": 0,
-            "userP": 0.009375623379214043,
-            "systemP": 0.002992220227408737,
-            "idleP": 0.9850388988629563,
-            "interruptP": 0,
-            "niceP": 0
-        }
-    ],
-    "processCpuUsageData": {
-        "user": 0.968,
-        "system": 0.32799999999999996,
-        "userP": 0,
-        "systemP": 0
-    },
-    "memoryData": {
-        "used": 15726522368,
-        "free": 18437427200,
-        "usedP": 0.4603250668280579,
-        "freeP": 0.539674933171942
-    },
-    "processMemoryData": 75988992,
-    "_id": "6mXKM8uK7xSOqJVT"
-}
-```
-
-The shape of these objects may change as development continues.
+- `GET /utils/health`: Perform a health check.
 
 ## Telemetry Plugins
+
+> **Note:** Plugins are currently only supported for traces. Support for logs and metrics plugins will be added in future releases.
 
 OAS Telemetry supports a range of plugins to extend its functionality, allowing developers to tailor telemetry data collection, alerting, and reporting to meet specific requirements. Plugins enable additional features, such as integration with alerting systems, custom data exporters, and data visualization tools.
 
@@ -225,7 +225,7 @@ To perform a simple search, send a POST request to the `/telemetry/traces/find` 
 
 ```json
 {
-    "search": {
+    "query": {
         "attributes.http.target": "/api/v1/pets",
         "attributes.http.method": "GET",
         "$or": [
@@ -242,18 +242,17 @@ For more complex searches using regex, additional parsing on the server and extr
 
 ```json
 {
-    "flags": {
-        "containsRegex": true
-    },
-    "config": {
-        "regexIds": ["attributes.http.target"]
-    },
-    "search": {
-        "attributes.http.target": "^/api/v1/pets.*$",
+    "query": {
+        "attributes.http.target": {
+            "$regex": "^\/api\/v1\/pets.*$"
+        },
         "attributes.http.method": "GET",
         "$or": [
-            {"attributes.http.status_code": 200},
-            {"attributes.http.status_code": 304}
+            {
+                "attributes.http.status_code": {
+                    "$lte": 400
+                }
+            }
         ]
     }
 }
@@ -270,10 +269,10 @@ To run these examples, follow these steps:
     npm init -y
     ```
 
-3. Install the **OAS Telemetry** package:
+3. Install the **OAS Telemetry** package and other dependencies:
 
     ```sh
-    npm install @oas-tools/oas-telemetry
+    npm install @oas-tools/oas-telemetry express dotenv
     ```
 
 4. Save the example code as `index.js` in the project folder.
@@ -290,100 +289,99 @@ Your project folder should now contain the necessary files to run the example wi
 ```js index.mjs
 import oasTelemetry from '@oas-tools/oas-telemetry';
 import express from 'express';
-
+import dotenv from 'dotenv';
+if (process.env.NODE_ENV !== 'test') {
+    dotenv.config();
+}
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-const spec = { "paths": {
-                    "/api/v1/pets": {
-                        "get": {
-                            "summary": "Get pets",
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                }
-                            }
-                        },
-                        "post": {
-                            "summary": "Insert a pet",
-                            "responses":{
-                                "201": {
-                                    "description": "Pet Created"
-                                },
-                                "400": {
-                                    "description": "Bad Request"
-                                }
-                            }
-                        }
+const spec = {
+    "paths": {
+        "/api/v1/pets": {
+            "get": {
+                "summary": "Get pets",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Insert a pet",
+                "responses": {
+                    "201": {
+                        "description": "Pet Created"
                     },
-                    "/api/v1/pets/{petName}": {
-                        "get": {
-                            "summary": "Get a pet",
-                            "parameters": [
-                                {
-                                  "name": "petName",
-                                  "in": "path",
-                                  "required": true,
-                                  "description": "The name of the pet to retrieve",
-                                  "schema": {
-                                    "type": "string"
-                                  }
-                                }
-                            ],
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                },
-                                "404": {
-                                    "description": "Not Found"
-                                }
-                            }
-                        }
-                    },
-                    "/api/v1/clinics": {
-                        "get": {
-                            "summary": "Get pets",
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                }
-                            }
-                        }
+                    "400": {
+                        "description": "Bad Request"
                     }
                 }
             }
-
-const oasTlmConfig = {
-    spec : JSON.stringify(spec),
-    baseURL: "/telemetry",
+        },
+        "/api/v1/pets/{petName}": {
+            "get": {
+                "summary": "Get a pet",
+                "parameters": [
+                    {
+                        "name": "petName",
+                        "in": "path",
+                        "required": true,
+                        "description": "The name of the pet to retrieve",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/v1/clinics": {
+            "get": {
+                "summary": "Get pets",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        }
+    }
 }
-app.use(oasTelemetry(oasTlmConfig));
+
+app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
 
 app.use(express.json());
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
-    console.log(`Telemetry portal available at http://localhost:${port}${oasTlmConfig.baseURL}`);
 });
 
-let pets =[{ name: "rocky"},{ name: "pikachu"}];
-let clinics =[{ name: "Pet Heaven"},{ name: "Pet Care"}];
+let pets = [{ name: "rocky" }, { name: "pikachu" }];
+let clinics = [{ name: "Pet Heaven" }, { name: "Pet Care" }];
 
 app.get("/api/v1/pets", (req, res) => {
     res.send(pets);
 });
 app.post("/api/v1/pets", (req, res) => {
-    if(req.body && req.body.name){    
+    if (req.body && req.body.name) {
         pets.push(req.body);
         res.sendStatus(201);
-    }else{
+    } else {
         res.sendStatus(400);
     }
 });
 app.get("/api/v1/pets/:name", (req, res) => {
     let name = req.params.name;
-    let filterdPets = pets.filter((p)=>(p.name==name));
-    if(filterdPets.length > 0)
+    let filterdPets = pets.filter((p) => (p.name == name));
+    if (filterdPets.length > 0)
         return res.send(filterdPets[0]);
     else
         return res.sendStatus(404);
@@ -398,98 +396,100 @@ app.get("/api/v1/clinics", (req, res) => {
 ```js index.cjs
 let oasTelemetry = require('@oas-tools/oas-telemetry');
 let express = require('express');
-
+let dotenv = require('dotenv');
+if (process.env.NODE_ENV !== 'test') {
+    dotenv.config();
+}
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-const spec = { "paths": {
-                    "/api/v1/pets": {
-                        "get": {
-                            "summary": "Get pets",
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                }
-                            }
-                        },
-                        "post": {
-                            "summary": "Insert a pet",
-                            "responses":{
-                                "201": {
-                                    "description": "Pet Created"
-                                },
-                                "400": {
-                                    "description": "Bad Request"
-                                }
-                            }
-                        }
+const spec = {
+    "paths": {
+        "/api/v1/pets": {
+            "get": {
+                "summary": "Get pets",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Insert a pet",
+                "responses": {
+                    "201": {
+                        "description": "Pet Created"
                     },
-                    "/api/v1/pets/{petName}": {
-                        "get": {
-                            "summary": "Get a pet",
-                            "parameters": [
-                                {
-                                  "name": "petName",
-                                  "in": "path",
-                                  "required": true,
-                                  "description": "The name of the pet to retrieve",
-                                  "schema": {
-                                    "type": "string"
-                                  }
-                                }
-                            ],
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                },
-                                "404": {
-                                    "description": "Not Found"
-                                }
-                            }
-                        }
-                    },
-                    "/api/v1/clinics": {
-                        "get": {
-                            "summary": "Get pets",
-                            "responses":{
-                                "200": {
-                                    "description": "Success"
-                                }
-                            }
-                        }
+                    "400": {
+                        "description": "Bad Request"
                     }
                 }
             }
+        },
+        "/api/v1/pets/{petName}": {
+            "get": {
+                "summary": "Get a pet",
+                "parameters": [
+                    {
+                        "name": "petName",
+                        "in": "path",
+                        "required": true,
+                        "description": "The name of the pet to retrieve",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    }
+                }
+            }
+        },
+        "/api/v1/clinics": {
+            "get": {
+                "summary": "Get pets",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        }
+    }
+}
 
-app.use(oasTelemetry({
-    spec : JSON.stringify(spec)
-}))
+
+app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
 
 app.use(express.json());
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
-    console.log(`Telemetry portal available at http://localhost:${port}/telemetry`);
 });
 
-let pets =[{ name: "rocky"},{ name: "pikachu"}];
-let clinics =[{ name: "Pet Heaven"},{ name: "Pet Care"}];
+let pets = [{ name: "rocky" }, { name: "pikachu" }];
+let clinics = [{ name: "Pet Heaven" }, { name: "Pet Care" }];
 
 app.get("/api/v1/pets", (req, res) => {
     res.send(pets);
 });
 app.post("/api/v1/pets", (req, res) => {
-    if(req.body && req.body.name){    
+    if (req.body && req.body.name) {
         pets.push(req.body);
         res.sendStatus(201);
-    }else{
+    } else {
         res.sendStatus(400);
     }
 });
 app.get("/api/v1/pets/:name", (req, res) => {
     let name = req.params.name;
-    let filterdPets = pets.filter((p)=>(p.name==name));
-    if(filterdPets.length > 0)
+    let filterdPets = pets.filter((p) => (p.name == name));
+    if (filterdPets.length > 0)
         return res.send(filterdPets[0]);
     else
         return res.sendStatus(404);

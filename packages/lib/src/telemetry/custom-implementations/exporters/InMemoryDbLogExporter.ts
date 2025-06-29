@@ -1,25 +1,30 @@
 import { ExportResult, hrTimeToMicroseconds } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import { ReadableLogRecord, LogRecordExporter } from '@opentelemetry/sdk-logs';
-import { removeCircularRefs, applyNesting } from '../utils/circular.js';
 import Datastore from '@seald-io/nedb';
 import MiniSearch from 'minisearch';
+import { applyNesting, removeCircularRefs } from '../utils/circular.js';
+import { Enabler } from '../Wrappers.js';
+import logger from '../../../utils/logger.js';
 
-export class InMemoryLogRecordExporter implements LogRecordExporter {
+export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter {
 
     private _db: Datastore;
     private _miniSearch: MiniSearch;
-    private _stopped: boolean;
+    private _retentionTimeInSeconds: number;
 
 
-    constructor() {
-        this._db = new Datastore();
+    constructor(retentionTimeInSeconds: number = 3600) {
+        super();
+        this._retentionTimeInSeconds = retentionTimeInSeconds;
+        this._db = new Datastore({ timestampData: true });
+        this._db.ensureIndex({ fieldName: 'createdAt' });
         this._miniSearch = new MiniSearch({
             fields: ['body'],
             storeFields: ['_id'],
             idField: '_id',
         });
-        this._stopped = false;
+        this._startCleanupJob();
     }
     /*
     * SUPER WARNING:
@@ -37,7 +42,7 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         resultCallback: (result: ExportResult) => void
     ) {
 
-        if (this._stopped) {
+        if (!this.isEnabled()) {
             resultCallback({ code: ExportResultCode.SUCCESS });
             return;
         }
@@ -76,7 +81,7 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         if (messageSearch) {
             const searchResults = this._miniSearch.search(messageSearch);
             const ids: string[] = searchResults.map((result: any) => result._id as string);
-            console.dir(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
+            logger.debug(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
             // Add MiniSearch results to the query
             query._id = { $in: ids };
         }
@@ -89,7 +94,7 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
             if (result.code === ExportResultCode.SUCCESS) {
                 this._db.find({}, (err: any, docs: any[]) => {
                     if (err) {
-                        console.dir(err);
+                        logger.debug(err);
                         callback(err, []);
                         return;
                     }
@@ -101,24 +106,9 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         });
     }
 
-    start() {
-        this._stopped = false;
-    }
-
-    stop() {
-        this._stopped = true;
-    }
-
-    isRunning() {
-        return !this._stopped;
-    }
-
-
     getFinishedLogs(): any[] {
         return this._db.getAllData();
     }
-
-
 
     /**
      *  @copyright The OpenTelemetry Authors
@@ -143,6 +133,11 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
         };
     }
 
+    public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
+        this._retentionTimeInSeconds = retentionTimeInSeconds;
+        logger.info(`InMemoryDbLogExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
+    }
+
     private  _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
         this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
             if (err) {
@@ -155,5 +150,25 @@ export class InMemoryLogRecordExporter implements LogRecordExporter {
             resultCallback({ code: ExportResultCode.SUCCESS });
         });
         return;
+    }
+
+    private _startCleanupJob() {
+        const interval = 1000;
+
+        setInterval(() => {
+            const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
+
+            this._db.remove(
+                { createdAt: { $lt: expirationDate } },
+                { multi: true },
+                (err, numRemoved) => {
+                    if (err) {
+                        logger.error('Error in TTL cleanup:', err);
+                    } else if (numRemoved > 0) {
+                        logger.debug(`TTL cleanup: removed ${numRemoved} expired logs`);
+                    }
+                }
+            );
+        }, interval);
     }
 }

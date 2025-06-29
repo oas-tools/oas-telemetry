@@ -1,0 +1,1032 @@
+openapi: 3.1.0
+info:
+  title: '@oas-tools/oas-telemetry'
+  version: 0.7.0-alpha.2
+  license:
+    name: Apache-2.0
+  description: |-
+    Automatically collects and stores telemetry data in memory using OpenTelemetry.
+    Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.
+
+servers:
+  - url: "{protocol}://{host}:{port}/{basePath}"
+    variables:
+      protocol:
+        default: http
+        enum:
+          - http
+          - https
+      host:
+        default: localhost
+      port:
+        default: "3000"
+      basePath:
+        default: telemetry
+        description: Base path for all endpoints. Can be customized, e.g. "myCustomTelemetryPath"
+
+tags:
+  - name: traces
+    description: Operations for managing telemetry traces
+  - name: metrics
+    description: Operations for managing telemetry metrics
+  - name: logs
+    description: Operations for managing telemetry logs
+  - name: utils
+    description: Utility endpoints
+  - name: ui
+    description: User interface
+  - name: ai
+    description: AI-related operations
+  - name: plugins
+    description: Operations for managing plugins
+
+paths:
+
+  /:
+    get:
+      summary: Redirect to telemetry UI
+      tags:
+        - ui
+      responses:
+        '302':
+          description: Found
+          content:
+            text/html:
+              schema:
+                type: string
+                example: <p>Found. Redirecting to /oas-telemetry-ui</p>
+
+  /oas-telemetry-ui:
+    get:
+      summary: OAS-Telemetry Web UI
+      tags:
+        - ui
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: <!DOCTYPE html><title>OAS-Telemetry UI</title></head><body><h1>Welcome to OAS-Telemetry UI</h1></body></html>
+
+  /traces:
+    get:
+      summary: Get collected traces
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spansCount:
+                    type: number
+                    example: 0
+                  spans:
+                    type: array
+                    items: {}
+                    example: []
+    post:
+      summary: Insert traces (optionally reset first)
+      description: |
+        Inserts traces. If the query parameter `reset=true` is provided, the trace database is reset before inserting.
+        The response message will indicate whether a reset occurred.
+      tags:
+        - traces
+      parameters:
+        - name: reset
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: If true, reset the database before inserting
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inserted 1 traces.
+                  InsertedTracesCount:
+                    type: number
+                    example: 1
+
+  /traces/find:
+    post:
+      summary: Find traces
+      tags:
+        - traces
+      requestBody:
+        required: true
+        description: Search criteria for traces.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                flags:
+                  type: object
+                  properties:
+                    containsRegex:
+                      type: boolean
+                      example: true
+                config:
+                  type: object
+                  properties:
+                    regexIds:
+                      type: array
+                      items:
+                        type: string
+                      example:
+                        - attributes.http.target
+                query:
+                  type: object
+                  additionalProperties: true
+                  description: Mongo-like query criteria
+                  example:
+                    attributes.http.target: "^/api/v1/pets.*$"
+                    attributes.http.method: "GET"
+                    $or:
+                      - attributes.http.status_code: 200
+                      - attributes.http.status_code: 304
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spansCount:
+                    type: number
+                    example: 0
+                  spans:
+                    type: array
+                    items: {}
+                    example: []
+
+  /traces/start:
+    post:
+      summary: Start trace collection
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Traces started
+
+  /traces/stop:
+    post:
+      summary: Stop trace collection
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Traces stopped
+
+  /traces/status:
+    get:
+      summary: Get trace collection status
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    example: true
+
+  /traces/reset:
+    post:
+      summary: Reset trace database
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Traces reset
+
+  /traces/retention-time:
+    post:
+      summary: Set retention time for traces
+      tags:
+        - traces
+      requestBody:
+        required: true
+        description: Retention time in seconds.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionTime:
+                  type: number
+                  description: Retention time in seconds.
+                  example: 3600
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Retention time set to 3600 seconds.
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid retention time. Must be a positive number.
+
+  /metrics:
+    get:
+      summary: Get collected metrics
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+    post:
+      summary: Insert metrics (optionally reset first)
+      description: |
+        Inserts metrics. If the query parameter `reset=true` is provided, the metrics database is reset before inserting.
+        The response message will indicate whether a reset occurred.
+      tags:
+        - metrics
+      parameters:
+        - name: reset
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: If true, reset the database before inserting
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inserted 25 metrics.
+                  InsertedMetricsCount:
+                    type: number
+                    example: 25
+
+  /metrics/find:
+    post:
+      summary: Find metrics
+      tags:
+        - metrics
+      requestBody:
+        required: true
+        description: Mongo-like (nedb) query object for metrics filtering
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: object
+                  additionalProperties: true
+                  description: Mongo-like query criteria
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metricsCount:
+                    type: number
+                    example: 0
+                  metrics:
+                    type: array
+                    items: {}
+                    example: []
+
+  /metrics/start:
+    post:
+      summary: Start metrics collection
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Metrics collection started
+
+  /metrics/stop:
+    post:
+      summary: Stop metrics collection
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Metrics collection stopped
+
+  /metrics/reset:
+    post:
+      summary: Reset metrics database
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Metrics reset
+
+  /metrics/retention-time:
+    post:
+      summary: Set retention time for metrics
+      tags:
+        - metrics
+      requestBody:
+        required: true
+        description: Retention time in seconds.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionTime:
+                  type: number
+                  description: Retention time in seconds.
+                  example: 3600
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Retention time set to 3600 seconds.
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid retention time. Must be a positive number.
+
+  /logs:
+    get:
+      summary: Get collected logs
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logsCount:
+                    type: number
+                    example: 0
+                  logs:
+                    type: array
+                    items: {}
+                    example: []
+    post:
+      summary: Insert logs (optionally reset first)
+      description: |
+        Inserts logs. If the query parameter `reset=true` is provided, the logs database is reset before inserting.
+        The response message will indicate whether a reset occurred.
+      tags:
+        - logs
+      parameters:
+        - name: reset
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: If true, reset the database before inserting
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Inserted 6 logs.
+                  InsertedLogsCount:
+                    type: number
+                    example: 6
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid data format. Expected an array of JSON objects.
+
+  /logs/find:
+    post:
+      summary: Find logs
+      tags:
+        - logs
+      requestBody:
+        required: true
+        description: Search criteria for logs. Supports textSearch and a Mongo-like (nedb) query.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                textSearch:
+                  type: string
+                  description: Text that the log body must contain
+                query:
+                  type: object
+                  additionalProperties: true
+                  description: Mongo-like query criteria
+              example:
+                textSearch: "World!"
+                query: {}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logsCount:
+                    type: number
+                    example: 1
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                    example:
+                      - resource:
+                          attributes:
+                            service:
+                              name: "oas-telemetry-service"
+                        instrumentationScope:
+                          name: "oas-telemetry"
+                        timestamp: 1751826487853000
+                        traceId: "86b8d7081df95b56b6fe9a5bb8669026"
+                        spanId: "32b54ff4303e33ad"
+                        traceFlags: 1
+                        severityText: "LOG"
+                        severityNumber: 9
+                        body: "Generated log: Hello World!"
+                        attributes:
+                          source:
+                            source: "console.log"
+                        _id: "hash"
+
+  /logs/start:
+    post:
+      summary: Start log collection
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Log collection started
+
+  /logs/stop:
+    post:
+      summary: Stop log collection
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Log collection stopped
+
+  /logs/status:
+    get:
+      summary: Get log collection status
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    example: true
+
+  /logs/reset:
+    post:
+      summary: Reset logs database
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Logs reset
+
+  /logs/retention-time:
+    post:
+      summary: Set retention time for logs
+      tags:
+        - logs
+      requestBody:
+        required: true
+        description: Retention time in seconds.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionTime:
+                  type: number
+                  description: Retention time in seconds.
+                  example: 3600
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Retention time set to 3600 seconds.
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid retention time. Must be a positive number.
+
+  /utils/spec:
+    get:
+      summary: Get OpenAPI spec in JSON
+      tags:
+        - utils
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paths:
+                    type: object
+
+  /utils/heapStats:
+    get:
+      summary: Get heap statistics
+      tags:
+        - utils
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_heap_size:
+                    type: number
+                  total_heap_size_executable:
+                    type: number
+                  total_physical_size:
+                    type: number
+                  total_available_size:
+                    type: number
+                  used_heap_size:
+                    type: number
+                  heap_size_limit:
+                    type: number
+                  malloced_memory:
+                    type: number
+                  peak_malloced_memory:
+                    type: number
+                  does_zap_garbage:
+                    type: integer
+                  number_of_native_contexts:
+                    type: integer
+                  number_of_detached_contexts:
+                    type: integer
+                  total_global_handles_size:
+                    type: number
+                  used_global_handles_size:
+                    type: number
+                  external_memory:
+                    type: number
+                  units:
+                    type: string
+                example:
+                  total_heap_size: 46.418
+                  total_heap_size_executable: 3
+                  total_physical_size: 46.418
+                  total_available_size: 4101.352
+                  used_heap_size: 42.636
+                  heap_size_limit: 4144
+                  malloced_memory: 0.531
+                  peak_malloced_memory: 67.936
+                  does_zap_garbage: 0
+                  number_of_native_contexts: 0
+                  number_of_detached_contexts: 0
+                  total_global_handles_size: 0.055
+                  used_global_handles_size: 0.04
+                  external_memory: 9.393
+                  units: "MB"
+
+  /utils/generateLog:
+    get:
+      summary: Generate a sample log
+      tags:
+        - utils
+      parameters:
+        - name: log
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The log message to generate. Defaults to "Default log message" if not specified.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Log generated
+                  log:
+                    type: string
+                    example: Hello World!
+
+  /utils/wait/{seconds}:
+    get:
+      summary: Wait for the specified seconds
+      tags:
+        - utils
+      parameters:
+        - name: seconds
+          in: path
+          required: true
+          schema:
+            type: number
+          description: Number of seconds to wait. Defaults to 1 if not specified.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  waited:
+                    type: number
+                    example: 2
+
+  /utils/health:
+    get:
+      summary: Health check
+      tags:
+        - utils
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: OK
+
+  /ai/chat:
+    post:
+      summary: Answer a question using AI
+      tags:
+        - ai
+      requestBody:
+        required: true
+        description: The question to be answered.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: The question to ask the AI.
+              example:
+                question: "What insights can you share about the logs in this system?"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string
+                    description: The AI's response to the question.
+                    example: "Telemetry is the process of recording and transmitting data from remote or inaccessible sources."
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing question"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal error"
+
+  /ai/microservices:
+    post:
+      summary: Set known microservices
+      tags:
+        - ai
+      requestBody:
+        required: true
+        description: List of known microservices.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                microservices:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of microservice names.
+              example:
+                microservices:
+                  - "service-a"
+                  - "service-b"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Microservices configuration updated successfully."
+                  knownMicroservices:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "service-a"
+                      - "service-b"
+                  note:
+                    type: string
+                    example: "In the future, OAS-Telemetry will support autodiscovery, making this configuration unnecessary."
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid microservices format. Expected an array."
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal error"
+    get:
+      summary: Get known microservices
+      tags:
+        - ai
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  knownMicroservices:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "service-a"
+                      - "service-b"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal error"
+
+  /plugins/list:
+    get:
+      summary: List all registered plugins
+      tags:
+        - plugins
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: Unique identifier for the plugin
+                    name:
+                      type: string
+                      description: Name of the plugin
+                    url:
+                      type: string
+                      description: URL of the plugin
+                    active:
+                      type: boolean
+                      description: Whether the plugin is active
+                  example:
+                    id: "plugin-1"
+                    name: "Sample Plugin"
+                    url: "https://example.com/plugin.js"
+                    active: true
+
+  /plugins/register:
+    post:
+      summary: Register a new plugin
+      tags:
+        - plugins
+      requestBody:
+        required: true
+        description: Plugin registration details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  description: URL of the plugin to register
+                code:
+                  type: string
+                  description: Inline code of the plugin (optional if URL is provided)
+                install:
+                  type: object
+                  description: Dependencies to install for the plugin
+                  properties:
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                      description: List of dependencies
+                    ignoreErrors:
+                      type: boolean
+                      description: Whether to ignore errors during installation
+                config:
+                  type: object
+                  description: Configuration for the plugin
+                moduleFormat:
+                  type: string
+                  description: Module format of the plugin (e.g., "ESM" or "CJS")
+              example:
+                url: "https://example.com/plugin.js"
+                install:
+                  dependencies:
+                    - "axios"
+                  ignoreErrors: true
+                config:
+                  key: "value"
+                moduleFormat: "ESM"
+      responses:
+        '201':
+          description: Plugin registered successfully
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Plugin code or URL must be provided"
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal error"

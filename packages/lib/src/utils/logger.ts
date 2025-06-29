@@ -1,10 +1,8 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { bootEnvVariables } from "../config/bootConfig.js";
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'];
-const currentLogLevel = (process.env.OASTLM_LOG_LEVEL || 'INFO').toUpperCase();
-const serviceName = process.env.OASTLM_SERVICE_NAME || 'OAS-TLM';
+const currentLogLevel = (bootEnvVariables.OASTLM_BOOT_LOG_LEVEL || 'INFO').toUpperCase();
+const serviceName = 'OAS-Telemetry';
 
 function log(level: string, ...messages: any[]) {
   if (LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(currentLogLevel)) {

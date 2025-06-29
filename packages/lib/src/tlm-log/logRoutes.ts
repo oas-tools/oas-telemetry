@@ -6,19 +6,25 @@ import {
     resetLogs,
     listLogs,
     findLogs,
-    insertLogsToDb
+    insertLogsToDb,
+    setRetentionTimeLogs
 } from './logController.js';
 
-export const logRoutes = Router();
+export const getLogRoutes = () => {
+    const router = Router();
 
-// Logs Control
-logRoutes.get('/start', startLogs);
-logRoutes.get('/stop', stopLogs);
-logRoutes.get('/status', statusLogs);
-logRoutes.get('/reset', resetLogs);
+    // Logs Control
+    router.post('/start', startLogs);
+    router.post('/stop', stopLogs);
+    router.get('/status', statusLogs);
+    router.post('/reset', resetLogs);
+    router.post('/retention-time', setRetentionTimeLogs);
 
-logRoutes.get('/', listLogs);
-logRoutes.post('/', insertLogsToDb);
-logRoutes.post('/find', findLogs);
+    router.get('/', listLogs);
+    router.post('/', insertLogsToDb);
+    router.post('/find', findLogs);
 
-export default logRoutes;
+    return router;
+};
+
+export default getLogRoutes;

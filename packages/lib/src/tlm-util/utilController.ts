@@ -1,16 +1,16 @@
-import { globalOasTlmConfig } from '../config.js';
 import { readFileSync } from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { Request, Response } from 'express';
 import v8 from 'node:v8';
+import { OasTlmConfig } from '../config/config.types.js';
 
 
-export const specLoader = (_req: Request, res: Response) => {
-    if (globalOasTlmConfig.specFileName) {
+export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmConfig) => {
+    if (oasTlmConfig.general.specFileName) {
         try {
-            const data = readFileSync(globalOasTlmConfig.specFileName, { encoding: 'utf8', flag: 'r' });
-            const extension = path.extname(globalOasTlmConfig.specFileName);
+            const data = readFileSync(oasTlmConfig.general.specFileName, { encoding: 'utf8', flag: 'r' });
+            const extension = path.extname(oasTlmConfig.general.specFileName);
             let json = data;
             if (extension == "yaml")
                 //@ts-expect-error yes
@@ -18,15 +18,15 @@ export const specLoader = (_req: Request, res: Response) => {
             res.setHeader('Content-Type', 'application/json');
             res.send(json);
         } catch (e) {
-            console.error(`ERROR loading spec file ${globalOasTlmConfig.specFileName}: ${e}`);
+            console.error(`ERROR loading spec file ${oasTlmConfig.general.specFileName}: ${e}`);
         }
-    } else if (globalOasTlmConfig.spec) {
+    } else if (oasTlmConfig.general.spec) {
         let spec = null;
         try {
-            spec = JSON.parse(globalOasTlmConfig.spec);
+            spec = JSON.parse(oasTlmConfig.general.spec);
         } catch (ej) {
             try {
-                spec = JSON.stringify(yaml.load(globalOasTlmConfig.spec), null, 2);
+                spec = JSON.stringify(yaml.load(oasTlmConfig.general.spec), null, 2);
             } catch (ey) {
                 console.error(`Error parsing spec: ${ej} - ${ey}`);
             }

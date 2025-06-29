@@ -1,26 +1,30 @@
 import { Router } from 'express';
 import {
-    startTelemetry,
-    stopTelemetry,
-    statusTelemetry,
-    resetTelemetry,
-    listTelemetry,
-    findTelemetry,
-    insertTracesToDb
+    startTraces,
+    stopTraces,
+    statusTraces,
+    resetTraces,
+    listTraces,
+    findTraces,
+    insertTracesToDb,
+    setRetentionTimeTraces
 } from './traceController.js';
 
-export const traceRoutes = Router();
+export const getTraceRoutes = () => {
+    const router = Router();
 
+    // Telemetry Control
+    router.post('/start', startTraces);
+    router.post('/stop', stopTraces);
+    router.get('/status', statusTraces);
+    router.post('/reset', resetTraces);
 
-traceRoutes.get('/', listTelemetry);
-traceRoutes.post('/', insertTracesToDb);
-traceRoutes.post('/find', findTelemetry);
+    router.get('/', listTraces);
+    router.post('/', insertTracesToDb);
+    router.post('/find', findTraces);
+    router.post('/retention-time', setRetentionTimeTraces);
 
-// Telemetry Control
-traceRoutes.get('/start', startTelemetry);
-traceRoutes.get('/stop', stopTelemetry);
-traceRoutes.get('/status', statusTelemetry);
-traceRoutes.get('/reset', resetTelemetry);
+    return router;
+};
 
-
-export default traceRoutes;
+export default getTraceRoutes;

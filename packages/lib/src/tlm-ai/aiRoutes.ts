@@ -1,10 +1,13 @@
 import { Router } from 'express';
+import { OasTlmConfig } from "../config/config.types.js";
 import { answerQuestion, setKnownMicroservicesHandler, getKnownMicroservicesHandler } from './aiController.js';
 
-export const aiRoutes = Router();
+export const getAIRoutes = (oasTlmConfig: OasTlmConfig) => {
+    const router = Router();
 
-aiRoutes.post('/chat', answerQuestion);
-aiRoutes.post('/microservices', setKnownMicroservicesHandler); // New route for configuring microservices
-aiRoutes.get('/microservices', getKnownMicroservicesHandler); // Route to retrieve the list of known microservices
+    router.post('/chat', answerQuestion(oasTlmConfig));
+    router.post('/microservices', setKnownMicroservicesHandler());
+    router.get('/microservices', getKnownMicroservicesHandler());
 
-export default aiRoutes;
+    return router;
+};

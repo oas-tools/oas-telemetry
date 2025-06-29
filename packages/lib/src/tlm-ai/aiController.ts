@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
-import { getAgentResponse } from './agent.js';
+import { getAgent } from './agent.js';
 import { setKnownMicroservices, getKnownMicroservices } from './knownMicroservices.js';
 import logger from '../utils/logger.js';
+import { OasTlmConfig } from "../config/config.types.js";
 
-export const answerQuestion = async (req: Request, res: Response) => {
+export const answerQuestion = (oasTlmConfig: OasTlmConfig) => async (req: Request, res: Response) => {
     try {
         const { question } = req.body;
         if (!question) res.status(400).json({ error: 'Missing question' });
 
+        const getAgentResponse = getAgent(oasTlmConfig);
         const answer = await getAgentResponse(question);
         res.json({ answer });
     } catch (error) {
@@ -16,7 +18,7 @@ export const answerQuestion = async (req: Request, res: Response) => {
     }
 };
 
-export const setKnownMicroservicesHandler = (req: Request, res: Response) => {
+export const setKnownMicroservicesHandler = () => (req: Request, res: Response) => {
     try {
         const { microservices } = req.body;
         if (!Array.isArray(microservices)) {
@@ -36,7 +38,7 @@ export const setKnownMicroservicesHandler = (req: Request, res: Response) => {
     }
 };
 
-export const getKnownMicroservicesHandler = (req: Request, res: Response) => {
+export const getKnownMicroservicesHandler = () => (req: Request, res: Response) => {
     try {
         const microservices = getKnownMicroservices();
         res.json({ knownMicroservices: microservices });
