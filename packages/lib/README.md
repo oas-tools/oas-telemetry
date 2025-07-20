@@ -262,6 +262,7 @@ For more complex searches using regex, additional parsing on the server and extr
 
 To run these examples, follow these steps:
 
+0. You will need Node.js >= v18 and npm. You can install them using [nvm](https://www.freecodecamp.org/news/node-version-manager-nvm-install-guide/)
 1. Create a new folder for your project.
 2. Navigate to the folder and initialize a new Node.js project:
 
@@ -272,15 +273,16 @@ To run these examples, follow these steps:
 3. Install the **OAS Telemetry** package and other dependencies:
 
     ```sh
-    npm install @oas-tools/oas-telemetry express dotenv
+    npm install @oas-tools/oas-telemetry@alpha express dotenv
     ```
 
-4. Save the example code as `index.js` in the project folder.
+4. Save the example cjs code as `index.js` in the project folder. You can add in the .env necessary variables like your openAI api key. (see .env.example)
 5. Run the application:
 
     ```sh
     node index.js
     ```
+6. Go to `/telemetry` (currently UI, is a placeholder except for the AI chat, we are migrating to a component based UI, but you can use the API like GET: `/telemetry/logs` `/telemetry/traces` `/telemetry/traces`)
 
 Your project folder should now contain the necessary files to run the example with **OAS Telemetry** integrated.
 
