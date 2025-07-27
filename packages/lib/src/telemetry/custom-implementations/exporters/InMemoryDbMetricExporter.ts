@@ -2,7 +2,7 @@ import { ExportResultCode } from '@opentelemetry/core';
 import dataStore from '@seald-io/nedb';
 import { applyNesting } from '../utils/circular.js';
 import { PushMetricExporter, ResourceMetrics } from '@opentelemetry/sdk-metrics';
-import { Enabler } from '../Wrappers.js';
+import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
 
 export class InMemoryDbMetricExporter extends Enabler implements PushMetricExporter{

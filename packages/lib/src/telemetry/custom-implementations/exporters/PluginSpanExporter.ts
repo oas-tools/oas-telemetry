@@ -1,7 +1,7 @@
 import { ExportResultCode } from '@opentelemetry/core';
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import logger from '../../../utils/logger.js';
-import { Enabler } from '../Wrappers.js';
+import { Enabler } from '../wrappers.js';
 import { PluginResource } from '../../../types/index.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';

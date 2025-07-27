@@ -3,7 +3,7 @@ import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import dataStore from '@seald-io/nedb';
 import logger from '../../../utils/logger.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
-import { Enabler } from '../Wrappers.js';
+import { Enabler } from '../wrappers.js';
 
 
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {

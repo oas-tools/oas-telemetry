@@ -2,7 +2,7 @@ import { OasTlmConfig } from '../config/config.types.js';
 import { BatchSpanProcessor, SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, multiLogExporter, multiSpanExporter, oasTelemetryResource, pluginSpanExporter } from './telemetryRegistry.js';
 import logger from '../utils/logger.js';
-import { EnablerMultiLogExporter, EnablerMultiSpanExporter } from './custom-implementations/Wrappers.js';
+import { EnablerMultiLogExporter, EnablerMultiSpanExporter } from './custom-implementations/wrappers.js';
 import { BatchLogRecordProcessor, LogRecordProcessor, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HostMetrics } from '@opentelemetry/host-metrics';
