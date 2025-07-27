@@ -4,7 +4,7 @@ import { ReadableLogRecord, LogRecordExporter } from '@opentelemetry/sdk-logs';
 import Datastore from '@seald-io/nedb';
 import MiniSearch from 'minisearch';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
-import { Enabler } from '../Wrappers.js';
+import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
 
 export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter {
