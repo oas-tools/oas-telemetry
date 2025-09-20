@@ -97,5 +97,24 @@ export function definePluginsApiTests(config: E2ETestConfig) {
             expect(response.status).toBe(200);
             expect(Array.isArray(response.data.plugins)).toBe(true);
         });
+
+        it('[e2e][Plugins:Activate][+] should register, deactivate and activate a plugin', async () => {
+            const pluginData = {
+                id: "toggle-plugin",
+                code: `export const plugin = { isConfigured: () => true, getName: () => "Toggle Plugin", load: () => {} };`,
+                moduleFormat: "esm",
+                config: { key: "value" }
+            };
+
+            let response = await axios.post(pluginsUrl, pluginData).catch((err) => err.response);
+            expect(response.status).toBe(201);
+
+            response = await axios.post(`${pluginsUrl}/toggle-plugin/deactivate`).catch((err) => err.response);
+            expect(response.status).toBe(200);
+
+            response = await axios.post(`${pluginsUrl}/toggle-plugin/activate`).catch((err) => err.response);
+            expect(response.status).toBe(200);
+
+        });
     });
 }

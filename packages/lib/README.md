@@ -1,6 +1,7 @@
 # OAS TELEMETRY
 
-**OAS Telemetry** is an Express middleware for collecting telemetry data using **OpenTelemetry** in **OpenAPI Specification (OAS)**-based applications. It exposes endpoints for managing and analyzing telemetry data—such as starting/stopping collection, resetting, listing, and searching records—making integration with **Express.js** straightforward.
+
+**OAS Telemetry** is a library that automatically configures telemetry in your Express application based on OpenAPI, with no extra code required. Simply use the middleware to instantly access endpoints for viewing recent requests, system logs, and metrics—all stored in memory. This allows you to analyze your API’s behavior and debug issues easily, without manual setup or complex integration. OpenTelemetry is used under the hood to collect traces, metrics, and logs.
 
 The middleware is highly configurable and supports both **ES Module (ESM)** and **CommonJS (CJS)** formats (ESM targeting **ES2020**). Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
 
@@ -8,11 +9,13 @@ The middleware is highly configurable and supports both **ES Module (ESM)** and 
 >
 > **OAS Telemetry** is a functional and working package, but it is currently at version 0 and remains under active development. Features, APIs, and behavior are subject to change at any time. Please review the following current status before use:
 >
-> - **Traces:** Semi-stable. Currently supports HTTP instrumentation.
+> - **Traces:** Semi-stable. Currently supports HTTP instrumentation. We are studying switching to auto-instrumentation, but we need to test memory usage and performance first.
 > - **Logs:** Semi-stable. Supports fast search by message content and Mongo-like search (similar to traces).
-> - **Metrics:** Semi=stable. Currently uses OpenTelemetry host metrics. This area is subject to change to improve memory usage and data handling.
+> - **Metrics:** Not stable. Currently uses OpenTelemetry host metrics. This area is subject to change to improve memory usage and data handling.
 > - **Configuration:** Semi-stable. All configuration options will be available as parameters at initialization and via environment variables (see the `.env.example` file). The configuration system is under active development and will change significantly in future releases.
-> - **UI:** Not stable. Migration to React is in progress. Most views are placeholders except for the AI agent, which is fully functional and can answer questions about metrics, traces, and logs.
+> - **UI:** Not stable. Migration to React is in progress. Most views are placeholders except for the AI agent, which is fully functional and can answer questions about traces, and logs (Not yet for metrics). Plugin management page is also functional. Next steps include logs page (almost done) and traces page (subject to change based on instrumentation approach). Metrics page will be the last to be implemented, as we want to support custom metrics in the future.
+>
+> Please if you want to use this package contact us via motero6@us.es
 
 ## Usage
 

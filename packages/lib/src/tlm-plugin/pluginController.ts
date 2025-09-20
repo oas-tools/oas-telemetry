@@ -1,135 +1,160 @@
-import axios from 'axios';
-// @ts-expect-error: import-from-string does not have proper type declarations
-import { importFromString, requireFromString } from 'import-from-string';
-// @ts-expect-error: dynamic-installer does not have proper type declarations
-import { installDependencies } from 'dynamic-installer';
-import logger from '../utils/logger.js';
-import { Request, Response } from 'express';
-import { PluginResource } from '../types/index.js';
-import { pluginService } from './pluginService.js';
+import axios from "axios";
+import { fork } from "child_process";
+import path from "path";
+import logger from "../utils/logger.js";
+import { Request, Response } from "express";
+import { pluginService } from "./pluginService.js";
+import { PluginResource } from "../types/index.js";
+import { fileURLToPath } from "url";
 
 export const listPlugins = (req: Request, res: Response) => {
-    const plugins = pluginService.getPlugins().map((plugin: PluginResource) => {
-        return {
-            id: plugin.id,
-            name: plugin.name,
-            url: plugin.url,
-            active: plugin.active
-        };
-    })
+    const plugins = pluginService.getPlugins();
     res.send({
         pluginsCount: plugins.length,
-        plugins: plugins
+        plugins,
     });
-}
+};
 
 export const registerPlugin = async (req: Request, res: Response) => {
-    let pluginCode;
     const pluginResource = req.body as PluginResource;
-    logger.debug(`Plugin Registration Request: = ${JSON.stringify(req.body, null, 2)}...`);
+    logger.debug(`Plugin Registration Request: ${JSON.stringify(req.body, null, 2)}...`);
 
-    // Validate plugin id
+    // Validate id
     if (!pluginResource.id || typeof pluginResource.id !== "string") {
-        res.status(400).send(`Plugin id must be provided and must be a string`);
+        res.status(400).send("Plugin id must be provided and must be a string");
         return;
     }
 
-    // Check for duplicate plugin id
-    const existingPlugin = pluginService.getPlugins().find((plugin: PluginResource) => plugin.id === pluginResource.id);
-    if (existingPlugin) {
-        res.status(400).send(`A plugin with id "${pluginResource.id}" already exists.`);
+    // Check duplicate
+    if (pluginService.getPlugins().find((p) => p.id === pluginResource.id)) {
+        res.status(400).send(`Plugin with id "${pluginResource.id}" already exists.`);
         return;
     }
 
+    // Validate inputs
     if (!pluginResource.url && !pluginResource.code) {
-        res.status(400).send(`Plugin code or URL must be provided`);
+        res.status(400).send("Plugin code or URL must be provided");
         return;
     }
-
     if (!pluginResource.moduleFormat) {
-        res.status(400).send(`Plugin moduleFormat must be provided (e.g., "cjs" or "esm")`);
+        res.status(400).send("Plugin moduleFormat must be provided (cjs|esm)");
         return;
     }
 
-    if (!["cjs", "esm"].includes(pluginResource.moduleFormat.toLowerCase())) {
-        res.status(400).send(`Invalid moduleFormat "${pluginResource.moduleFormat}". Supported formats are "cjs" and "esm".`);
-        return;
-    }
-
-    let module;
+    // Fetch code
+    let pluginCode: string;
     try {
         if (pluginResource.code) {
             pluginCode = pluginResource.code;
         } else {
-            const response = await axios.get(pluginResource.url);
+            console.log(pluginResource.url)
+            const response = await axios.get(pluginResource.url as string);
             pluginCode = response.data;
         }
-
-        if (!pluginCode) {
-            res.status(400).send(`Plugin code could not be loaded`);
-            return;
-        }
-
-        if (pluginResource.install) {
-            logger.info("Installing dependencies for plugin: " + pluginResource.name);
-            const dependenciesStatus = await installDependencies(pluginResource.install);
-            if (!dependenciesStatus.success) {
-                if (pluginResource.install.ignoreErrors === true) {
-                    logger.warn(`Warning: Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
-                } else {
-                    res.status(400).send(`Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
-                    return;
-                }
-            }
-        }
-
-        logger.debug("Plugin format (provided): " + pluginResource?.moduleFormat);
-        if (pluginResource.moduleFormat.toLowerCase() === "esm") {
-            logger.info("ESM detected");
-            module = await importFromString(pluginCode);
-        } else {
-            logger.info("CJS detected (default)");
-            module = await requireFromString(pluginCode);
-        }
-    } catch (error) {
-        logger.error(`Error loading plugin: ${error}`);
-        res.status(400).send(`Error loading plugin: ${error}`);
+        pluginResource.sourceCode = pluginCode;
+    } catch (err) {
+        res.status(400).send(`Error fetching plugin code: ${err}`);
         return;
     }
 
-    const plugin = module.default?.plugin ?? module.plugin;
+    if (!pluginCode) {
+        res.status(400).send("Plugin code could not be loaded");
+        return;
+    }
 
+    const isCjs = typeof __filename !== "undefined" && typeof __dirname !== "undefined";
+
+    const __filenameUniversal = isCjs
+        ? __filename
+        : fileURLToPath(import.meta.url);
+
+    const __dirnameUniversal = isCjs
+        ? __dirname
+        : path.dirname(__filenameUniversal);
+
+    const pluginProcessFile = isCjs
+        ? "pluginProcess.cjs"
+        : "pluginProcess.js";
+    const child = fork(path.resolve(__dirnameUniversal, pluginProcessFile), [], {
+        stdio: ["pipe", "pipe", "pipe", "ipc"],
+    });
+
+    child.stdout?.on("data", (data) => {
+        logger.info(`[Plugin ${pluginResource.id}] STDOUT: ${data.toString().trim()}`);
+    });
+
+    child.stderr?.on("data", (data) => {
+        logger.error(`[Plugin ${pluginResource.id}] STDERR: ${data.toString().trim()}`);
+    });
+
+
+
+    child.on("message", (msg: any) => {
+        if (msg.event === "loaded") {
+            pluginResource.name = msg.name;
+            pluginResource.active = true;
+            pluginResource.process = child;
+            pluginService.pushPlugin(pluginResource);
+            res.status(201).send(`Plugin ${msg.name} registered`);
+        } else if (msg.event === "error") {
+            res.status(400).send(`Error loading plugin: ${msg.error}`);
+        }
+    });
+
+    child.on("exit", (code) => {
+        pluginResource.active = false;
+        pluginResource.process = undefined;
+        logger.warn(`Plugin ${pluginResource.id} exited (code: ${code})`);
+    });
+
+    child.on("disconnect", () => {
+        pluginResource.active = false;
+        pluginResource.process = undefined;
+        logger.warn(`Plugin ${pluginResource.id} disconnected`);
+    });
+
+    child.on("error", (err) => {
+        pluginResource.active = false;
+        pluginResource.process = undefined;
+        logger.error(`Plugin ${pluginResource.id} error: ${err.message}`);
+    });
+
+    // Send data to child
+    child.send({
+        type: "load",
+        pluginResource,
+    });
+};
+
+export const activatePlugin = (req: Request, res: Response) => {
+    const { id } = req.params;
+    const plugin = pluginService.getPlugins().find((p) => p.id === id);
     if (!plugin) {
-        res.status(400).send(`Plugin code should export a valid "plugin" object or static class`);
-        logger.info("Error in plugin code: no valid plugin object exported");
+        res.status(404).send(`Plugin with id "${id}" not found.`);
         return;
     }
-    for (const requiredFunction of ["load", "getName", "isConfigured"]) {
-        if (typeof plugin[requiredFunction] !== "function") {
-            res.status(400).send(`The plugin code exports a "plugin" object, but it must have a "${requiredFunction}" method`);
-            logger.info("Error in plugin code: some required functions are missing");
-            return;
-        }
-    }
+    pluginService.activatePlugin(id);
+    res.status(200).send(`Plugin "${id}" activated.`);
+};
 
-    try {
-        await plugin.load(pluginResource.config);
-    } catch (error) {
-        logger.error(`Error loading plugin configuration: ${error}`);
-        res.status(400).send(`Error loading plugin configuration: ${error}`);
+export const deactivatePlugin = (req: Request, res: Response) => {
+    const { id } = req.params;
+    const plugin = pluginService.getPlugins().find((p) => p.id === id);
+    if (!plugin) {
+        res.status(404).send(`Plugin with id "${id}" not found.`);
         return;
     }
+    pluginService.deactivatePlugin(id); // This only sets active to false
+    res.status(200).send(`Plugin "${id}" deactivated.`);
+};
 
-    if (plugin.isConfigured()) {
-        logger.info(`Loaded plugin <${plugin.getName()}>`);
-        pluginResource.pluginImplementation = plugin;
-        pluginResource.name = plugin.getName();
-        pluginResource.active = true;
-        pluginService.pushPlugin(pluginResource);
-        pluginService.activatePlugin(pluginResource);
-        res.status(201).send(`Plugin registered`);
-    } else {
-        logger.error(`Plugin <${plugin.getName()}> cannot be configured`);
-        res.status(400).send(`Plugin configuration problem`);
+export const deletePlugin = (req: Request, res: Response) => {
+    const { id } = req.params;
+    const plugin = pluginService.getPlugins().find((p) => p.id === id);
+    if (!plugin) {
+        res.status(404).send(`Plugin with id "${id}" not found.`);
+        return;
     }
+    pluginService.deletePlugin(id); // kills child inside service
+    res.status(200).send(`Plugin "${id}" deleted.`);
 };

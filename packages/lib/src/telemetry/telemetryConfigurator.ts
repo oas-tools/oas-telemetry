@@ -1,6 +1,6 @@
 import { OasTlmConfig } from '../config/config.types.js';
 import { BatchSpanProcessor, SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, multiLogExporter, multiSpanExporter, oasTelemetryResource, pluginSpanExporter } from './telemetryRegistry.js';
+import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, multiLogExporter, multiSpanExporter, oasTelemetryResource, pluginLogExporter, pluginMetricExporter, pluginSpanExporter } from './telemetryRegistry.js';
 import logger from '../utils/logger.js';
 import { EnablerMultiLogExporter, EnablerMultiSpanExporter } from './custom-implementations/wrappers.js';
 import { BatchLogRecordProcessor, LogRecordProcessor, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
@@ -53,6 +53,7 @@ function configureLogs(oasTlmConfig: OasTlmConfig): void {
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
     mainExporter.addExporters(oasTlmConfig.logs.extraExporters);
+    mainExporter.addExporters(pluginLogExporter); // Allow logs to be sent to plugins too
     dynamicMultiLogProcessor.addProcessors(mainProcessor);
     dynamicMultiLogProcessor.addProcessors(oasTlmConfig.logs.extraProcessors);
 }
@@ -67,10 +68,18 @@ function configureMetrics(oasTlmConfig: OasTlmConfig): void {
         exportIntervalMillis: oasTlmConfig.metrics.mainMetricReaderOptions.exportIntervalMillis,
         metricProducers: oasTlmConfig.metrics.mainMetricReaderOptions.metricProducers
     });
+
+    const pluginReader = new PeriodicExportingMetricReader({
+        exporter: pluginMetricExporter,
+        exportIntervalMillis: oasTlmConfig.metrics.mainMetricReaderOptions.exportIntervalMillis,
+        metricProducers: oasTlmConfig.metrics.mainMetricReaderOptions.metricProducers
+    });
     const meterProvider = new MeterProvider({
         resource: oasTelemetryResource,
-        readers: [mainReader, ...oasTlmConfig.metrics.extraReaders],
+        readers: [mainReader, pluginReader, ...oasTlmConfig.metrics.extraReaders],
+        views: oasTlmConfig.metrics.extraViews || []
     });
+    // TODO maybe hostMetrics are too much, consider using only a subset of them.
     const hostMetrics = new HostMetrics({ meterProvider: meterProvider });
 
     // AFTER adding all readers, start the instrumentations

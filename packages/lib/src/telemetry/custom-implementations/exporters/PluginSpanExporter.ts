@@ -2,7 +2,6 @@ import { ExportResultCode } from '@opentelemetry/core';
 import { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import logger from '../../../utils/logger.js';
 import { Enabler } from '../wrappers.js';
-import { PluginResource } from '../../../types/index.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 
@@ -34,16 +33,8 @@ export class PluginSpanExporter extends Enabler implements SpanExporter {
                     }
                     return true;
                 });
-            pluginService.getPlugins().forEach((pluginResource: PluginResource, i) => {
-                if (typeof pluginResource.pluginImplementation.newTrace === 'function') {
-                    cleanSpans.forEach((span) => {
-                        logger.debug(`Sending span to plugin (Plugin #${i}) <${pluginResource.name}>`);
-                        //TODO: This should be called newSpan instead of newTrace
-                        pluginResource.pluginImplementation.newTrace(span);
-                    });
-                } else {
-                    logger.debug(`Plugin <${pluginResource.name}> does not implement newTrace method. Skipping span export.`);
-                }
+            cleanSpans.forEach(span => {
+                pluginService.broadcastTrace(span);
             });
 
             setTimeout(() => resultCallback({ code: ExportResultCode.SUCCESS }), 0);

@@ -1,6 +1,6 @@
 {
   "name": "@oas-tools/oas-telemetry",
-  "version": "0.7.0-alpha.2",
+  "version": "0.7.0-alpha.4",
   "description": "Automatically collects and stores telemetry data in memory using OpenTelemetry. Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.",
   "author": "Manuel Otero",
   "contributors": [
@@ -82,6 +82,6 @@
     "tsx": "^4.20.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.34.1",
-    "vitest": "^0.34.1"
+    "vitest": "^3.2.4"
   }
 }

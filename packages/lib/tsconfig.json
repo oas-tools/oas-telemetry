@@ -11,8 +11,9 @@
     "declarationDir": "./dist/types",
     "outDir": "./dist/esm",
     "rootDir": "./src",
+    "allowJs": true
   },
   "include": [
-    "src"
+    "src",
   ]
 }
