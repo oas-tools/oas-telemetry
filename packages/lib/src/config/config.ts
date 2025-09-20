@@ -4,6 +4,7 @@ import { BufferConfig, SpanExporter, SpanProcessor } from '@opentelemetry/sdk-tr
 import { IMetricReader, MetricProducer } from '@opentelemetry/sdk-metrics';
 import { LogRecordExporter, LogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { type PluginResource } from '../types/index.js';
+import { ViewOptions } from '@opentelemetry/sdk-metrics/build/src/view/View';
 
 // Environment-level config (highest priority)
 // If NOT defined, it should return UNDEFINED so it dose not override the userConfig or defaultConfig.
@@ -97,6 +98,7 @@ export const defaultConfig = {
             metricProducers: [] as MetricProducer[], // experimental by OpenTelemetry, not used by OAS-TLM yet
         },
         extraReaders: [] as IMetricReader[], // e.g. [new PrometheusExporter()]
+        extraViews: [] as ViewOptions[], // e.g. [new MetricView({ name: 'my_metric', labels: ['env'] })]
         memoryExporter: {
             enabled: true,
             retentionTimeSeconds: 60 * 60, // 1 hour

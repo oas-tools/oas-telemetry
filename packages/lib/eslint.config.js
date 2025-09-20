@@ -4,7 +4,7 @@ import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 
 export default tseslint.config(
-  { ignores: ['dist', 'test','node_modules'] },
+  { ignores: ['dist', 'test', 'node_modules'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,cts,mts}'],
@@ -17,6 +17,10 @@ export default tseslint.config(
         ...globals.node,
       },
       sourceType: 'module',
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       'no-unused-vars': 'off',
