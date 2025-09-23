@@ -1,6 +1,6 @@
 {
   "name": "@oas-tools/oas-telemetry",
-  "version": "0.7.0-alpha.4",
+  "version": "0.7.0-alpha.5",
   "description": "Automatically collects and stores telemetry data in memory using OpenTelemetry. Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.",
   "author": "Manuel Otero",
   "contributors": [
@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx test/e2e/servers/otTestServer.ts",
+    "dev": "env OASTLM_BOOT_ENV=development tsx test/e2e/servers/otTestServer.ts",
     "esm": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.mjs",
     "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.cjs",
     "build": "npm run build:esm && npm run build:cjs",

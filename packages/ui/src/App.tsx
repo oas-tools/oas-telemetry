@@ -10,6 +10,8 @@ import { getFrontendBaseName } from "./services/Backend";
 import PluginManagerPage from "./pages/plugin/PluginPage";
 import { Toaster } from "sonner";
 import PluginCreatePage from "./pages/plugin/PluginCreatePage";
+import { LoginPage } from "./pages/auth/loginPage";
+import { AuthProvider } from "./context/AuthContext";
 
 
 
@@ -18,18 +20,21 @@ function App() {
   return (
     <>
       <Toaster richColors closeButton duration={5000} />
-      <Router basename={basename}>
-        <Routes>
-          <Route path="/" element={<PageTemplate activeTab="home"><LandingPage /></PageTemplate>} />
-          <Route path="/metrics" element={<PageTemplate activeTab="metrics"><MetricsPage /></PageTemplate>} />
-          <Route path="/traces" element={<PageTemplate activeTab="traces"><TracesPage /></PageTemplate>} />
-          <Route path="/traces/details" element={<PageTemplate activeTab="traces"><TracesDetailPage /></PageTemplate>} />
-          <Route path="/logs" element={<PageTemplate activeTab="logs"><WorkInProgressPage /></PageTemplate>} />
-          <Route path="/plugins" element={<PageTemplate activeTab="plugins"><PluginManagerPage /></PageTemplate>} />
-          <Route path="/plugins/create" element={<PageTemplate activeTab="plugins"><PluginCreatePage /></PageTemplate>} />
-          <Route path="*" element={<PageTemplate activeTab=""><NotFoundPage /></PageTemplate>} />
-        </Routes>
-      </Router>
+      <AuthProvider>
+        <Router basename={basename}>
+          <Routes>
+            <Route path="/" element={<PageTemplate activeTab="home"><LandingPage /></PageTemplate>} />
+            <Route path="/metrics" element={<PageTemplate activeTab="metrics"><MetricsPage /></PageTemplate>} />
+            <Route path="/traces" element={<PageTemplate activeTab="traces"><TracesPage /></PageTemplate>} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/traces/details" element={<PageTemplate activeTab="traces"><TracesDetailPage /></PageTemplate>} />
+            <Route path="/logs" element={<PageTemplate activeTab="logs"><WorkInProgressPage /></PageTemplate>} />
+            <Route path="/plugins" element={<PageTemplate activeTab="plugins"><PluginManagerPage /></PageTemplate>} />
+            <Route path="/plugins/create" element={<PageTemplate activeTab="plugins"><PluginCreatePage /></PageTemplate>} />
+            <Route path="*" element={<PageTemplate activeTab=""><NotFoundPage /></PageTemplate>} />
+          </Routes>
+        </Router>
+      </AuthProvider>
     </>
   );
 }

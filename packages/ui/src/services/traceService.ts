@@ -1,10 +1,8 @@
-import axios from "axios";
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+import backend from "@/services/Backend";
 
 export const fetchTracesFromBackend = async () => {
   try {
-    const response = await axios.get(`${backendUrl}/telemetry/traces`);
+    const response = await backend.get(`/traces`);
     return response.data;
   } catch (error) {
     console.error("Error fetching traces from backend:", error);

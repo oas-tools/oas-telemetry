@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,7 +25,10 @@ import "ace-builds/src-noconflict/theme-monokai"
 import "ace-builds/src-noconflict/ext-language_tools"
 
 interface PluginListProps {
+  plugins: Plugin[]
   onRefresh?: () => void
+  loading?: boolean
+  error?: string | null
 }
 
 function PluginDetails({ plugin }: { plugin: Plugin }) {
@@ -106,30 +109,9 @@ function PluginDetails({ plugin }: { plugin: Plugin }) {
   )
 }
 
-export function PluginList({ onRefresh }: PluginListProps) {
-  const [plugins, setPlugins] = useState<Plugin[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export function PluginList({ plugins, onRefresh, loading = false }: PluginListProps) {
   const [expandedPlugins, setExpandedPlugins] = useState<Set<string>>(new Set())
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    loadPlugins()
-  }, [])
-
-  const loadPlugins = async () => {
-    setLoading(true)
-    setError(null)
-    const pluginService = getPluginService()
-    const result = await pluginService.listPlugins()
-    if (result.status === "success") {
-      setPlugins(result.data)
-    } else {
-      setPlugins([])
-      setError(result.message)
-    }
-    setLoading(false)
-  }
 
   const togglePlugin = async (plugin: Plugin) => {
     const pluginId = plugin.id
@@ -143,9 +125,8 @@ export function PluginList({ onRefresh }: PluginListProps) {
       result = await pluginService.activatePlugin(pluginId)
     }
     if (result.status !== "success") {
-      setError(result.message)
+      // Optionally handle error here, but parent should handle error state
     }
-    await loadPlugins()
     onRefresh?.()
     setActionLoading((prev) => {
       const newSet = new Set(prev)
@@ -160,9 +141,8 @@ export function PluginList({ onRefresh }: PluginListProps) {
     const pluginService = getPluginService()
     const result = await pluginService.deletePlugin(pluginId)
     if (result.status !== "success") {
-      setError(result.message)
+      // Optionally handle error here, but parent should handle error state
     }
-    await loadPlugins()
     onRefresh?.()
     setActionLoading((prev) => {
       const newSet = new Set(prev)
@@ -212,20 +192,6 @@ export function PluginList({ onRefresh }: PluginListProps) {
           </div>
         </CardContent>
       </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription className="flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={loadPlugins}>
-            Retry
-          </Button>
-        </AlertDescription>
-      </Alert>
     )
   }
 

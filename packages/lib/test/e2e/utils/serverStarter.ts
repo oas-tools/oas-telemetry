@@ -4,13 +4,14 @@ import { E2ETestConfig } from '../index.test';
 
 
 export function startServer(config: E2ETestConfig): Promise<ChildProcess> {
-    const { serverScript, port, telemetryPath: telemetryBaseUrl } = config;
+    const { serverScript, port, telemetryPath: telemetryBaseUrl, additionalEnv } = config;
 
     return new Promise<ChildProcess>((resolve, reject) => {
         const serverProcess = spawn('node', [serverScript], {
             cwd: process.cwd(),
             env: {
                 ...process.env,
+                ...additionalEnv,
                 PORT: port,
                 OASTLM_BOOT_ENV: 'test',
                 OASTLM_CONFIG_GENERAL_BASE_URL: telemetryBaseUrl,
