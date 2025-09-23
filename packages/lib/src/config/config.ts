@@ -19,9 +19,10 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
         },
         auth: {
             enabled: getParsedEnvVar("OASTLM_CONFIG_AUTH_ENABLED", (v) => v === "true"),
-            apiKeyMaxAge: getParsedEnvVar("OASTLM_CONFIG_AUTH_API_KEY_MAX_AGE", (v) => parseInt(v, 10)),
             password: getParsedEnvVar("OASTLM_CONFIG_AUTH_PASSWORD"),
             jwtSecret: getParsedEnvVar("OASTLM_CONFIG_AUTH_JWT_SECRET"),
+            accessTokenMaxAge: getParsedEnvVar("OASTLM_CONFIG_AUTH_ACCESS_TOKEN_MAX_AGE", (v) => parseInt(v, 10)),
+            refreshTokenMaxAge: getParsedEnvVar("OASTLM_CONFIG_AUTH_REFRESH_TOKEN_MAX_AGE", (v) => parseInt(v, 10)),
         },
         traces: {
             memoryExporter: {
@@ -71,9 +72,10 @@ export const defaultConfig = {
     },
     auth: {
         enabled: false,
-        apiKeyMaxAge: 1000 * 60 * 60, // 1 hour
         password: "oas-telemetry-password",
         jwtSecret: "oas-telemetry-secret",
+        accessTokenMaxAge: 1000 * 60 * 5, // 5 minutes
+        refreshTokenMaxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     },
     ai: {
         openAIKey: null as string | null,

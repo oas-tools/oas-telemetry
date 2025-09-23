@@ -96,11 +96,12 @@ const oasTlmConfig: UserConfig = {
         // extraExporters: [new ConsoleLogRecordExporter()],
         // extraProcessors: [new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())],
     },
-    auth: { 
-        // enabled: true, // WARN: must be fixed when developing the UI, not working yet
-        jwtSecret: "secret",
-        password: "password",
-        apiKeyMaxAge: 1000 * 60 * 2 , // 2 minutes
+    auth: {
+        // enabled: true, 
+        // jwtSecret: "secret",
+        // password: "password",
+        // accessTokenMaxAge: 1000 * 60 * 2 , // 2 minutes
+        // refreshTokenMaxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
     },
     ai: {
         openAIModel: "gpt-3.5-turbo",

@@ -9,10 +9,12 @@ import { PluginExport, PluginImport } from "@/components/plugin-import-export"
 import type { Plugin } from "@/lib/types"
 import { getPluginService } from "@/services/pluginService"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
 export default function PluginManager() {
     const [refreshKey, setRefreshKey] = useState(0)
     const [plugins, setPlugins] = useState<Plugin[]>([])
+    const [loading, setLoading] = useState(true)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -20,6 +22,7 @@ export default function PluginManager() {
     }, [refreshKey])
 
     const loadPlugins = async () => {
+        setLoading(true)
         try {
             const pluginService = getPluginService()
             const result = await pluginService.listPlugins()
@@ -27,11 +30,13 @@ export default function PluginManager() {
                 setPlugins(result.data)
             } else {
                 setPlugins([])
+                toast.error(<><b>Error loading Plugins:</b> {result.message || "Unknown error"}</>)
             }
-        } catch (error) {
-            console.error("Failed to load plugins:", error)
+        } catch (err) {
             setPlugins([])
+            toast.error(<><b>Error loading Plugins:</b> "Unknown error"</>)
         }
+        setLoading(false)
     }
 
     const handlePluginCreated = () => {
@@ -73,7 +78,11 @@ export default function PluginManager() {
                     </CardContent>
                 </Card>
 
-                <PluginList key={refreshKey} onRefresh={handlePluginCreated} />
+                <PluginList
+                  plugins={plugins}
+                  loading={loading}
+                  onRefresh={handlePluginCreated}
+                />
 
             </main>
         </div>

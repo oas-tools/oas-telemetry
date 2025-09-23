@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Send, Bot, User, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getBackendUrl } from "@/services/Backend"
+import backend from "@/services/Backend"
 import { marked } from "marked"
 
 interface Message {
@@ -69,21 +69,11 @@ export function TelemetryChat({ mode }: TelemetryChatProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${getBackendUrl()}/ai/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question: userMessage.content,
-        }),
+      const response = await backend.post("/ai/chat", {
+        question: userMessage.content,
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to get response")
-      }
-
-      const data = await response.json()
+      const data = response.data
       console.log("AI response:", data)
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
