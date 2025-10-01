@@ -97,7 +97,7 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
     }
 };
 
-export const setRetentionTimeTraces = (req: Request, res: Response) => {
+export const setTraceRetentionTime = (req: Request, res: Response) => {
     const retentionTime = req.body.retentionTime;
     if (typeof retentionTime !== 'number' || retentionTime <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
@@ -106,4 +106,9 @@ export const setRetentionTimeTraces = (req: Request, res: Response) => {
 
     inMemoryDbSpanExporter.retentionTimeInSeconds = retentionTime;
     res.send({ message: `Retention time set to ${retentionTime} seconds.` });
+};
+
+export const getTraceRetentionTime = (req: Request, res: Response) => {
+    const retentionTime = inMemoryDbSpanExporter.retentionTimeInSeconds || 0;
+    res.send({ retentionTimeInSeconds: retentionTime });
 };

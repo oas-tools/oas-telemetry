@@ -95,7 +95,7 @@ export const statusMetrics = (req: Request, res: Response) => {
     res.send({ active: isRunning });
 };
 
-export const setRetentionTimeMetrics = (req: Request, res: Response) => {
+export const setMetricRetentionTime = (req: Request, res: Response) => {
     const retentionTime = req.body.retentionTime;
     if (typeof retentionTime !== 'number' || retentionTime <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
@@ -104,4 +104,9 @@ export const setRetentionTimeMetrics = (req: Request, res: Response) => {
 
     inMemoryDbMetricExporter.retentionTimeInSeconds = retentionTime;
     res.send({ message: `Retention time set to ${retentionTime} seconds.` });
+};
+
+export const getMetricRetentionTime = (req: Request, res: Response) => {
+    const retentionTime = inMemoryDbMetricExporter.retentionTimeInSeconds || 0;
+    res.send({ retentionTimeInSeconds: retentionTime });
 };

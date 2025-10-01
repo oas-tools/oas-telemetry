@@ -12,6 +12,8 @@ import { Toaster } from "sonner";
 import PluginCreatePage from "./pages/plugin/PluginCreatePage";
 import { LoginPage } from "./pages/auth/loginPage";
 import { AuthProvider } from "./context/AuthContext";
+import ApiDocsPage from "./pages/ApiDocsPage";
+import LogsPage from "./pages/tlm-logs/LogsPage";
 
 
 
@@ -28,9 +30,10 @@ function App() {
             <Route path="/traces" element={<PageTemplate activeTab="traces"><TracesPage /></PageTemplate>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/traces/details" element={<PageTemplate activeTab="traces"><TracesDetailPage /></PageTemplate>} />
-            <Route path="/logs" element={<PageTemplate activeTab="logs"><WorkInProgressPage /></PageTemplate>} />
+            <Route path="/logs" element={<PageTemplate activeTab="logs"><LogsPage /></PageTemplate>} />
             <Route path="/plugins" element={<PageTemplate activeTab="plugins"><PluginManagerPage /></PageTemplate>} />
             <Route path="/plugins/create" element={<PageTemplate activeTab="plugins"><PluginCreatePage /></PageTemplate>} />
+            <Route path="/api" element={<PageTemplate activeTab=""><ApiDocsPage /></PageTemplate>} />
             <Route path="*" element={<PageTemplate activeTab=""><NotFoundPage /></PageTemplate>} />
           </Routes>
         </Router>

@@ -8,6 +8,16 @@ info:
     Automatically collects and stores telemetry data in memory using OpenTelemetry.
     Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.
 
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: oas-tlm-access-token
+
+security:
+  - CookieAuth: []
+
 servers:
   - url: "{protocol}://{host}:{port}/{basePath}"
     variables:
@@ -39,9 +49,10 @@ tags:
     description: AI-related operations
   - name: plugins
     description: Operations for managing plugins
+  - name: auth
+    description: Authentication operations
 
 paths:
-
   /:
     get:
       summary: Redirect to telemetry UI
@@ -233,6 +244,21 @@ paths:
                 example: Traces reset
 
   /traces/retention-time:
+    get:
+      summary: Get trace retention time (seconds)
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
     post:
       summary: Set retention time for traces
       tags:
@@ -388,6 +414,21 @@ paths:
                 example: Metrics reset
 
   /metrics/retention-time:
+    get:
+      summary: Get metrics retention time (seconds)
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
     post:
       summary: Set retention time for metrics
       tags:
@@ -428,9 +469,24 @@ paths:
 
   /logs:
     get:
-      summary: Get collected logs
+      summary: Get collected logs (paginated)
       tags:
         - logs
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: Page number (1-based)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: Number of logs per page
       responses:
         '200':
           description: OK
@@ -439,13 +495,23 @@ paths:
               schema:
                 type: object
                 properties:
-                  logsCount:
-                    type: number
-                    example: 0
-                  logs:
+                  items:
                     type: array
                     items: {}
-                    example: []
+                  itemsCurrentCount:
+                    type: integer
+                  itemsTotalCount:
+                    type: integer
+                  currentPage:
+                    type: integer
+                  totalPages:
+                    type: integer
+                example:
+                  items: []
+                  itemsCurrentCount: 0
+                  itemsTotalCount: 0
+                  currentPage: 1
+                  totalPages: 1
     post:
       summary: Insert logs (optionally reset first)
       description: |
@@ -487,12 +553,12 @@ paths:
 
   /logs/find:
     post:
-      summary: Find logs
+      summary: Find logs (paginated)
       tags:
         - logs
       requestBody:
         required: true
-        description: Search criteria for logs. Supports textSearch and a Mongo-like (nedb) query.
+        description: Search criteria for logs. Supports textSearch, a Mongo-like (nedb) query, and order.
         content:
           application/json:
             schema:
@@ -505,9 +571,27 @@ paths:
                   type: object
                   additionalProperties: true
                   description: Mongo-like query criteria
+                order:
+                  type: object
+                  additionalProperties: true
+                  description: Sort order for logs
+                  example:
+                    timestamp: -1
+                page:
+                  type: integer
+                  description: Page number (1-based)
+                  default: 1
+                limit:
+                  type: integer
+                  description: Number of logs per page
+                  default: 20
               example:
                 textSearch: "World!"
                 query: {}
+                order:
+                  timestamp: -1
+                page: 1
+                limit: 20
       responses:
         '200':
           description: OK
@@ -516,92 +600,40 @@ paths:
               schema:
                 type: object
                 properties:
-                  logsCount:
-                    type: number
-                    example: 1
-                  logs:
+                  items:
                     type: array
-                    items:
-                      type: object
-                    example:
-                      - resource:
-                          attributes:
-                            service:
-                              name: "oas-telemetry-service"
-                        instrumentationScope:
-                          name: "oas-telemetry"
-                        timestamp: 1751826487853000
-                        traceId: "86b8d7081df95b56b6fe9a5bb8669026"
-                        spanId: "32b54ff4303e33ad"
-                        traceFlags: 1
-                        severityText: "LOG"
-                        severityNumber: 9
-                        body: "Generated log: Hello World!"
-                        attributes:
-                          source:
-                            source: "console.log"
-                        _id: "hash"
-
-  /logs/start:
-    post:
-      summary: Start log collection
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Log collection started
-
-  /logs/stop:
-    post:
-      summary: Stop log collection
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Log collection stopped
-
-  /logs/status:
-    get:
-      summary: Get log collection status
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  active:
-                    type: boolean
-                    example: true
-
-  /logs/reset:
-    post:
-      summary: Reset logs database
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Logs reset
+                    items: {}
+                  itemsCurrentCount:
+                    type: integer
+                  itemsTotalCount:
+                    type: integer
+                  currentPage:
+                    type: integer
+                  totalPages:
+                    type: integer
+                example:
+                  items: []
+                  itemsCurrentCount: 0
+                  itemsTotalCount: 0
+                  currentPage: 1
+                  totalPages: 1
 
   /logs/retention-time:
+    get:
+      summary: Get log retention time (seconds)
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
     post:
       summary: Set retention time for logs
       tags:
@@ -716,7 +748,7 @@ paths:
                   external_memory: 9.393
                   units: "MB"
 
-  /utils/generateLog:
+  /utils/generate-log:
     get:
       summary: Generate a sample log
       tags:
@@ -1030,3 +1062,145 @@ paths:
                   error:
                     type: string
                     example: "Internal error"
+
+  /auth/login:
+    post:
+      summary: Login and obtain authentication cookies
+      tags:
+        - auth
+      requestBody:
+        required: true
+        description: Login credentials
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Password for authentication
+              required:
+                - password
+              example:
+                password: "your-password"
+      responses:
+        '200':
+          description: Login successful, cookies set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Sets oas-tlm-access-token and oas-tlm-refresh-token cookies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: true
+                  message: Login successful
+        '400':
+          description: Invalid password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: false
+                  message: Invalid password
+
+  /auth/logout:
+    post:
+      summary: Logout and clear authentication cookies
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Logout successful, cookies cleared
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Clears oas-tlm-access-token and oas-tlm-refresh-token cookies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: true
+                  message: Logged out
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token using refresh token cookie
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Access token refreshed, new cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Sets a new oas-tlm-access-token cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: true
+                  message: Refreshed
+        '401':
+          description: Invalid or missing refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: false
+                  message: Invalid refresh token
+
+  /auth/enabled:
+    get:
+      summary: Check if authentication is enabled
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Returns whether authentication is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                example:
+                  enabled: true

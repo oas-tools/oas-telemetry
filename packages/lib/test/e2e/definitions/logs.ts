@@ -16,7 +16,7 @@ export function defineLogsApiTests(config: E2ETestConfig) {
     const logsStartUrl = `${logsUrl}/start`;
     const logsStopUrl = `${logsUrl}/stop`;
     const logsResetUrl = `${logsUrl}/reset`;
-    const generateLogUrl = `${telemetryUrl}/utils/generateLog`;
+    const generateLogUrl = `${telemetryUrl}/utils/generate-log`;
     const findLogsUrl = `${logsUrl}/find`;
     const logsRetentionTimeUrl = `${logsUrl}/retention-time`;
 
@@ -94,7 +94,7 @@ export function defineLogsApiTests(config: E2ETestConfig) {
             const logsResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
             expect(logsResponse.status).toBe(200);
             expect(Array.isArray(logsResponse.data.logs)).toBe(true);
-            expect(logsResponse.data.logs.some((log) => log.body === sampleLog)).toBe(true);
+            expect(logsResponse.data.logs.some((log: any) => log.body === sampleLog)).toBe(true);
         });
 
         it('[e2e][Logs:List][-] should not store new logs when logging is inactive', async () => {
@@ -108,7 +108,7 @@ export function defineLogsApiTests(config: E2ETestConfig) {
             const logsResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
             expect(logsResponse.status).toBe(200);
             expect(Array.isArray(logsResponse.data.logs)).toBe(true);
-            expect(logsResponse.data.logs.some((log) => log.body === sampleLog)).toBe(false);
+            expect(logsResponse.data.logs.some((log: any) => log.body === sampleLog)).toBe(false);
         });
 
         it('[e2e][Logs:Reset][+] should reset logs', async () => {

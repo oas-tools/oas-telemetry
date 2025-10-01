@@ -3,22 +3,14 @@ import { inMemoryDbLogExporter } from '../telemetry/telemetryRegistry.js';
 import logger from '../utils/logger.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
 
-export const listLogs = async (req: Request, res: Response) => {
-    try {
-        const logs = inMemoryDbLogExporter.getFinishedLogs();
-        res.send({ logsCount: logs.length, logs: logs });
-    } catch (err) {
-        logger.error(err);
-        res.status(500).send({ error: 'Failed to list log data' });
-    }
-};
-
 export const findLogs = async (req: Request, res: Response) => {
-    const body = req.body;
-    const messageSearch = body?.textSearch || null; // Search term for MiniSearch
-    const findQuery = body?.query || {}; // Query for NeDB
+    const body = req.body || {};
+    const messageSearch = body.textSearch || null;
+    const findQuery = body.query || {};
+    const limit = parseInt(body.limit) || 50;
+    const sortOrder = body.sort || null;
 
-    logger.debug(`findLogs called with query: ${JSON.stringify(findQuery)} and search ${messageSearch}`, { depth: 3 });
+    logger.debug(`findLogs called with query: ${JSON.stringify(findQuery)} and search: ${messageSearch}`, { depth: 3 });
 
     let processedQuery;
     try {
@@ -30,15 +22,18 @@ export const findLogs = async (req: Request, res: Response) => {
     }
 
     try {
-        const results = await new Promise((resolve, reject) => {
-            inMemoryDbLogExporter.find(processedQuery, messageSearch, (err: any, docs: any) => {
-                if (err) return reject(err);
-                resolve(docs);
-            });
-        });
+        // Use findConfig object
+        const findConfig = {
+            query: processedQuery,
+            messageSearch,
+            limit,
+            sortOrder
+        };
+        const docs = await inMemoryDbLogExporter.find(findConfig);
 
-        const typedResults = results as any[];
-        res.send({ logsCount: typedResults.length, logs: typedResults });
+        res.send({
+            items: docs,
+        });
     } catch (err: any) {
         logger.error(err);
         res.status(500).send({ error: 'Failed to find logs', details: err.message });
@@ -105,7 +100,7 @@ export const statusLogs = (req: Request, res: Response) => {
     res.send({ active: isRunning });
 };
 
-export const setRetentionTimeLogs = (req: Request, res: Response) => {
+export const setLogRetentionTime = (req: Request, res: Response) => {
     const retentionTime = req.body.retentionTime;
     if (typeof retentionTime !== 'number' || retentionTime <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
@@ -116,4 +111,7 @@ export const setRetentionTimeLogs = (req: Request, res: Response) => {
     res.send({ message: `Retention time set to ${retentionTime} seconds.` });
 };
 
-
+export const getLogRetentionTime = (req: Request, res: Response) => {
+    const retentionTime = inMemoryDbLogExporter.retentionTimeInSeconds || 0;
+    res.send({ retentionTimeInSeconds: retentionTime });
+};

@@ -63,10 +63,10 @@ function initializeLogs(): void {
     // @ts-expect-error yes
     console[method] = (...args: any[]) => {
       loggerInstance.emit({
-        severityNumber: SeverityNumber[method.toUpperCase() as keyof typeof SeverityNumber] || SeverityNumber.INFO,
-        severityText: method.toUpperCase(),
+        severityNumber: severityMap[method]?.number || SeverityNumber.INFO,
+        severityText: severityMap[method]?.text || 'INFO',
         body: args.join(' '),
-        attributes: { 'source.source': `console.${method}` },
+        attributes: { 'source': `console.${method}` },
       });
       // @ts-expect-error yes
       originalConsoleMethods[method](...args);
@@ -82,3 +82,12 @@ function initializeMetrics(): void {
   // The in memory exporter is added by default to that reader. More readers are allowed to be added dynamically
 
 }
+
+
+const severityMap: Record<string, { number: SeverityNumber; text: string }> = {
+  log:   { number: SeverityNumber.INFO,  text: 'INFO' },
+  info:  { number: SeverityNumber.INFO,  text: 'INFO' },
+  debug: { number: SeverityNumber.DEBUG, text: 'DEBUG' },
+  warn:  { number: SeverityNumber.WARN,  text: 'WARN' },
+  error: { number: SeverityNumber.ERROR, text: 'ERROR' },
+};

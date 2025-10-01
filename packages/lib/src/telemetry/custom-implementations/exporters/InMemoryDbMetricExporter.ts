@@ -77,6 +77,10 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         logger.info(`InMemoryDbMetricExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
     }
 
+    public get retentionTimeInSeconds(): number {
+        return this._retentionTimeInSeconds;
+    }
+
     private _startCleanupJob() {
         const interval = 1000;
 
