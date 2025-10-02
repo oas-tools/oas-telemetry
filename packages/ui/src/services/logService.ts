@@ -102,7 +102,17 @@ class LogsService {
   }
 
   async generateLog(message: string): Promise<string> {
-    const res = await backend.get("/utils/generate-log", { params: { log: message } });
+    const res = await backend.post("/utils/generate-log", { log: message });
+    return res.data.message;
+  }
+
+  async generateCustomLog({ log, method, repeat }: { log: string, method: string, repeat: number }): Promise<string> {
+    const res = await backend.post("/utils/generate-log", { log, method, repeat });
+    return res.data.message;
+  }
+
+  async generateMockLogs(count: number): Promise<string> {
+    const res = await backend.post("/utils/generate-mock-logs", { count });
     return res.data.message;
   }
 }

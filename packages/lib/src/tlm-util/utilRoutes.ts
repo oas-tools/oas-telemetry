@@ -8,10 +8,10 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
     router.get('/spec', (req, res) => specLoader(req, res, oasTlmConfig));
     router.get('/oas-telemetry-spec', (req, res) => getOasTelemetrySpec(req, res));
     router.get('/heapStats', heapStats);
-    router.get('/generate-log', async (req, res) => {
-        const log = req.query.log || 'Default log message';
-        const repeat = parseInt(req.query.repeat as string) || 1;
-        const method = (req.query.method as string)?.toLowerCase() || 'log';
+    router.post('/generate-log', async (req, res) => {
+        const log = req.body.log || 'Default log message';
+        const repeat = parseInt(req.body.repeat as string) || 1;
+        const method = (req.body.method as string)?.toLowerCase() || 'log';
         if (!['log', 'warn', 'error', 'info', 'debug'].includes(method)) {
             res.status(400).send({ error: 'Invalid method. Use log, warn, error, info, or debug.' });
             return;
@@ -23,8 +23,8 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
         }
     });
     
-    router.get('/generate-mock-logs', async (req, res) => {
-        const count = parseInt(req.query.count as string) || 50;
+    router.post('/generate-mock-logs', async (req, res) => {
+        const count = parseInt(req.body.count as string) || 50;
         generateMockLogs(count);
         res.send({ message: 'Started generating mock logs' });
     });
@@ -39,12 +39,19 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
 };
 
 const generateMockLogs = async (count: number) => {
-    const methods = ['log', 'warn', 'error', 'info', 'debug'];
+    const methodMessages: Record<string, string[]> = {
+        log: ['User logged in', 'Data fetched successfully'],
+        warn: ['Warning: Disk space low', 'Warning: High memory usage'],
+        error: ['Error connecting to database', 'Error: Invalid credentials'],
+        info: ['Info: Scheduled job started', 'Info: Configuration loaded'],
+        debug: ['Debugging mode enabled', 'Debug: Variable x = 42'],
+    };
+    const methods = Object.keys(methodMessages);
     for (let i = 0; i < count; i++) {
         await new Promise(resolve => setTimeout(resolve, 50)); // Slight delay between logs
-        const messages = ['User logged in', 'Data fetched successfully', 'Error connecting to database', 'Warning: Disk space low', 'Debugging mode enabled'];
-        const message = messages[Math.floor(Math.random() * messages.length)];
         const method = methods[Math.floor(Math.random() * methods.length)];
-        (console as any)[method](`[${new Date().toISOString()}][${method.toUpperCase()}] -${i + 1}- ${message}`);
+        const messages = methodMessages[method];
+        const message = messages[Math.floor(Math.random() * messages.length)];
+        (console as any)[method](`[${new Date().toISOString()}][MOCK LOG][${method.toUpperCase()}] -${i + 1}- ${message}`);
     }
 }

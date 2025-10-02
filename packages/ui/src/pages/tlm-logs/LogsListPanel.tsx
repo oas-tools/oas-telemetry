@@ -3,6 +3,7 @@ import { Virtuoso } from "react-virtuoso"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { LogEntry } from "./LogItem"
 import LogItem from "./LogItem"
+import CollapsibleCard from "./CollapsibleCard"
 
 const ROWS_COUNT_THRESHOLD = 15
 
@@ -19,6 +20,7 @@ export default function LogsList({ logs, loadOlderLogs, loadNewerLogs }: LogsLis
   const [firstItemIndex, setFirstItemIndex] = useState(100_000_000)
   const prevCountRef = useRef(0)
   const prevLogsRef = useRef<LogEntry[]>([])
+  const [expanded, setExpanded] = useState(true)
 
   useEffect(() => {
     isItemsBelowMinimum.current = logs.length <= ROWS_COUNT_THRESHOLD
@@ -54,31 +56,33 @@ export default function LogsList({ logs, loadOlderLogs, loadNewerLogs }: LogsLis
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Logs History</CardTitle>
-        <CardDescription>View and scroll through log entries</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {logs.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            No logs to display. Please update your filter or try again later.
-          </div>
-        ) : (
-          <Virtuoso
-            ref={virtuosoRef}
-            // alignToBottom={true}
-            firstItemIndex={firstItemIndex}
-            style={{ height: "70vh" }}
-            data={logs}
-            initialTopMostItemIndex={logs.length - 1}
-            itemContent={(_, log) => <LogItem log={log} />}
-            startReached={handleStartReached}
-            endReached={handleEndReached}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <CollapsibleCard
+      isOpen={expanded}
+      onToggle={() => setExpanded((v) => !v)}
+      header={
+        <>
+          <CardTitle>Logs History</CardTitle>
+          <CardDescription>View and scroll through log entries</CardDescription>
+        </>
+      }
+    >
+      {logs.length === 0 ? (
+        <div className="py-10 text-center text-sm text-muted-foreground">
+          No logs to display. Please update your filter or try again later.
+        </div>
+      ) : (
+        <Virtuoso
+          ref={virtuosoRef}
+          firstItemIndex={firstItemIndex}
+          style={{ height: "70vh" }}
+          data={logs}
+          initialTopMostItemIndex={logs.length - 1}
+          itemContent={(_, log) => <LogItem log={log} />}
+          startReached={handleStartReached}
+          endReached={handleEndReached}
+        />
+      )}
+    </CollapsibleCard>
   )
 }
 
