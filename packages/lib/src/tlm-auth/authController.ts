@@ -28,19 +28,19 @@ export const getLogin = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Resp
                 oasTlmConfig.auth.refreshTokenMaxAge
             );
 
-            res.cookie("accessToken", accessToken, {
+            res.cookie("oas-tlm-access-token", accessToken, {
                 maxAge: oasTlmConfig.auth.accessTokenMaxAge,
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
                 path: "/"
             });
-            res.cookie("refreshToken", refreshToken, {
+            res.cookie("oas-tlm-refresh-token", refreshToken, {
                 maxAge: oasTlmConfig.auth.refreshTokenMaxAge,
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
-                path: oasTlmConfig.general.baseUrl + "/auth/refresh" // <-- cambiado de "/auth/refresh" a oasTlmConfig.general.baseUrl + "/auth/refresh"
+                path: oasTlmConfig.general.baseUrl + "/auth/refresh"
             });
 
             res.status(200).json({ valid: true, message: "Login successful" });
@@ -58,8 +58,8 @@ export const getLogout = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Res
         res.status(200).json({ valid: true, message: "Auth disabled" });
         return;
     }
-    res.clearCookie('accessToken', { path: '/' });
-    res.clearCookie('refreshToken', { path: oasTlmConfig.general.baseUrl + '/auth/refresh' }); // <-- cambiado de "/auth/refresh" a oasTlmConfig.general.baseUrl + "/auth/refresh"
+    res.clearCookie('oas-tlm-access-token', { path: '/' });
+    res.clearCookie('oas-tlm-refresh-token', { path: oasTlmConfig.general.baseUrl + '/auth/refresh' });
     res.status(200).json({ valid: true, message: "Logged out" });
 };
 
@@ -68,7 +68,7 @@ export const getRefresh = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Re
         res.status(200).json({ valid: true, message: "Auth disabled" });
         return;
     }
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies["oas-tlm-refresh-token"];
     if (!refreshToken) {
         res.status(401).json({ valid: false, message: "No refresh token" });
         return;
@@ -80,7 +80,7 @@ export const getRefresh = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Re
             oasTlmConfig.auth.jwtSecret as string,
             oasTlmConfig.auth.accessTokenMaxAge
         );
-        res.cookie("accessToken", accessToken, {
+        res.cookie("oas-tlm-access-token", accessToken, {
             maxAge: oasTlmConfig.auth.accessTokenMaxAge,
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -88,7 +88,7 @@ export const getRefresh = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Re
             path: "/"
         });
         res.status(200).json({ valid: true, message: "Refreshed" });
-    } catch (err) {
+    } catch {
         res.status(401).json({ valid: false, message: "Invalid refresh token" });
     }
 };

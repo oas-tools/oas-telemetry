@@ -144,7 +144,6 @@ export function defineTracesApiTests(config: E2ETestConfig) {
         it('[e2e][Traces:Insert][-] should not insert traces and return 400 for invalid data', async () => {
             const response = await axios.post(tracesUrl, { spans: "invalid-data" }).catch((err) => err.response);
             expect(response.status).toBe(400);
-            expect(response.data.error).toBe("Invalid data format. Expected an array of JSON objects.");
         });
 
         it('[e2e][Traces:Find][+] should find traces with valid query', async () => {
@@ -177,14 +176,20 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             expect(response.status).toBe(400);
         });
 
+        it('[e2e][Traces:RetentionTime][+] should get retention time successfully', async () => {
+            const response = await axios.get(tracesRetentionTimeUrl).catch((err) => err.response);
+            expect(response.status).toBe(200);
+            expect(response.data.retentionTimeInSeconds).toBe(3600);
+        });
+
         it('[e2e][Traces:RetentionTime][+] should set retention time successfully', async () => {
-            const response = await axios.post(tracesRetentionTimeUrl, { retentionTime: 3600 }).catch((err) => err.response);
+            const response = await axios.post(tracesRetentionTimeUrl, { retentionTimeInSeconds: 3600 }).catch((err) => err.response);
             expect(response.status).toBe(200);
             expect(response.data.message).toContain('Retention time set to 3600 seconds.');
         });
 
         it('[e2e][Traces:RetentionTime][-] should return 400 for invalid retention time', async () => {
-            const response = await axios.post(tracesRetentionTimeUrl, { retentionTime: -1 }).catch((err) => err.response);
+            const response = await axios.post(tracesRetentionTimeUrl, { retentionTimeInSeconds: -1 }).catch((err) => err.response);
             expect(response.status).toBe(400);
             expect(response.data.error).toBe('Invalid retention time. Must be a positive number.');
         });

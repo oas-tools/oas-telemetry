@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { RefreshCw, Activity, MemoryStick, Globe, ChevronUp, ChevronDown } from "lucide-react"
 import { telemetryService, type ApiEndpoint, type HeapStats, type TelemetryStatus } from "@/services/telemetryService"
 import { getMethodColor, getStatusColor } from "@/utils/styles"
+import Loading from "@/components/pages/loading"
 
 
 type SortField = "path" | "method" | "status" | "requestCount" | "averageResponseTime"
@@ -134,11 +135,7 @@ export default function TracesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center justify-center h-96">
-          <RefreshCw className="h-8 w-8 animate-spin" />
-        </div>
-      </div>
+      <Loading />
     )
   }
 

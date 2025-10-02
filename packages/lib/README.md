@@ -101,7 +101,7 @@ export const customTelemetryConfig = {
     },
     memoryExporter: {
       enabled: true,
-      retentionTime: 1000 * 60 * 120, // 2 hours
+      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
     },
     filters: [],
   },
@@ -114,7 +114,7 @@ export const customTelemetryConfig = {
     extraReaders: [],
     memoryExporter: {
       enabled: true,
-      retentionTime: 1000 * 60 * 120, // 2 hours
+      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
     },
     filters: [],
   },
@@ -124,7 +124,7 @@ export const customTelemetryConfig = {
     extraProcessors: [],
     memoryExporter: {
       enabled: true,
-      retentionTime: 1000 * 60 * 120, // 2 hours
+      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
     },
     filters: [],
   },
@@ -197,7 +197,7 @@ You can access the telemetry UI at the endpoint `/telemetry` (or `/custom-teleme
 
 - `GET /utils/spec`: Load the OpenAPI specification.
 - `GET /utils/heapStats`: Show v8 heap statistics.
-- `GET /utils/generateLog`: Generate a log message.
+- `GET /utils/generate-log`: Generate a log message.
 - `GET /utils/wait/:seconds?`: Wait for a specified number of seconds.
 - `GET /utils/health`: Perform a health check.
 

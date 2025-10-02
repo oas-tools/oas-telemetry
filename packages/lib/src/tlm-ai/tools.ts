@@ -41,18 +41,12 @@ const getLogs = async (startDate: Date, endDate: Date) => {
                 }
             };
         }
-        const logs: any[] = [];
-        await new Promise<void>((resolve, reject) => {
-            inMemoryDbLogExporter.find(nedbQuery, null, (err: any, docs: any) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    logs.push(...docs);
-                    logger.debug(`Found ${logs.length} logs in the specified range.`);
-                    resolve();
-                }
-            });
-        });
+        const logs: any[] = (await inMemoryDbLogExporter.find({
+            query: nedbQuery,
+            messageSearch: null,
+            limit: 1000 // or any appropriate limit
+        })) || [];
+        logger.debug(`Found ${logs.length} logs in the specified range.`);
         const simplifiedLogs = getSimplifiedLogs(logs);
         return { logs: simplifiedLogs };
     } catch (error) {

@@ -1,28 +1,29 @@
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import type { Plugin } from "@/lib/types"
+import { getPluginOrigin } from "@/lib/utils/plugin-utils"
+import { getPluginService } from "@/services/pluginService"
 import {
   ChevronDown,
   ChevronRight,
-  Trash2,
   Code,
+  Download,
+  Edit,
   Globe,
   Loader2,
-  AlertCircle,
-  Download,
+  Pause,
+  Play,
+  Trash2,
 } from "lucide-react"
-import type { Plugin } from "@/lib/types"
-import { getPluginService } from "@/services/pluginService"
-import { getPluginOrigin } from "@/lib/utils/plugin-utils"
+import { useEffect, useState } from "react"
 import AceEditor from "react-ace"
+import { useNavigate } from "react-router-dom"
+// These imports are necessary for Ace Editor modes and themes (after the AceEditor import)
 import "ace-builds/src-noconflict/mode-javascript"
 import "ace-builds/src-noconflict/mode-json"
 import "ace-builds/src-noconflict/theme-monokai"
-import "ace-builds/src-noconflict/ext-language_tools"
 
 interface PluginListProps {
   plugins: Plugin[]
@@ -112,6 +113,7 @@ function PluginDetails({ plugin }: { plugin: Plugin }) {
 export function PluginList({ plugins, onRefresh, loading = false }: PluginListProps) {
   const [expandedPlugins, setExpandedPlugins] = useState<Set<string>>(new Set())
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set())
+  const navigate = useNavigate();
 
   const togglePlugin = async (plugin: Plugin) => {
     const pluginId = plugin.id
@@ -270,32 +272,59 @@ export function PluginList({ plugins, onRefresh, loading = false }: PluginListPr
                       </div>
                     </div>
                     <div className="flex items-center gap-3 sm:ml-4 self-start w-full sm:w-auto">
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Switch
-                            checked={plugin.active}
-                            onCheckedChange={() => togglePlugin(plugin)}
+                      <div className="flex flex-wrap sm:flex-row gap-2 w-auto">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant={plugin.active ? "secondary" : "default"}
+                            size="sm"
+                            onClick={() => togglePlugin(plugin)}
                             disabled={isActionLoading}
-                          />
+                            className="rounded-md h-9 sm:w-9 p-0"
+                            title={plugin.active ? "Pause Plugin" : "Run Plugin"}
+                          >
+                            {plugin.active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                          </Button>
                           {isActionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                         </div>
                         <Button
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           onClick={() => exportPlugin(plugin)}
-                          className="rounded-md h-9 w-full sm:w-9 p-0"
+                          className="rounded-md h-9 sm:w-9 p-0"
                           title="Export Plugin"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="secondary"
                           size="sm"
                           onClick={() => deletePlugin(plugin.id)}
                           disabled={isActionLoading}
-                          className="text-destructive hover:text-destructive rounded-md h-9 w-full sm:w-9 p-0"
+                          className="text-destructive hover:text-destructive rounded-md h-9 sm:w-9 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="rounded-md h-9 sm:w-9 p-0"
+                          title="Edit Plugin"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                "Warning: Editing a plugin will delete and re-register it to properly kill the process. Do you agree?"
+                              )
+                            ) {
+                              try {
+                                getPluginService().deletePlugin(plugin.id);
+                                navigate("/plugins/create", { state: { plugin } });
+                              } catch (error) {
+                                console.error("Error deleting plugin:", error);
+                              }
+                            }
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>

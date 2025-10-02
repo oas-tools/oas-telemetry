@@ -11,15 +11,46 @@ import {
   Activity,
   BarChart3,
   FileText,
-  Zap,
-  Shield,
-  Puzzle,
+  MemoryStick,
+  RefreshCw,
 } from "lucide-react"
 import { ChartAreaLegend } from "@/components/mocks/simple-chart"
 import { getLogLevelColor, getMethodColor, getStatusColor } from "@/utils/styles"
+import { useState, useEffect } from "react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { utilService } from "@/services/utilService"
 
 export default function LandingPage() {
   const navigate = useNavigate()
+
+  const [heapStats, setHeapStats] = useState<any | null>(null)
+  const [autoUpdateHeap, setAutoUpdateHeap] = useState(false)
+
+  useEffect(() => {
+    loadHeapStats()
+  }, [])
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    if (autoUpdateHeap) {
+      interval = setInterval(loadHeapStats, 2000)
+    }
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [autoUpdateHeap])
+
+  const loadHeapStats = async () => {
+    try {
+      const stats = await utilService.getHeapStats()
+      setHeapStats(stats)
+    } catch (error) {
+       
+      console.error("Failed to load heap stats:", error)
+    }
+  }
 
   const mockTraces = [
     {
@@ -63,68 +94,89 @@ export default function LandingPage() {
     },
   ]
 
-
-
-
   return (
     <div className="min-h-screen bg-gray-50">
-
-      <section className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
-        <div className="container mx-auto px-6 text-center">
-          <h1 className="text-5xl font-bold mb-6">Welcome to OAS-Telemetry</h1>
-          <p className="text-xl mb-8 max-w-3xl mx-auto">
-            Express middleware for collecting telemetry data using OpenTelemetry
-            in OpenAPI Specification applications. Monitor, and
-            optimize your APIs with real-time insights.
-          </p>
-        </div>
-      </section>
-
       <section className="py-16">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">
-              Powerful Telemetry Features
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              OAS Telemetry enhances observability for your OpenAPI-based applications, without introducing overhead.
-            </p>
-          </div>
+          {/* Heap Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MemoryStick className="h-5 w-5" />
+                Heap Statistics
+              </CardTitle>
+              <CardDescription>Memory usage and performance metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <Switch id="auto-update-heap" checked={autoUpdateHeap} onCheckedChange={setAutoUpdateHeap} />
+                  <Label htmlFor="auto-update-heap">Auto Update: {autoUpdateHeap ? "Enabled" : "Manual"}</Label>
+                </div>
+                <Button onClick={loadHeapStats} variant="outline" size="sm">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Update
+                </Button>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Real-time Monitoring
-              </h3>
-              <p className="text-gray-600">
-                Track API performance and usage in real-time with detailed
-                metrics and traces
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Secure & Reliable</h3>
-              <p className="text-gray-600">
-                Built with security in mind, featuring authentication and data
-                ownership
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Puzzle className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Extensible Plugins</h3>
-              <p className="text-gray-600">
-                Extend functionality with custom plugins for alerting and data
-                export
-              </p>
-            </div>
-          </div>
+              {heapStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-blue-600">Used Heap</div>
+                    <div className="text-2xl font-bold text-blue-900">
+                      {heapStats.used_heap_size.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-green-600">Total Heap</div>
+                    <div className="text-2xl font-bold text-green-900">
+                      {heapStats.total_heap_size.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-yellow-600">Available</div>
+                    <div className="text-2xl font-bold text-yellow-900">
+                      {heapStats.total_available_size.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-purple-600">External Memory</div>
+                    <div className="text-2xl font-bold text-purple-900">
+                      {heapStats.external_memory.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-red-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-red-600">Heap Limit</div>
+                    <div className="text-2xl font-bold text-red-900">
+                      {heapStats.heap_size_limit.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-indigo-600">Peak Malloc</div>
+                    <div className="text-2xl font-bold text-indigo-900">
+                      {heapStats.peak_malloced_memory.toFixed(2)} {heapStats.units}
+                    </div>
+                  </div>
+                  <div className="bg-pink-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-pink-600">Native Contexts</div>
+                    <div className="text-2xl font-bold text-pink-900">{heapStats.number_of_native_contexts}</div>
+                  </div>
+                  <div className="bg-cyan-50 p-4 rounded-lg">
+                    <div className="text-sm font-medium text-cyan-600">Global Handles</div>
+                    <div className="text-2xl font-bold text-cyan-900">
+                      {heapStats.used_global_handles_size.toFixed(3)} {heapStats.units}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Separador visual */}
+          <div className="mt-10" />
+
+          {/* Opcional: título para la sección de navegación */}
+          {/* <h2 className="text-2xl font-bold mb-6 text-gray-800">Explore Telemetry</h2> */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card
@@ -147,19 +199,19 @@ export default function LandingPage() {
                       key={index}
                       className="flex flex-wrap items-center text-sm gap-2"
                     >
-                        <Badge
-                          className={`${getMethodColor(trace.method)} border rounded-sm`}
-                        >
-                          {trace.method}
-                        </Badge>
+                      <Badge
+                        className={`${getMethodColor(trace.method)} border rounded-sm`}
+                      >
+                        {trace.method}
+                      </Badge>
 
-                        <Badge
-                          className={`${getStatusColor(trace.status)} border rounded-sm`}
-                        >
-                          {trace.status}
-                        </Badge>
-                        <code className="text-xs">{trace.path}</code>
-                        <span className="text-gray-500">{trace.duration}</span>
+                      <Badge
+                        className={`${getStatusColor(trace.status)} border rounded-sm`}
+                      >
+                        {trace.status}
+                      </Badge>
+                      <code className="text-xs">{trace.path}</code>
+                      <span className="text-gray-500">{trace.duration}</span>
                     </div>
                   ))}
                 </div>

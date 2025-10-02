@@ -4,10 +4,10 @@ import {
     stopLogs,
     statusLogs,
     resetLogs,
-    listLogs,
     findLogs,
     insertLogsToDb,
-    setRetentionTimeLogs
+    setLogRetentionTime,
+    getLogRetentionTime
 } from './logController.js';
 
 export const getLogRoutes = () => {
@@ -18,9 +18,10 @@ export const getLogRoutes = () => {
     router.post('/stop', stopLogs);
     router.get('/status', statusLogs);
     router.post('/reset', resetLogs);
-    router.post('/retention-time', setRetentionTimeLogs);
+    router.post('/retention-time', setLogRetentionTime);
+    router.get('/retention-time', getLogRetentionTime);
 
-    router.get('/', listLogs);
+    router.get('/', findLogs);
     router.post('/', insertLogsToDb);
     router.post('/find', findLogs);
 

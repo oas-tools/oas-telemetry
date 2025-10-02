@@ -7,7 +7,8 @@ import {
     startMetrics,
     stopMetrics,
     statusMetrics,
-    setRetentionTimeMetrics
+    setMetricRetentionTime,
+    getMetricRetentionTime
 } from './metricsController.js';
 
 export const getMetricsRoutes = () => {
@@ -18,7 +19,8 @@ export const getMetricsRoutes = () => {
     router.post('/stop', stopMetrics);
     router.get('/status', statusMetrics);
     router.post('/reset', resetMetrics);
-    router.post('/retention-time', setRetentionTimeMetrics);
+    router.post('/retention-time', setMetricRetentionTime);
+    router.get('/retention-time', getMetricRetentionTime);
 
     router.get('/', listMetrics);
     router.post('/', insertMetricsToDb);

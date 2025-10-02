@@ -7,7 +7,7 @@ export function getAuthMiddleware(oasTlmConfig: OasTlmConfig) {
     if (!oasTlmConfig.auth.enabled) {
       return next();
     }
-    const token = req.cookies.accessToken;
+    const token = req.cookies["oas-tlm-access-token"];
     if (!token) {
       res.status(401).json({ valid: false, message: "No access token" });
       return;

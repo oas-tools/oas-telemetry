@@ -1,11 +1,10 @@
-"use client"
 
 import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Puzzle } from "lucide-react"
-import { PluginList } from "@/components/plugin-list"
-import { PluginExport, PluginImport } from "@/components/plugin-import-export"
+import { PluginList } from "@/pages/plugin/PluginListPanel"
+import { PluginExport, PluginImport } from "@/pages/plugin/PluginImportExportPanel"
 import type { Plugin } from "@/lib/types"
 import { getPluginService } from "@/services/pluginService"
 import { useNavigate } from "react-router-dom"
@@ -32,7 +31,7 @@ export default function PluginManager() {
                 setPlugins([])
                 toast.error(<><b>Error loading Plugins:</b> {result.message || "Unknown error"}</>)
             }
-        } catch (err) {
+        } catch {
             setPlugins([])
             toast.error(<><b>Error loading Plugins:</b> "Unknown error"</>)
         }

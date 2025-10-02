@@ -3,6 +3,7 @@ import logger from "../utils/logger.js";
 
 class PluginService {
   private plugins: PluginResource[] = [];
+  public enabled: boolean = false;
 
   getPlugins() {
     return this.plugins;
@@ -38,6 +39,7 @@ class PluginService {
     type: "newMetric" | "newLog" | "newTrace",
     payload: any
   ) {
+    if (!this.enabled) return;
     this.plugins.forEach((plugin, i) => {
       if (!plugin.active) return;
 
@@ -83,6 +85,7 @@ class PluginService {
 
   /**
    * Broadcast a new trace to all active plugins
+   * TODO: rename to span (trace is the whole trace, span is a single unit of work within a trace)
    */
   broadcastTrace(trace: any) {
     this.broadcastToPlugins("newTrace", trace);

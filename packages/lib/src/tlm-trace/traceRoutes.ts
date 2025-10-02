@@ -7,7 +7,8 @@ import {
     listTraces,
     findTraces,
     insertTracesToDb,
-    setRetentionTimeTraces
+    setTraceRetentionTime,
+    getTraceRetentionTime
 } from './traceController.js';
 
 export const getTraceRoutes = () => {
@@ -22,7 +23,8 @@ export const getTraceRoutes = () => {
     router.get('/', listTraces);
     router.post('/', insertTracesToDb);
     router.post('/find', findTraces);
-    router.post('/retention-time', setRetentionTimeTraces);
+    router.post('/retention-time', setTraceRetentionTime);
+    router.get('/retention-time', getTraceRetentionTime);
 
     return router;
 };

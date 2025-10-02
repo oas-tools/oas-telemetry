@@ -6,8 +6,9 @@ import MiniSearch from 'minisearch';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
+import { pluginService } from '../../../tlm-plugin/pluginService.js';
 
-export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter {
+export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter {
 
     private _db: Datastore;
     private _miniSearch: MiniSearch;
@@ -42,10 +43,6 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
         resultCallback: (result: ExportResult) => void
     ) {
 
-        if (!this.isEnabled()) {
-            resultCallback({ code: ExportResultCode.SUCCESS });
-            return;
-        }
 
         const logsToInsert = logs.map(logRecord => {
             // Remove circular references first, then apply nesting, then export info
@@ -54,9 +51,15 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
             const nestedLog = applyNesting(cleanedLog);
             return nestedLog;
         });
+        logsToInsert.forEach(log => {
+            pluginService.broadcastLog(log);
+        });
+        // ENABLED only affect storage not plugin broadcasting
+        if (this.isEnabled()) {
+            this._insertLogs(logsToInsert, resultCallback);
+        }
+        resultCallback({ code: ExportResultCode.SUCCESS });
 
-        this._insertLogs(logsToInsert, resultCallback);
-        
     }
 
     reset(): void {
@@ -77,16 +80,28 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
     }
 
 
-    find(query: any, messageSearch: string | null, callback: (err: any, docs: any) => void): void {
+    async find(findConfig: { query: any, messageSearch: string | null, limit: number, sortOrder?: any }): Promise<any[]> {
+        const { query, messageSearch, limit, sortOrder } = findConfig;
+        const finalQuery = { ...query };
+        const effectiveSortOrder = sortOrder || { timestamp: -1 };
+
         if (messageSearch) {
-            const searchResults = this._miniSearch.search(messageSearch);
+            const searchResults = this._miniSearch.search(messageSearch, { prefix: true, fuzzy: 0.2 });
             const ids: string[] = searchResults.map((result: any) => result._id as string);
             logger.debug(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
-            // Add MiniSearch results to the query
-            query._id = { $in: ids };
+            finalQuery._id = { $in: ids };
         }
 
-        this._db.find(query, callback);
+        const docs = await new Promise<any[]>((resolve, reject) => {
+            this._db.find(finalQuery)
+                .sort(effectiveSortOrder)
+                .limit(limit)
+                .exec((err: any, docs: any[]) => {
+                    if (err) reject(err);
+                    else resolve(docs);
+                });
+        });
+        return docs;
     }
 
     insert(data: any[], callback: (err: any, newDocs: any[]) => void): void {
@@ -100,7 +115,7 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
                     }
                     callback(null, docs);
                 });
-            } else {   
+            } else {
                 callback(new Error('Failed to insert logs'), []);
             }
         });
@@ -122,7 +137,8 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
                 attributes: logRecord.resource.attributes,
             },
             instrumentationScope: logRecord.instrumentationScope,
-            timestamp: hrTimeToMicroseconds(logRecord.hrTime) || Date.now(),
+            timestamp: hrTimeToMicroseconds(logRecord.hrTime) ?? Date.now(),
+            observedTimestamp: hrTimeToMicroseconds(logRecord.hrTimeObserved) ?? Date.now(),
             traceId: logRecord.spanContext?.traceId,
             spanId: logRecord.spanContext?.spanId,
             traceFlags: logRecord.spanContext?.traceFlags,
@@ -138,7 +154,11 @@ export class InMemoryDbLogExporter  extends Enabler implements LogRecordExporter
         logger.info(`InMemoryDbLogExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
     }
 
-    private  _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
+    public get retentionTimeInSeconds(): number {
+        return this._retentionTimeInSeconds;
+    }
+
+    private _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
         this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
             if (err) {
                 console.dir(err);

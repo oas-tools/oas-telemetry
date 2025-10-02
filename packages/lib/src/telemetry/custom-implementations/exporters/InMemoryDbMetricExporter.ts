@@ -4,8 +4,9 @@ import { applyNesting } from '../utils/circular.js';
 import { PushMetricExporter, ResourceMetrics } from '@opentelemetry/sdk-metrics';
 import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
+import { pluginService } from '../../../tlm-plugin/pluginService.js';
 
-export class InMemoryDbMetricExporter extends Enabler implements PushMetricExporter{
+export class InMemoryDbMetricExporter extends Enabler implements PushMetricExporter {
 
     private _metrics: dataStore<Record<string, any>>;
     private _retentionTimeInSeconds: number;
@@ -20,9 +21,13 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
 
     export(metrics: ResourceMetrics, resultCallback: any) {
         try {
+            const scopeMetrics = metrics?.scopeMetrics;
+            const cleanMetrics = applyNesting(scopeMetrics);
+            cleanMetrics.forEach((metric: any) => {
+                pluginService.broadcastMetric(metric);
+            });
+            // Insert only if exporter is enabled
             if (this.isEnabled()) {
-                const scopeMetrics = metrics?.scopeMetrics;
-                const cleanMetrics = applyNesting(scopeMetrics);
                 this._metrics.insert(cleanMetrics, (err: any, _newDoc: any) => {
                     if (err) {
                         logger.error('Insertion Error:', err);
@@ -75,6 +80,10 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
         this._retentionTimeInSeconds = retentionTimeInSeconds;
         logger.info(`InMemoryDbMetricExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
+    }
+
+    public get retentionTimeInSeconds(): number {
+        return this._retentionTimeInSeconds;
     }
 
     private _startCleanupJob() {
