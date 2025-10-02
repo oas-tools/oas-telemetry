@@ -41,7 +41,6 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         logs: ReadableLogRecord[],
         resultCallback: (result: ExportResult) => void
     ) {
-
         if (!this.isEnabled()) {
             resultCallback({ code: ExportResultCode.SUCCESS });
             return;
@@ -80,11 +79,10 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     async find(findConfig: { query: any, messageSearch: string | null, limit: number, sortOrder?: any }): Promise<any[]> {
         const { query, messageSearch, limit, sortOrder } = findConfig;
         const finalQuery = { ...query };
-        // This means oldest first (like a chat history)
-        const effectiveSortOrder = sortOrder || { timestamp: -1, _id: -1 };
+        const effectiveSortOrder = sortOrder || { timestamp: -1 };
 
         if (messageSearch) {
-            const searchResults = this._miniSearch.search(messageSearch, { prefix: true , fuzzy: 0.2 });
+            const searchResults = this._miniSearch.search(messageSearch, { prefix: true, fuzzy: 0.2 });
             const ids: string[] = searchResults.map((result: any) => result._id as string);
             logger.debug(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
             finalQuery._id = { $in: ids };

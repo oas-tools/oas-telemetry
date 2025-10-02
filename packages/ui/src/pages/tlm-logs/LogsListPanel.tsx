@@ -62,7 +62,7 @@ export default function LogsList({ logs, loadOlderLogs, loadNewerLogs }: LogsLis
       <CardContent>
         {logs.length === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            No logs to display
+            No logs to display. Please update your filter or try again later.
           </div>
         ) : (
           <Virtuoso

@@ -45,7 +45,7 @@ class LogsService {
 
   async findLogs(criteria: SearchCriteria): Promise<LogsResponse> {
     const { limit = 50, query = {}, textSearch } = criteria;
-    const sort = { timestamp: -1, _id: -1 }; // Descending timestamp, from New to Old
+    const sort = { timestamp: -1 }; // Descending timestamp, from New to Old
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort });
     const logs = res.data.items || [];
     return { logs: logs.reverse() }; // Reverse to have Oldest at top, Newest at bottom
@@ -54,7 +54,7 @@ class LogsService {
   async findOlderLogs(criteria: SearchCriteria, timestamp: number): Promise<LogsResponse> {
     const { limit = 50, query = {}, textSearch } = criteria;
     query.timestamp = { $lt: timestamp };
-    const logSortOrder = { timestamp: -1, _id: -1 }; // Descending timestamp, from Old to New
+    const logSortOrder = { timestamp: -1 }; // Descending timestamp, from Old to New
     // Descending because we want first the newest of the older logs first (to not lose any when slicing), later we will reverse the array
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort: logSortOrder });
     const logs = res.data.items || [];
@@ -66,7 +66,7 @@ class LogsService {
   async findNewerLogs(criteria: SearchCriteria, timestamp: number): Promise<LogsResponse> {
     const { limit = 50, query = {}, textSearch } = criteria;
     query.timestamp = { $gt: timestamp };
-    const logSortOrder = { timestamp: 1, _id: 1 }; // Ascending timestamp, from New to Old
+    const logSortOrder = { timestamp: 1 }; // Ascending timestamp, from New to Old
     // No need to reverse, as they are already in the right order
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort: logSortOrder });
     const logs = res.data.items || [];

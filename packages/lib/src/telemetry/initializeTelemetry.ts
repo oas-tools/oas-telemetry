@@ -62,9 +62,10 @@ function initializeLogs(): void {
   Object.keys(originalConsoleMethods).forEach((method) => {
     // @ts-expect-error yes
     console[method] = (...args: any[]) => {
+      const severity = getSeverityForMethod(method)
       loggerInstance.emit({
-        severityNumber: severityMap[method]?.number || SeverityNumber.INFO,
-        severityText: severityMap[method]?.text || 'INFO',
+        severityNumber: severity.number,
+        severityText: severity.text,
         body: args.join(' '),
         attributes: { 'source': `console.${method}` },
       });
@@ -76,18 +77,23 @@ function initializeLogs(): void {
 
 function initializeMetrics(): void {
   logger.info('📈 Initializing MeterProvider');
-
-  // WARN: This is a custom provider that allows adding readers dynamically at runtime.
   // WARN: Default PeriodicExportingMetricReader is added post initialization (see telemetryConfigurator.ts)
   // The in memory exporter is added by default to that reader. More readers are allowed to be added dynamically
 
 }
 
-
-const severityMap: Record<string, { number: SeverityNumber; text: string }> = {
-  log:   { number: SeverityNumber.INFO,  text: 'INFO' },
-  info:  { number: SeverityNumber.INFO,  text: 'INFO' },
-  debug: { number: SeverityNumber.DEBUG, text: 'DEBUG' },
-  warn:  { number: SeverityNumber.WARN,  text: 'WARN' },
-  error: { number: SeverityNumber.ERROR, text: 'ERROR' },
-};
+function getSeverityForMethod(method: string): { number: SeverityNumber; text: string } {
+  switch (method) {
+    case "log":
+    case "info":
+      return { number: SeverityNumber.INFO, text: "INFO" }
+    case "debug":
+      return { number: SeverityNumber.DEBUG, text: "DEBUG" }
+    case "warn":
+      return { number: SeverityNumber.WARN, text: "WARN" }
+    case "error":
+      return { number: SeverityNumber.ERROR, text: "ERROR" }
+    default:
+      return { number: SeverityNumber.INFO, text: "INFO" }
+  }
+}

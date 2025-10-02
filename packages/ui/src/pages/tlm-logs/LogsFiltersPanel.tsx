@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Search, RefreshCw } from "lucide-react"
+import { Search, RefreshCw, Wand2 } from "lucide-react"
 import { severityOptions } from "./severityOptions"
 import { toast } from "sonner"
 
@@ -149,7 +149,7 @@ const LogsFiltersCard: React.FC<Props> = ({
                       setUserInputQuery(
                         JSON.stringify(
                           {
-                            severityText: "LOG",
+                            severityText: "INFO",
                             "resource.attributes.service.name":
                               "oas-telemetry-service",
                           },
@@ -159,7 +159,8 @@ const LogsFiltersCard: React.FC<Props> = ({
                       )
                     }
                   >
-                    Load Sample
+                    <Wand2 className="h-4 w-4" />
+                    Load Example
                   </Button>
                 </div>
                 <Textarea
