@@ -47,10 +47,10 @@ export function defineAuthApiTests(config: E2ETestConfig) {
             expect(response.status).toBe(200);
             expect(response.data.valid).toBe(true);
             expect(response.headers["set-cookie"]).toBeDefined();
-            // Should set both accessToken and refreshToken cookies
+            // Should set both oas-tlm-access-token and oas-tlm-refresh-token cookies
             const cookies = response.headers["set-cookie"] ? response.headers["set-cookie"].join(";") : "";
-            expect(cookies).toMatch(/accessToken/);
-            expect(cookies).toMatch(/refreshToken/);
+            expect(cookies).toMatch(/oas-tlm-access-token/);
+            expect(cookies).toMatch(/oas-tlm-refresh-token/);
         });
 
         it("[e2e][Auth][+] should refresh access token using refresh token", async () => {
@@ -61,13 +61,13 @@ export function defineAuthApiTests(config: E2ETestConfig) {
             const refresh = await axios.post(`${authUrl}/refresh`, {}, { headers: { Cookie: cookie }, withCredentials: true });
             expect(refresh.status).toBe(200);
             expect(refresh.data.valid).toBe(true);
-            // Should set a new accessToken cookie
+            // Should set a new oas-tlm-access-token cookie
             const cookies = refresh.headers["set-cookie"] ? refresh.headers["set-cookie"].join(";") : "";
-            expect(cookies).toMatch(/accessToken/);
+            expect(cookies).toMatch(/oas-tlm-access-token/);
         });
 
         it("[e2e][Auth][-] should fail refresh with invalid refresh token", async () => {
-            const refresh = await axios.post(`${authUrl}/refresh`, {}, { headers: { Cookie: "refreshToken=invalid" }, withCredentials: true }).catch((err) => err.response);
+            const refresh = await axios.post(`${authUrl}/refresh`, {}, { headers: { Cookie: "oas-tlm-refresh-token=invalid" }, withCredentials: true }).catch((err) => err.response);
             expect(refresh.status).toBe(401);
         });
 

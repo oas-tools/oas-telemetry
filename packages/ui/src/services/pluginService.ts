@@ -9,7 +9,7 @@ class PluginService {
     } catch (error) {
       let message = "Error listing plugins"
       if ((error as any).response?.data?.message) {
-        message = (error as any).response.data.message
+        message = (error as any).response.data
       }
       return { status: "error", message, data: [] }
     }
@@ -24,7 +24,7 @@ class PluginService {
       let status = "error"
       if ((error as any).response) {
         status = (error as any).response.status === 400 ? "fail" : "error"
-        message = (error as any).response.data.message || message
+        message = (error as any).response.data || message
       }
       return { status, message, data: null }
     }
@@ -39,7 +39,7 @@ class PluginService {
       let status = "error"
       if ((error as any).response) {
         status = (error as any).response.status === 400 ? "fail" : "error"
-        message = (error as any).response.data.message || message
+        message = (error as any).response.data || message
       }
       return { status, message, data: false }
     }
@@ -54,7 +54,7 @@ class PluginService {
       let status = "error"
       if ((error as any).response) {
         status = (error as any).response.status === 400 ? "fail" : "error"
-        message = (error as any).response.data.message || message
+        message = (error as any).response.data || message
       }
       return { status, message, data: false }
     }
@@ -69,7 +69,7 @@ class PluginService {
       let status = "error"
       if ((error as any).response) {
         status = (error as any).response.status === 400 ? "fail" : "error"
-        message = (error as any).response.data.message || message
+        message = (error as any).response.data || message
       }
       return { status, message, data: false }
     }

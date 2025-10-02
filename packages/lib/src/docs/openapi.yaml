@@ -8,6 +8,16 @@ info:
     Automatically collects and stores telemetry data in memory using OpenTelemetry.
     Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.
 
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: oas-tlm-access-token
+
+security:
+  - CookieAuth: []
+
 servers:
   - url: "{protocol}://{host}:{port}/{basePath}"
     variables:
@@ -39,12 +49,13 @@ tags:
     description: AI-related operations
   - name: plugins
     description: Operations for managing plugins
+  - name: auth
+    description: Authentication operations
 
 paths:
-
   /:
     get:
-      summary: Redirect to telemetry UI
+      summary: Redirect to telemetry UI (Only works in production mode)
       tags:
         - ui
       responses:
@@ -58,7 +69,7 @@ paths:
 
   /oas-telemetry-ui:
     get:
-      summary: OAS-Telemetry Web UI
+      summary: OAS-Telemetry Web UI (Only works in production mode)
       tags:
         - ui
       responses:
@@ -88,7 +99,8 @@ paths:
                     example: 0
                   spans:
                     type: array
-                    items: {}
+                    items:
+                      type: object
                     example: []
     post:
       summary: Insert traces (optionally reset first)
@@ -102,8 +114,27 @@ paths:
           in: query
           required: false
           schema:
-            type: boolean
+            type: string
+            enum:
+              - "true"
+              - "false"
           description: If true, reset the database before inserting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                spans:
+                  type: array
+                  items:
+                    type: object
+                  description: Array of trace objects to insert
+              example:
+                spans:
+                  - traceId: "123"
+                    spanId: "456"
       responses:
         '200':
           description: OK
@@ -118,6 +149,16 @@ paths:
                   InsertedTracesCount:
                     type: number
                     example: 1
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid data format. Expected an array of JSON objects.
 
   /traces/find:
     post:
@@ -132,31 +173,17 @@ paths:
             schema:
               type: object
               properties:
-                flags:
-                  type: object
-                  properties:
-                    containsRegex:
-                      type: boolean
-                      example: true
-                config:
-                  type: object
-                  properties:
-                    regexIds:
-                      type: array
-                      items:
-                        type: string
-                      example:
-                        - attributes.http.target
                 query:
                   type: object
                   additionalProperties: true
                   description: Mongo-like query criteria
                   example:
-                    attributes.http.target: "^/api/v1/pets.*$"
+                    attributes.http.target:
+                      $regex: "^/api/v1/pets.*$"
                     attributes.http.method: "GET"
                     $or:
-                      - attributes.http.status_code: 200
-                      - attributes.http.status_code: 304
+                      - attributes.http.status_code:
+                          $lte: 400
       responses:
         '200':
           description: OK
@@ -170,8 +197,19 @@ paths:
                     example: 0
                   spans:
                     type: array
-                    items: {}
+                    items:
+                      type: object
                     example: []
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid regex in query
 
   /traces/start:
     post:
@@ -233,6 +271,21 @@ paths:
                 example: Traces reset
 
   /traces/retention-time:
+    get:
+      summary: Get trace retention time (seconds)
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
     post:
       summary: Set retention time for traces
       tags:
@@ -245,10 +298,12 @@ paths:
             schema:
               type: object
               properties:
-                retentionTime:
+                retentionTimeInSeconds:
                   type: number
                   description: Retention time in seconds.
                   example: 3600
+            example:
+              retentionTimeInSeconds: 3600
       responses:
         '200':
           description: OK
@@ -283,6 +338,15 @@ paths:
             application/json:
               schema:
                 type: object
+                properties:
+                  metricsCount:
+                    type: number
+                    example: 0
+                  metrics:
+                    type: array
+                    items:
+                      type: object
+                    example: []
     post:
       summary: Insert metrics (optionally reset first)
       description: |
@@ -311,6 +375,16 @@ paths:
                   InsertedMetricsCount:
                     type: number
                     example: 25
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid data format. Expected an array of JSON objects.
 
   /metrics/find:
     post:
@@ -319,7 +393,7 @@ paths:
         - metrics
       requestBody:
         required: true
-        description: Mongo-like (nedb) query object for metrics filtering
+        description: Mongo-like (nedb) query object for metrics filtering.
         content:
           application/json:
             schema:
@@ -329,6 +403,8 @@ paths:
                   type: object
                   additionalProperties: true
                   description: Mongo-like query criteria
+                  example:
+                    metricId: "123"
       responses:
         '200':
           description: OK
@@ -342,8 +418,20 @@ paths:
                     example: 0
                   metrics:
                     type: array
-                    items: {}
+                    items:
+                      type: object
                     example: []
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid regex in query
+
 
   /metrics/start:
     post:
@@ -373,6 +461,23 @@ paths:
                 type: string
                 example: Metrics collection stopped
 
+  /metrics/status:
+    get:
+      summary: Get metrics collection status
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    example: true
+
   /metrics/reset:
     post:
       summary: Reset metrics database
@@ -388,6 +493,21 @@ paths:
                 example: Metrics reset
 
   /metrics/retention-time:
+    get:
+      summary: Get metrics retention time (seconds)
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
     post:
       summary: Set retention time for metrics
       tags:
@@ -400,10 +520,12 @@ paths:
             schema:
               type: object
               properties:
-                retentionTime:
+                retentionTimeInSeconds:
                   type: number
                   description: Retention time in seconds.
                   example: 3600
+            example:
+              retentionTimeInSeconds: 3600
       responses:
         '200':
           description: OK
@@ -439,13 +561,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  logsCount:
-                    type: number
-                    example: 0
-                  logs:
+                  items:
                     type: array
                     items: {}
-                    example: []
+                example:
+                  items: []
     post:
       summary: Insert logs (optionally reset first)
       description: |
@@ -458,8 +578,26 @@ paths:
           in: query
           required: false
           schema:
-            type: boolean
+            type: string
+            enum:
+              - "true"
+              - "false"
           description: If true, reset the database before inserting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logs:
+                  type: array
+                  items:
+                    type: object
+                  description: Array of log objects to insert
+              example:
+                logs:
+                  - body: "Hello World!"
       responses:
         '200':
           description: OK
@@ -492,7 +630,7 @@ paths:
         - logs
       requestBody:
         required: true
-        description: Search criteria for logs. Supports textSearch and a Mongo-like (nedb) query.
+        description: Search criteria for logs. Supports textSearch, a Mongo-like (nedb) query, and sort.
         content:
           application/json:
             schema:
@@ -505,9 +643,22 @@ paths:
                   type: object
                   additionalProperties: true
                   description: Mongo-like query criteria
+                sort:
+                  type: object
+                  additionalProperties: true
+                  description: Sort order for logs
+                  example:
+                    timestamp: -1
+                limit:
+                  type: integer
+                  description: Number of logs to return
+                  default: 50
               example:
                 textSearch: "World!"
                 query: {}
+                sort:
+                  timestamp: -1
+                limit: 50
       responses:
         '200':
           description: OK
@@ -516,119 +667,11 @@ paths:
               schema:
                 type: object
                 properties:
-                  logsCount:
-                    type: number
-                    example: 1
-                  logs:
+                  items:
                     type: array
-                    items:
-                      type: object
-                    example:
-                      - resource:
-                          attributes:
-                            service:
-                              name: "oas-telemetry-service"
-                        instrumentationScope:
-                          name: "oas-telemetry"
-                        timestamp: 1751826487853000
-                        traceId: "86b8d7081df95b56b6fe9a5bb8669026"
-                        spanId: "32b54ff4303e33ad"
-                        traceFlags: 1
-                        severityText: "LOG"
-                        severityNumber: 9
-                        body: "Generated log: Hello World!"
-                        attributes:
-                          source:
-                            source: "console.log"
-                        _id: "hash"
-
-  /logs/start:
-    post:
-      summary: Start log collection
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Log collection started
-
-  /logs/stop:
-    post:
-      summary: Stop log collection
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Log collection stopped
-
-  /logs/status:
-    get:
-      summary: Get log collection status
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  active:
-                    type: boolean
-                    example: true
-
-  /logs/reset:
-    post:
-      summary: Reset logs database
-      tags:
-        - logs
-      responses:
-        '200':
-          description: OK
-          content:
-            text/html:
-              schema:
-                type: string
-                example: Logs reset
-
-  /logs/retention-time:
-    post:
-      summary: Set retention time for logs
-      tags:
-        - logs
-      requestBody:
-        required: true
-        description: Retention time in seconds.
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                retentionTime:
-                  type: number
-                  description: Retention time in seconds.
-                  example: 3600
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Retention time set to 3600 seconds.
+                    items: {}
+                example:
+                  items: []
         '400':
           description: Bad Request
           content:
@@ -638,7 +681,7 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Invalid retention time. Must be a positive number.
+                    example: Invalid regex in query
 
   /utils/spec:
     get:
@@ -716,18 +759,34 @@ paths:
                   external_memory: 9.393
                   units: "MB"
 
-  /utils/generateLog:
-    get:
+  /utils/generate-log:
+    post:
       summary: Generate a sample log
       tags:
         - utils
-      parameters:
-        - name: log
-          in: query
-          required: false
-          schema:
-            type: string
-          description: The log message to generate. Defaults to "Default log message" if not specified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                log:
+                  type: string
+                  description: The log message to generate. Defaults to "Default log message" if not specified.
+                repeat:
+                  type: integer
+                  description: Number of times to repeat the log message.
+                  default: 1
+                method:
+                  type: string
+                  description: Log method (log, warn, error, info, debug).
+                  enum: [log, warn, error, info, debug]
+                  default: log
+              example:
+                log: "Hello World!"
+                repeat: 2
+                method: "info"
       responses:
         '200':
           description: OK
@@ -742,6 +801,46 @@ paths:
                   log:
                     type: string
                     example: Hello World!
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid method. Use log, warn, error, info, or debug.
+
+  /utils/generate-mock-logs:
+    post:
+      summary: Generate mock logs
+      tags:
+        - utils
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count:
+                  type: integer
+                  description: Number of mock logs to generate.
+                  default: 50
+              example:
+                count: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Started generating mock logs
 
   /utils/wait/{seconds}:
     get:
@@ -751,9 +850,10 @@ paths:
       parameters:
         - name: seconds
           in: path
-          required: true
+          required: false
           schema:
-            type: number
+            type: integer
+            default: 1
           description: Number of seconds to wait. Defaults to 1 if not specified.
       responses:
         '200':
@@ -767,7 +867,7 @@ paths:
                     type: number
                     example: 2
 
-  /utils/health:
+  /health:
     get:
       summary: Health check
       tags:
@@ -824,16 +924,6 @@ paths:
                   error:
                     type: string
                     example: "Missing question"
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Internal error"
 
   /ai/microservices:
     post:
@@ -888,16 +978,6 @@ paths:
                   error:
                     type: string
                     example: "Invalid microservices format. Expected an array."
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Internal error"
     get:
       summary: Get known microservices
       tags:
@@ -917,18 +997,8 @@ paths:
                     example:
                       - "service-a"
                       - "service-b"
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Internal error"
 
-  /plugins/list:
+  /plugins:
     get:
       summary: List all registered plugins
       tags:
@@ -939,29 +1009,31 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      description: Unique identifier for the plugin
-                    name:
-                      type: string
-                      description: Name of the plugin
-                    url:
-                      type: string
-                      description: URL of the plugin
-                    active:
-                      type: boolean
-                      description: Whether the plugin is active
-                  example:
-                    id: "plugin-1"
-                    name: "Sample Plugin"
-                    url: "https://example.com/plugin.js"
-                    active: true
-
-  /plugins/register:
+                type: object
+                properties:
+                  pluginsCount:
+                    type: integer
+                    description: Number of plugins
+                  plugins:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        url:
+                          type: string
+                        active:
+                          type: boolean
+                example:
+                  pluginsCount: 1
+                  plugins:
+                    - id: "plugin-1"
+                      name: "Sample Plugin"
+                      url: "https://example.com/plugin.js"
+                      active: true
     post:
       summary: Register a new plugin
       tags:
@@ -973,7 +1045,13 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - id
+                - moduleFormat
               properties:
+                id:
+                  type: string
+                  description: Unique identifier for the plugin
                 url:
                   type: string
                   description: URL of the plugin to register
@@ -999,10 +1077,12 @@ paths:
                   type: string
                   description: Module format of the plugin (e.g., "ESM" or "CJS")
               example:
-                url: "https://example.com/plugin.js"
+                id: "plugin-1"
+                name: "Sample Plugin"
+                description: "A sample plugin for demonstration"
+                code: "console.log('Hello from plugin');export const plugin = {load:()=>{console.log('Plugin loaded')}, isConfigured:()=>true};"
                 install:
-                  dependencies:
-                    - "axios"
+                  dependencies: []
                   ignoreErrors: true
                 config:
                   key: "value"
@@ -1020,13 +1100,229 @@ paths:
                   error:
                     type: string
                     example: "Plugin code or URL must be provided"
-        '500':
-          description: Internal Server Error
+
+  /plugins/{id}/activate:
+    post:
+      summary: Activate a plugin
+      tags:
+        - plugins
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Plugin ID
+      responses:
+        '200':
+          description: Plugin activated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin "plugin-1" activated.
+        '404':
+          description: Plugin not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin with id "plugin-1" not found.
+
+  /plugins/{id}/deactivate:
+    post:
+      summary: Deactivate a plugin
+      tags:
+        - plugins
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Plugin ID
+      responses:
+        '200':
+          description: Plugin deactivated
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin "plugin-1" deactivated.
+        '404':
+          description: Plugin not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin with id "plugin-1" not found.
+
+  /plugins/{id}:
+    delete:
+      summary: Delete a plugin
+      tags:
+        - plugins
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Plugin ID
+      responses:
+        '200':
+          description: Plugin deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin "plugin-1" deleted.
+        '404':
+          description: Plugin not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Plugin with id "plugin-1" not found.
+
+  /auth/login:
+    post:
+      summary: Login and obtain authentication cookies
+      tags:
+        - auth
+      requestBody:
+        required: true
+        description: Login credentials
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Password for authentication
+              required:
+                - password
+              example:
+                password: "your-password"
+      responses:
+        '200':
+          description: Login successful, cookies set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Sets oas-tlm-access-token and oas-tlm-refresh-token cookies.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  error:
+                  valid:
+                    type: boolean
+                  message:
                     type: string
-                    example: "Internal error"
+                example:
+                  valid: true
+                  message: Login successful
+        '400':
+          description: Invalid password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: false
+                  message: Invalid password
+
+  /auth/logout:
+    post:
+      summary: Logout and clear authentication cookies
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Logout successful, cookies cleared
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Clears oas-tlm-access-token and oas-tlm-refresh-token cookies.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: true
+                  message: Logged out
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token using refresh token cookie
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Access token refreshed, new cookie set
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: |
+                Sets a new oas-tlm-access-token cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: true
+                  message: Refreshed
+        '401':
+          description: Invalid or missing refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  message:
+                    type: string
+                example:
+                  valid: false
+                  message: Invalid refresh token
+
+  /auth/enabled:
+    get:
+      summary: Check if authentication is enabled
+      tags:
+        - auth
+      responses:
+        '200':
+          description: Returns whether authentication is enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                example:
+                  enabled: true

@@ -1,4 +1,3 @@
-"use client"
 
 import type React from "react"
 
@@ -61,7 +60,7 @@ export function PluginExport({ plugins }: PluginExportProps) {
           <div className="font-semibold">Error exporting plugins</div>
           <div className="text-xs whitespace-pre-line mt-1">{error instanceof Error ? error.message : "Export failed"}</div>
         </div>,
-        { duration: Infinity }
+        { duration: 10000 }
       )
       console.error("Export failed:", error)
     } finally {
@@ -177,7 +176,7 @@ export function PluginImport({ onPluginsImported }: PluginImportProps) {
               {results.filter(r => !r.success).map(r => `\n${r.id}: ${r.error}`).join("")}
             </div>
           </div>,
-          { duration: Infinity }
+          { duration: 10000 }
         )
       }
 
@@ -193,7 +192,7 @@ export function PluginImport({ onPluginsImported }: PluginImportProps) {
           <div className="font-semibold">Error importing plugins</div>
           <div className="text-xs whitespace-pre-line mt-1">{err instanceof Error ? err.message : "Import failed"}</div>
         </div>,
-        { duration: Infinity }
+        { duration: 10000 }
       )
     } finally {
       setLoading(false)

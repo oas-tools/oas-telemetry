@@ -8,7 +8,8 @@ import {
   FileText,
   Puzzle,
   Menu,
-  X
+  X,
+  Book // Add Book icon for API
 } from "lucide-react"
 import {
   NavigationMenu,
@@ -45,8 +46,45 @@ const usefulLinks = [
     label: "GitHub Repo",
     href: "https://github.com/oas-tools/oas-telemetry",
     icon: Github
+  },
+  {
+    label: "API",
+    href: "/api",
+    icon: Book
   }
 ]
+
+// Helper component for useful links
+function UsefulLink({ label, href, icon: Icon, onClick }: { label: string, href: string, icon: React.ElementType, onClick?: () => void }) {
+  if (href.startsWith("/")) {
+    return (
+      <NavigationMenuLink asChild>
+        <Link
+          to={href}
+          className="flex flex-row items-center gap-2 px-2 py-2 rounded hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+          onClick={onClick}
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+        </Link>
+      </NavigationMenuLink>
+    );
+  }
+  return (
+    <NavigationMenuLink asChild>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-row items-center gap-2 px-2 py-2 rounded hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+        onClick={onClick}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </a>
+    </NavigationMenuLink>
+  );
+}
 
 export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
   const { isAuthenticated, logout, authEnabled } = useAuth()
@@ -88,19 +126,9 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="absolute bg-white dark:bg-slate-800 shadow-lg rounded-md min-w-fit w-max mt-2">
                   <ul className="grid gap-2 p-2">
-                    {usefulLinks.map(({ label, href, icon: Icon }) => (
-                      <li key={label}>
-                        <NavigationMenuLink asChild>
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex flex-row items-center gap-2 px-2 py-2 rounded hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                          >
-                            <Icon className="h-4 w-4" />
-                            {label}
-                          </a>
-                        </NavigationMenuLink>
+                    {usefulLinks.map((props) => (
+                      <li key={props.label}>
+                        <UsefulLink {...props} />
                       </li>
                     ))}
                   </ul>
@@ -157,21 +185,31 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
               </Link>
             ))}
             <div className="border-t border-slate-200 dark:border-slate-700 my-2" />
-            <div className="flex flex-col gap-1">
-              {usefulLinks.map(({ label, href, icon: Icon }) => (
+            {usefulLinks.map(({ label, href, icon: Icon }) =>
+              href.startsWith("/") ? (
+                <Link
+                  key={label}
+                  to={href}
+                  className="flex flex-row items-center gap-2 px-2 py-2 rounded text-base font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              ) : (
                 <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-2 py-2 rounded text-base font-medium hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                  className="flex flex-row items-center gap-2 px-2 py-2 rounded text-base font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
                   onClick={() => setMobileOpen(false)}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
                 </a>
-              ))}
-            </div>
+              )
+            )}
             {authEnabled && isAuthenticated && (
               <Button
                 variant="ghost"

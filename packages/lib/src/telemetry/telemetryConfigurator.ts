@@ -1,19 +1,25 @@
 import { OasTlmConfig } from '../config/config.types.js';
 import { BatchSpanProcessor, SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, multiLogExporter, multiSpanExporter, oasTelemetryResource, pluginLogExporter, pluginMetricExporter, pluginSpanExporter } from './telemetryRegistry.js';
+import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, multiLogExporter, multiSpanExporter, oasTelemetryResource } from './telemetryRegistry.js';
 import logger from '../utils/logger.js';
 import { EnablerMultiLogExporter, EnablerMultiSpanExporter } from './custom-implementations/wrappers.js';
 import { BatchLogRecordProcessor, LogRecordProcessor, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { MeterProvider, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { HostMetrics } from '@opentelemetry/host-metrics';
 import { bootEnvVariables } from '../config/bootConfig.js';
+import { pluginService } from '../tlm-plugin/pluginService.js';
 
 
 export const configureTelemetry: (oasTlmConfig: OasTlmConfig) => void = (oasTlmConfig) => {
+    configurePlugins(oasTlmConfig);
     configureTraces(oasTlmConfig);
     configureMetrics(oasTlmConfig);
     configureLogs(oasTlmConfig);
     logger.info("✅ Telemetry configured successfully. All exporters are ready");
+}
+
+function configurePlugins(oasTlmConfig: OasTlmConfig): void {
+    pluginService.enabled = oasTlmConfig.plugins.enabled;
 }
 
 function configureTraces(oasTlmConfig: OasTlmConfig): void {
@@ -22,7 +28,6 @@ function configureTraces(oasTlmConfig: OasTlmConfig): void {
     inMemoryDbSpanExporter.baseUrl = oasTlmConfig.general.baseUrl; // TODO this will be done with filters
     inMemoryDbSpanExporter.retentionTimeInSeconds = oasTlmConfig.traces.memoryExporter.retentionTimeSeconds;
     inMemoryDbSpanExporter.setEnabledValue(oasTlmConfig.traces.memoryExporter.enabled);
-    pluginSpanExporter.setEnabledValue(oasTlmConfig.plugins.enabled);
     const mainExporter: EnablerMultiSpanExporter = multiSpanExporter
     let mainProcessor: SpanProcessor = new BatchSpanProcessor(mainExporter);
     if (bootEnvVariables.OASTLM_BOOT_ENV !== 'production') {
@@ -30,7 +35,6 @@ function configureTraces(oasTlmConfig: OasTlmConfig): void {
         mainProcessor = new SimpleSpanProcessor(mainExporter);
     }
     mainExporter.addExporters(inMemoryDbSpanExporter); // Main exporter have at least the in-memory exporter used by the traces controller
-    mainExporter.addExporters(pluginSpanExporter)
     mainExporter.addExporters(oasTlmConfig.traces.extraExporters);
     dynamicMultiSpanProcessor.addProcessors(mainProcessor);
     dynamicMultiSpanProcessor.addProcessors(oasTlmConfig.traces.extraProcessors);
@@ -53,7 +57,6 @@ function configureLogs(oasTlmConfig: OasTlmConfig): void {
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
     mainExporter.addExporters(oasTlmConfig.logs.extraExporters);
-    mainExporter.addExporters(pluginLogExporter); // Allow logs to be sent to plugins too
     dynamicMultiLogProcessor.addProcessors(mainProcessor);
     dynamicMultiLogProcessor.addProcessors(oasTlmConfig.logs.extraProcessors);
 }
@@ -69,14 +72,9 @@ function configureMetrics(oasTlmConfig: OasTlmConfig): void {
         metricProducers: oasTlmConfig.metrics.mainMetricReaderOptions.metricProducers
     });
 
-    const pluginReader = new PeriodicExportingMetricReader({
-        exporter: pluginMetricExporter,
-        exportIntervalMillis: oasTlmConfig.metrics.mainMetricReaderOptions.exportIntervalMillis,
-        metricProducers: oasTlmConfig.metrics.mainMetricReaderOptions.metricProducers
-    });
     const meterProvider = new MeterProvider({
         resource: oasTelemetryResource,
-        readers: [mainReader, pluginReader, ...oasTlmConfig.metrics.extraReaders],
+        readers: [mainReader, ...oasTlmConfig.metrics.extraReaders],
         views: oasTlmConfig.metrics.extraViews || []
     });
     // TODO maybe hostMetrics are too much, consider using only a subset of them.

@@ -4,6 +4,7 @@ import dataStore from '@seald-io/nedb';
 import logger from '../../../utils/logger.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
+import { pluginService } from '../../../tlm-plugin/pluginService.js';
 
 
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
@@ -14,8 +15,8 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        this._spans = new dataStore({ timestampData: true});
-        this._spans.ensureIndex({ fieldName: 'createdAt'});
+        this._spans = new dataStore({ timestampData: true });
+        this._spans.ensureIndex({ fieldName: 'createdAt' });
         this._startCleanupJob();
 
     };
@@ -28,33 +29,43 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         logger.info(`InMemoryDbSpanExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
     }
 
+    public get retentionTimeInSeconds(): number {
+        return this._retentionTimeInSeconds;
+    }
+
     export(readableSpans: ReadableSpan[], resultCallback: (arg0: { code: ExportResultCode; error?: Error; }) => void) {
         logger.debug('InMemoryDbSpanExporter.export called with spans: ', readableSpans.length);
         try {
-            if (!this.isEnabled()) {
-                logger.debug('InMemoryDbSpanExporter is not enabled. Skipping export.');
-                return resultCallback({ code: ExportResultCode.SUCCESS });
-            }
+
             // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
             const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
                 .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
                 .filter(span => {
-                    const target = span?.attributes?.http?.target;                        // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils'
+                    const target = span?.attributes?.http?.target;
+                    // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils/generate-log' or 'telemetry/utils/wait'
                     if (target && target.includes(this._baseUrl)) {
-                        return target.includes(this._baseUrl + '/utils');
+                        return (target === `${this._baseUrl}/generate-log` || target.startsWith(`${this._baseUrl}/wait`));
                     }
                     return true;
                 });
-            // Insert spans into the in-memory database
-            this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
-                if (err) {
-                    logger.error(err);
-                    return;
-                }
+
+            cleanSpans.forEach(span => {
+                pluginService.broadcastTrace(span);
             });
 
-            setTimeout(() => resultCallback({ code: ExportResultCode.SUCCESS }), 0);
+            // 
+            if (this.isEnabled()) {
+                // Insert spans into the in-memory database
+                this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
+                    if (err) {
+                        logger.error(err);
+                        return;
+                    }
+                });
+            }
+            return resultCallback({ code: ExportResultCode.SUCCESS });
+
         } catch (error: any) {
             logger.error('Error exporting spans\n' + error.message + '\n' + error.stack);
             return resultCallback({

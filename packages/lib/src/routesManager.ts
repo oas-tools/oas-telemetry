@@ -53,6 +53,7 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
     // WARNING: This path must be the same as the one used in the UI package App.tsx "oas-telemetry-ui"
     telemetryRouter.use("/oas-telemetry-ui", getUIRoutes());
 
+    telemetryRouter.use("/utils", getUtilsRoutes(oasTlmConfig));
     // Auth routes must be registered. If authentication is not enabled, all requests will be allowed.
     // Frontend will use these endpoints;
     telemetryRouter.use(cookieParser());
@@ -68,7 +69,6 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
         telemetryRouter.use("/ai", getAIRoutes(oasTlmConfig));
     }
 
-    telemetryRouter.use("/utils", getUtilsRoutes(oasTlmConfig));
     telemetryRouter.use("/plugins", getPluginRoutes());
 
     // Mount the telemetryRouter under telemetryBaseUrl

@@ -1,4 +1,3 @@
-
 import { TelemetryHeader } from "@/components/pages/telemetry-header";
 import { Footer } from "./footer";
 import type { ReactNode } from "react";

@@ -1,5 +1,4 @@
-// src/pages/LoginPage.tsx
-"use client";
+
 
 import { useState } from "react";
 import {
@@ -19,7 +18,7 @@ import backend from "@/services/Backend";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-export function LoginPage() {
+export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

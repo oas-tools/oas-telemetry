@@ -45,7 +45,7 @@ export const insertMetricsToDb = async (req: Request, res: Response) => {
     const jsonContent = req.body.metrics;
     const resetData = req.query.reset === 'true';
     if (!Array.isArray(jsonContent)) {
-        res.status(400).send({ error: 'Invalid data format. Expected an array of JSON objects.' });
+        res.status(400).send({ error: 'Invalid data format.' });
         return;
     }
 
@@ -95,13 +95,18 @@ export const statusMetrics = (req: Request, res: Response) => {
     res.send({ active: isRunning });
 };
 
-export const setRetentionTimeMetrics = (req: Request, res: Response) => {
-    const retentionTime = req.body.retentionTime;
-    if (typeof retentionTime !== 'number' || retentionTime <= 0) {
+export const setMetricRetentionTime = (req: Request, res: Response) => {
+    const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
+    if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
         return;
     }
 
-    inMemoryDbMetricExporter.retentionTimeInSeconds = retentionTime;
-    res.send({ message: `Retention time set to ${retentionTime} seconds.` });
+    inMemoryDbMetricExporter.retentionTimeInSeconds = retentionTimeInSeconds;
+    res.send({ message: `Retention time set to ${retentionTimeInSeconds} seconds.` });
+};
+
+export const getMetricRetentionTime = (req: Request, res: Response) => {
+    const retentionTimeInSeconds = inMemoryDbMetricExporter.retentionTimeInSeconds || 0;
+    res.send({ retentionTimeInSeconds: retentionTimeInSeconds });
 };

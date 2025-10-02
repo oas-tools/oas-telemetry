@@ -50,7 +50,7 @@ export const findTraces = (req: Request, res: Response) => {
     inMemoryDbSpanExporter.find(processedQuery, (err: any, docs: any) => {
         if (err) {
             console.error(err);
-            res.status(404).send({ spansCount: 0, spans: [], error: err.message });
+            res.status(400).send({ spansCount: 0, spans: [], error: err.message });
             return; // Exit the function to prevent further execution
         }
         const spans = docs;
@@ -62,7 +62,7 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
     const jsonContent = req.body.spans;
     const resetData = req.query.reset === 'true';
     if (!Array.isArray(jsonContent)) {
-        res.status(400).send({ error: 'Invalid data format. Expected an array of JSON objects.' });
+        res.status(400).send({ error: 'Invalid data format.' });
         return;
     }
 
@@ -97,13 +97,18 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
     }
 };
 
-export const setRetentionTimeTraces = (req: Request, res: Response) => {
-    const retentionTime = req.body.retentionTime;
-    if (typeof retentionTime !== 'number' || retentionTime <= 0) {
+export const setTraceRetentionTime = (req: Request, res: Response) => {
+    const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
+    if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
         return;
     }
 
-    inMemoryDbSpanExporter.retentionTimeInSeconds = retentionTime;
-    res.send({ message: `Retention time set to ${retentionTime} seconds.` });
+    inMemoryDbSpanExporter.retentionTimeInSeconds = retentionTimeInSeconds;
+    res.send({ message: `Retention time set to ${retentionTimeInSeconds} seconds.` });
+};
+
+export const getTraceRetentionTime = (req: Request, res: Response) => {
+    const retentionTimeInSeconds = inMemoryDbSpanExporter.retentionTimeInSeconds || 0;
+    res.send({ retentionTimeInSeconds: retentionTimeInSeconds });
 };

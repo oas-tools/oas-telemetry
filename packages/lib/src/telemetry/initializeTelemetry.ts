@@ -1,11 +1,12 @@
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import logger from '../utils/logger.js';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, oasTelemetryResource } from './telemetryRegistry.js';
+import { dynamicMultiLogProcessor, dynamicMultiSpanProcessor, oasTelemetryResource, originalConsoleMethods } from './telemetryRegistry.js';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SeverityNumber } from '@opentelemetry/api-logs';
 import { LoggerProvider } from '@opentelemetry/sdk-logs';
 import { bootEnvVariables } from '../config/bootConfig.js';
+import util from 'util';
 
 
 // THIS INSTRUMENTATIONS NEED TO BE LOADED BEFORE ANYTHING ELSE
@@ -50,23 +51,17 @@ function initializeLogs(): void {
   // Get a logger instance
   const loggerInstance = loggerProvider.getLogger('oas-telemetry'); // Use loggerProvider to get the logger
 
-  // Override console methods to emit logs via OpenTelemetry, like an instrumentation
-  const originalConsoleMethods = {
-    log: console.log,
-    warn: console.warn,
-    error: console.error,
-    info: console.info,
-    debug: console.debug,
-  };
+
 
   Object.keys(originalConsoleMethods).forEach((method) => {
     // @ts-expect-error yes
     console[method] = (...args: any[]) => {
+      const severity = getSeverityForMethod(method)
       loggerInstance.emit({
-        severityNumber: SeverityNumber[method.toUpperCase() as keyof typeof SeverityNumber] || SeverityNumber.INFO,
-        severityText: method.toUpperCase(),
-        body: args.join(' '),
-        attributes: { 'source.source': `console.${method}` },
+        severityNumber: severity.number,
+        severityText: severity.text,
+        body: util.format(...args),
+        attributes: { 'source': `console.${method}`, "library": "oas-telemetry" },
       });
       // @ts-expect-error yes
       originalConsoleMethods[method](...args);
@@ -76,9 +71,23 @@ function initializeLogs(): void {
 
 function initializeMetrics(): void {
   logger.info('📈 Initializing MeterProvider');
-
-  // WARN: This is a custom provider that allows adding readers dynamically at runtime.
   // WARN: Default PeriodicExportingMetricReader is added post initialization (see telemetryConfigurator.ts)
   // The in memory exporter is added by default to that reader. More readers are allowed to be added dynamically
 
+}
+
+function getSeverityForMethod(method: string): { number: SeverityNumber; text: string } {
+  switch (method) {
+    case "log":
+    case "info":
+      return { number: SeverityNumber.INFO, text: "INFO" }
+    case "debug":
+      return { number: SeverityNumber.DEBUG, text: "DEBUG" }
+    case "warn":
+      return { number: SeverityNumber.WARN, text: "WARN" }
+    case "error":
+      return { number: SeverityNumber.ERROR, text: "ERROR" }
+    default:
+      return { number: SeverityNumber.INFO, text: "INFO" }
+  }
 }

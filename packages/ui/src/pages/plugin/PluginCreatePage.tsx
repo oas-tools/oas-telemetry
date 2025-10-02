@@ -1,7 +1,5 @@
-"use client"
-
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import AceEditor from "react-ace"
 import { Wand2, Eraser } from "lucide-react"
 
@@ -21,7 +19,6 @@ import { Switch } from "@/components/ui/switch"
 import "ace-builds/src-noconflict/mode-javascript"
 import "ace-builds/src-noconflict/mode-json"
 import "ace-builds/src-noconflict/theme-monokai"
-import "ace-builds/src-noconflict/ext-language_tools"
 
 const dependencyExample = {
   globalOptions: '--no-save',
@@ -54,7 +51,8 @@ const plugin = {
     return loaded;
   },
   newLog(log) {
-    // PLEASE DO NOT LOG (INFINITE LOOP RISK)
+    // Do not worry this logs will not be captured by the telemetry system
+    console.log("New log received:", log);
   },
   newTrace(trace) {
     console.log("New trace received");
@@ -78,6 +76,7 @@ const descriptionExample = "A plugin that demonstrates usage of lodash's capital
 
 export default function PluginCreatePage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sourceType, setSourceType] = useState<"url" | "code">("code")
@@ -94,6 +93,25 @@ export default function PluginCreatePage() {
     dependencies: "",
     config: "",
   })
+
+  // Prefill form if plugin is passed in navigation state
+  useEffect(() => {
+    const plugin = location.state?.plugin
+    if (plugin) {
+      setFormData({
+        id: plugin.id || "",
+        name: plugin.name || "",
+        description: plugin.description || "",
+        moduleFormat: plugin.moduleFormat || "esm",
+        url: plugin.url || "",
+        code: plugin.sourceCode || plugin.code || "",
+        dependencies: plugin.install ? JSON.stringify(plugin.install, null, 2) : "",
+        config: plugin.config ? JSON.stringify(plugin.config, null, 2) : "",
+      })
+      setDependenciesEnabled(!!plugin.install)
+      setConfigEnabled(!!plugin.config)
+    }
+  }, [location.state])
 
   const handleLoadExample = () => {
     setFormData({
@@ -186,7 +204,7 @@ export default function PluginCreatePage() {
             <div className="font-semibold">Error creating plugin</div>
             <div className="text-xs whitespace-pre-line mt-1">{result.message}</div>
           </div>,
-          { duration: Infinity }
+          { duration: 10000 }
         )
         return
       }
@@ -202,7 +220,7 @@ export default function PluginCreatePage() {
           <div className="font-semibold">Error creating plugin</div>
           <div className="text-xs whitespace-pre-line mt-1">{msg}</div>
         </div>,
-        { duration: Infinity }
+        { duration: 10000 }
       )
     } finally {
       setLoading(false)
@@ -325,7 +343,6 @@ export default function PluginCreatePage() {
                       name="plugin_code_editor"
                       width="100%"
                       fontSize={14}
-                      wrapEnabled
                       showPrintMargin={false}
                       showGutter={true}
                       setOptions={{ useWorker: false }}

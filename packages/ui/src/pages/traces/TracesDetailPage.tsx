@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -30,11 +30,8 @@ export default function TracesDetailPage({
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  useEffect(() => {
-    loadTraces()
-  }, [path, method, status])
-
-  const loadTraces = async () => {
+  
+  const loadTraces = useCallback(async () => {
     try {
       setLoading(true)
       const traceData = await telemetryService.getTracesByEndpoint(path, method, status)
@@ -44,8 +41,12 @@ export default function TracesDetailPage({
     } finally {
       setLoading(false)
     }
-  }
-
+  }, [path, method, status])
+  
+  useEffect(() => {
+    loadTraces()
+  }, [path, method, status, loadTraces])
+  
   const handleTraceClick = async (traceId: string) => {
     try {
       const traceDetails = await telemetryService.getTraceDetails(traceId)

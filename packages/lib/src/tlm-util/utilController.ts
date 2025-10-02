@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { Request, Response } from 'express';
 import v8 from 'node:v8';
 import { OasTlmConfig } from '../config/config.types.js';
+import { fileURLToPath } from 'node:url';
 
 
 export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmConfig) => {
@@ -53,3 +54,27 @@ export const heapStats = (req: Request, res: Response) => {
     roundedHeapStats['units'] = 'MB';
     res.send(roundedHeapStats);
 };
+
+const isCjs = typeof __filename !== "undefined" && typeof __dirname !== "undefined";
+
+const __filenameUniversal = isCjs
+    ? __filename
+    : fileURLToPath(import.meta.url);
+
+const __dirnameUniversal = isCjs
+    ? __dirname
+    : path.dirname(__filenameUniversal);
+
+export const getOasTelemetrySpec = (_req: Request, res: Response) => {
+    try {
+        const specPath = path.join(__dirnameUniversal, '../docs/openapi.yaml');
+        const data = readFileSync(specPath, { encoding: 'utf8', flag: 'r' });
+        let json = data;
+        json = JSON.stringify(yaml.load(data), null, 2);
+        res.setHeader('Content-Type', 'application/json');
+        res.send(json);
+    } catch (e) {
+        console.error(`ERROR loading OAS Telemetry OpenAPI spec file: ${e}`);
+        res.status(500).send(`ERROR loading OAS Telemetry OpenAPI spec file: ${e}`);
+    }
+}
