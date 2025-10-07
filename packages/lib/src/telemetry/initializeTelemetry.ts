@@ -61,7 +61,7 @@ function initializeLogs(): void {
         severityNumber: severity.number,
         severityText: severity.text,
         body: util.format(...args),
-        attributes: { 'source': `console.${method}`, "library": "oas-telemetry" },
+        attributes: { 'source': `console.${method}`, "library": "telemetry" },
       });
       // @ts-expect-error yes
       originalConsoleMethods[method](...args);

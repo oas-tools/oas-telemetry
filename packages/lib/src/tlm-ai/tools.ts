@@ -133,7 +133,7 @@ const tools: ChatCompletionTool[] = [
           },
           "traceId": "5f7df252eb00e873bbd6441f86b71dac",
           "spanId": "fbd8ea558dd6ac32",
-          "service": "oas-telemetry-service",
+          "service": "telemetry-service",
           "startTime": { "0": 1747666254, "1": 333000000 },
           "endTime": { "0": 1747666254, "1": 335071700 },
           "_duration": { "0": 0, "1": 2071700 }

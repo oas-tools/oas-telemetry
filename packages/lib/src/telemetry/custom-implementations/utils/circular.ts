@@ -5,7 +5,7 @@ export function removeCircularRefs(obj: any): any {
     // Replacer function to handle circular references
     function replacer(key: string, value: any) {
         if (key === "_spanProcessor") {
-            return "oas-telemetry skips this field to avoid circular reference";
+            return "telemetry skips this field to avoid circular reference";
         }
         // GENERIC CIRCULAR REFERENCE HANDLING
         // if (typeof value === "object" && value !== null) {

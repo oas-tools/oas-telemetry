@@ -79,7 +79,7 @@ paths:
             text/html:
               schema:
                 type: string
-                example: <!DOCTYPE html><title>OAS-Telemetry UI</title></head><body><h1>Welcome to OAS-Telemetry UI</h1></body></html>
+                example: <!DOCTYPE html><title>Telemetry UI</title></head><body><h1>Welcome to Telemetry UI</h1></body></html>
 
   /traces:
     get:
