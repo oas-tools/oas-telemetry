@@ -120,7 +120,7 @@ const ApiDocsPage = () => {
             <main className="container mx-auto px-4 py-4 md:py-8 space-y-4 md:space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-xl sm:text-2xl font-bold">{spec.info.title}</CardTitle>
+                        <CardTitle className="text-xl sm:text-2xl font-bold">Telemetry lib (redacted)</CardTitle>
                         <CardDescription className="text-xs sm:text-sm">{spec.info.version}</CardDescription>
                         <p className="text-sm text-muted-foreground mt-2">{spec.info.description}</p>
                     </CardHeader>

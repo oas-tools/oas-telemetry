@@ -65,11 +65,11 @@ paths:
             text/html:
               schema:
                 type: string
-                example: <p>Found. Redirecting to /oas-telemetry-ui</p>
+                example: <p>Found. Redirecting to /telemetry-ui</p>
 
-  /oas-telemetry-ui:
+  /telemetry-ui:
     get:
-      summary: OAS-Telemetry Web UI (Only works in production mode)
+      summary: Telemetry Web UI (Only works in production mode)
       tags:
         - ui
       responses:

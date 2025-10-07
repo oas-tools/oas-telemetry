@@ -33,21 +33,21 @@ const tabs = [
 ]
 
 const usefulLinks = [
-  {
-    label: "Documentation",
-    href: "https://github.com/oas-tools/oas-telemetry",
-    icon: BookOpen
-  },
-  {
-    label: "NPM Package",
-    href: "https://www.npmjs.com/package/@oas-tools/oas-telemetry",
-    icon: Package
-  },
-  {
-    label: "GitHub Repo",
-    href: "https://github.com/oas-tools/oas-telemetry",
-    icon: Github
-  },
+  // {
+  //   label: "Documentation",
+  //   href: "https://github.com/oas-tools/oas-telemetry",
+  //   icon: BookOpen
+  // },
+  // {
+  //   label: "NPM Package",
+  //   href: "https://www.npmjs.com/package/@oas-tools/oas-telemetry",
+  //   icon: Package
+  // },
+  // {
+  //   label: "GitHub Repo",
+  //   href: "https://github.com/oas-tools/oas-telemetry",
+  //   icon: Github
+  // },
   {
     label: "API",
     href: "/api",
@@ -71,8 +71,8 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
       <div className="flex items-center justify-between px-4 py-3 md:py-4">
         {/* Logo and Name */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logoUrl} alt="OAS Telemetry" className="w-8 h-8" />
-          <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">OAS Telemetry</span>
+          <img src={logoUrl} alt="Telemetry" className="w-8 h-8" />
+          <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Telemetry</span>
         </Link>
         {/* Desktop Navigation */}
         <div className="hidden md:flex flex-1 items-center justify-between ml-8">

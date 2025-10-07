@@ -47,11 +47,11 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
 
     // Redirect to the UI when accessing the base URL
     telemetryRouter.get('/', (req, res) => {
-        res.redirect(`${telemetryBaseUrl}/oas-telemetry-ui/`);
+        res.redirect(`${telemetryBaseUrl}/telemetry-ui/`);
     });
 
-    // WARNING: This path must be the same as the one used in the UI package App.tsx "oas-telemetry-ui"
-    telemetryRouter.use("/oas-telemetry-ui", getUIRoutes());
+    // WARNING: This path must be the same as the one used in the UI package App.tsx "telemetry-ui"
+    telemetryRouter.use("/telemetry-ui", getUIRoutes());
 
     telemetryRouter.use("/utils", getUtilsRoutes(oasTlmConfig));
     // Auth routes must be registered. If authentication is not enabled, all requests will be allowed.

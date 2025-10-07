@@ -24,7 +24,7 @@ const logMethods = [
 
 export default function LogsGeneratorPanel() {
     const [tab, setTab] = useState<"custom" | "mock">("custom")
-    const [message, setMessage] = useState("Hello Oas Telemetry!")
+    const [message, setMessage] = useState("Hello Telemetry!")
     const [method, setMethod] = useState("info")
     const [repeat, setRepeat] = useState(1)
     const [mockCount, setMockCount] = useState(50)

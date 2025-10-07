@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const PROD_FRONTEND_MARKER = "/oas-telemetry-ui";
+const PROD_FRONTEND_MARKER = "/telemetry-ui";
 
 export function getFrontendBaseName() {
     const path = window.location.pathname;
@@ -26,7 +26,7 @@ function getBackendTelemetryBaseUrl() {
 
     if (index !== -1) {
         // Remove the marker to get the backend base path
-        // E.g. if http://localhost:3000/telemetry/oas-telemetry-ui is the path, we want http://localhost:3000/telemetry
+        // E.g. if http://localhost:3000/telemetry/telemetry-ui is the path, we want http://localhost:3000/telemetry
         const backendBase = path.substring(0, index);
         result = backendBase.endsWith("/") ? backendBase.slice(0, -1) : backendBase;
     } else {
@@ -110,7 +110,7 @@ export function getLogoRelativePath() {
     if (prodFrontendBaseName === "") { // Development mode
         return "/oas-tlm.svg";
     }
-    // Production mode. E.g. /telemetry/oas-telemetry-ui/oas-tlm.svg
+    // Production mode. E.g. /telemetry/telemetry-ui/oas-tlm.svg
     return prodFrontendBaseName + "/oas-tlm.svg";
 }
 

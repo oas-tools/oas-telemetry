@@ -65,7 +65,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center gap-2">
             <Lock className="h-8 w-8 text-primary" />
             <CardTitle className="text-center text-lg">
-              Sign in to OAS Telemetry
+              Sign in to Telemetry
             </CardTitle>
             <CardDescription className="text-center">
               Enter your password to access the dashboard.
@@ -98,7 +98,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground text-center w-full">
-            &copy; {new Date().getFullYear()} OAS Telemetry
+            &copy; {new Date().getFullYear()} Telemetry
           </div>
         </CardFooter>
       </Card>

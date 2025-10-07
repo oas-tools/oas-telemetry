@@ -68,7 +68,7 @@ export const defaultConfig = {
         baseUrl: "/telemetry",
         specFileName: null as string | null, // e.g. "oas.json" or null if not provided
         spec: null as string | null, // e.g. JSON.stringify(oasSpec) or null if not provided,
-        uiPath: "/oas-telemetry-ui", // path to the UI, e.g. "/oas-telemetry-ui" WARN: This must match the UI package's App.tsx "oas-telemetry-ui" path
+        uiPath: "/telemetry-ui", // path to the UI, e.g. "/telemetry-ui" WARN: This must match the UI package's App.tsx "telemetry-ui" path
     },
     auth: {
         enabled: false,
