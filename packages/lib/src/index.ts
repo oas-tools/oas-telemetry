@@ -7,7 +7,7 @@ import { configureRoutes } from './routesManager.js';
 import { UserConfig } from './config/config.types.js';
 import { configureTelemetry } from './telemetry/telemetryConfigurator.js';
 import { bootEnvVariables } from "./config/bootConfig.js";
-
+// WARN: If changed the API, also change in packages/lib/src/types/cjs-index.d.ts (used for CJS compilation)
 /**
  * Returns the OAS-Telemetry middleware.
  * All parameters are optional. However, either `spec` or `specFileName` must be provided to enable endpoint filtering.
@@ -33,3 +33,4 @@ export default function oasTelemetry(oasTlmInputConfig?: UserConfig): Router {
     
     return router;
 }
+
