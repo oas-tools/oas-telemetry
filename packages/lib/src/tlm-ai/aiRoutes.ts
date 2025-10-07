@@ -1,13 +1,23 @@
 import { Router } from 'express';
-import { OasTlmConfig } from "../config/config.types.js";
-import { answerQuestion, setKnownMicroservicesHandler, getKnownMicroservicesHandler } from './aiController.js';
+import { OasTlmConfig } from '../config/config.types.js';
+import { createConversation, deleteConversation, getConversationHistory, listConversations, sendMessage } from './aiController.js';
+import { configureAiService } from './aiService.js';
 
 export const getAIRoutes = (oasTlmConfig: OasTlmConfig) => {
+
     const router = Router();
 
-    router.post('/chat', answerQuestion(oasTlmConfig));
-    router.post('/microservices', setKnownMicroservicesHandler());
-    router.get('/microservices', getKnownMicroservicesHandler());
+    configureAiService(oasTlmConfig); //oasTlmConfig.ai.openAIKey
+    
+    router.get('/chat/health', (req, res) => {
+        res.status(200).send('AI service is healthy');
+    });
 
+    router.get('/chat', listConversations);
+    router.post('/chat', createConversation);
+    router.get('/chat/:conversationId', getConversationHistory);
+    router.post('/chat/:conversationId/message', sendMessage);
+    router.delete('/chat/:conversationId', deleteConversation);
+    
     return router;
 };

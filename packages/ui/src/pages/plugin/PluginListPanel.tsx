@@ -299,6 +299,7 @@ export function PluginList({ plugins, onRefresh, loading = false }: PluginListPr
                           variant="secondary"
                           size="sm"
                           onClick={() => deletePlugin(plugin.id)}
+                          title="Delete Plugin"
                           disabled={isActionLoading}
                           className="text-destructive hover:text-destructive rounded-md h-9 sm:w-9 p-0"
                         >

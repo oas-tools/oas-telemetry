@@ -1,34 +1,35 @@
-import React from "react"
-import {
-  Github,
-  BookOpen,
-  Package,
-  Activity,
-  BarChart3,
-  FileText,
-  Puzzle,
-  Menu,
-  X,
-  Book // Add Book icon for API
-} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger
 } from "@/components/ui/navigation-menu"
-import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
 import { getLogoRelativePath } from "@/services/Backend"
+import {
+  Book,
+  BookOpen,
+  Construction,
+  FileText,
+  Github,
+  Menu, // Add Book icon for API
+  MessageSquare,
+  Package,
+  Puzzle,
+  X
+} from "lucide-react"
+import React from "react"
+import { Link } from "react-router-dom"
 
 const tabs = [
-  { id: "traces" as const, label: "Traces", icon: Activity },
-  { id: "metrics" as const, label: "Metrics", icon: BarChart3 },
+  // Disabled until implemented
+  // { id: "traces" as const, label: "Traces", icon: Activity },
+  // { id: "metrics" as const, label: "Metrics", icon: BarChart3 },
   { id: "logs" as const, label: "Logs", icon: FileText },
-  { id: "plugins" as const, label: "Plugins", icon: Puzzle }
+  { id: "plugins" as const, label: "Plugins", icon: Puzzle },
+  { id: "chat" as const, label: "Chat", icon: MessageSquare }
 ]
 
 const usefulLinks = [
@@ -51,40 +52,14 @@ const usefulLinks = [
     label: "API",
     href: "/api",
     icon: Book
+  },
+  {
+    label: "Dev Tools",
+    href: "/dev-tools",
+    icon: Construction
   }
 ]
 
-// Helper component for useful links
-function UsefulLink({ label, href, icon: Icon, onClick }: { label: string, href: string, icon: React.ElementType, onClick?: () => void }) {
-  if (href.startsWith("/")) {
-    return (
-      <NavigationMenuLink asChild>
-        <Link
-          to={href}
-          className="flex flex-row items-center gap-2 px-2 py-2 rounded hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-          onClick={onClick}
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-        </Link>
-      </NavigationMenuLink>
-    );
-  }
-  return (
-    <NavigationMenuLink asChild>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex flex-row items-center gap-2 px-2 py-2 rounded hover:text-primary dark:hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-        onClick={onClick}
-      >
-        <Icon className="h-4 w-4" />
-        {label}
-      </a>
-    </NavigationMenuLink>
-  );
-}
 
 export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
   const { isAuthenticated, logout, authEnabled } = useAuth()
@@ -120,19 +95,37 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               ))}
-              <NavigationMenuItem>
-                <NavigationMenuTrigger className="bg-transparent text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">
-                  Useful Links
-                </NavigationMenuTrigger>
-                <NavigationMenuContent className="absolute bg-white dark:bg-slate-800 shadow-lg rounded-md min-w-fit w-max mt-2">
-                  <ul className="grid gap-2 p-2">
+              {/* Useful Links Dropdown only on desktop */}
+              <NavigationMenuItem className="hidden md:block">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 px-3 py-2">
+                      Useful Links
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="hidden md:block">
                     {usefulLinks.map((props) => (
-                      <li key={props.label}>
-                        <UsefulLink {...props} />
-                      </li>
+                      <DropdownMenuItem key={props.label} asChild>
+                        {props.href.startsWith("/") ? (
+                          <Link to={props.href} className="flex items-center gap-2">
+                            <props.icon className="h-4 w-4" />
+                            {props.label}
+                          </Link>
+                        ) : (
+                          <a
+                            href={props.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2"
+                          >
+                            <props.icon className="h-4 w-4" />
+                            {props.label}
+                          </a>
+                        )}
+                      </DropdownMenuItem>
                     ))}
-                  </ul>
-                </NavigationMenuContent>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>

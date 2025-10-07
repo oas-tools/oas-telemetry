@@ -7,76 +7,78 @@ import { installDependencies } from "dynamic-installer";
 
 let plugin;
 const log = (...args) => {
-    console.log(`[PluginProcess:${process.pid}]`, ...args);
+  console.log(`[PluginProcess:${process.pid}]`, ...args);
 };
 
 process.on("message", async (msg) => {
-    if (msg.type === "load") {
-        try {
-            const pluginResource = normalizePluginResource(msg.pluginResource);
+  if (msg.type === "load") {
+    try {
+      const pluginResource = normalizePluginResource(msg.pluginResource);
 
-            if (pluginResource.install && Array.isArray(pluginResource.install.dependencies) && pluginResource.install.dependencies.length > 0) {
-                log("Installing dependencies for plugin: " + pluginResource.name);
-                const dependenciesStatus = await installDependencies(pluginResource.install);
-                if (!dependenciesStatus.success) {
-                    if (pluginResource.install.ignoreErrors === true) {
-                        log(`Warning: Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}`);
-                    } else {
-                        process.send?.({ event: "error", error: `Error installing dependencies: ${JSON.stringify(dependenciesStatus.details)}` });
-                        return;
-                    }
-                }
-            }
-
-            let module;
-            if (pluginResource?.moduleFormat?.toLowerCase() === "esm") {
-                module = await importFromString(pluginResource.sourceCode);
-            } else {
-                module = await requireFromString(pluginResource.sourceCode);
-            }
-
-            plugin = module.default?.plugin ?? module.plugin;
-            if (!plugin) throw new Error("Plugin must export a valid 'plugin' object");
-
-            for (const fn of ["load", "isConfigured"]) {
-                if (typeof plugin[fn] !== "function") {
-                    throw new Error(`Plugin is missing required function "${fn}"`);
-                }
-            }
-
-            await plugin.load(pluginResource.config);
-
-            if (!plugin.isConfigured()) {
-                throw new Error("Plugin could not be configured");
-            }
-
-            process.send?.({ event: "loaded", name: pluginResource.name || pluginResource.id || "unknown" });
-        } catch (err) {
-            process.send?.({ event: "error", error: err.message });
-            process.exit(1);
+      if (pluginResource.install && Array.isArray(pluginResource.install.dependencies) && pluginResource.install.dependencies.length > 0) {
+        log("Installing dependencies for plugin: " + pluginResource.name);
+        const dependenciesStatus = await installDependencies(pluginResource.install);
+        console.dir(dependenciesStatus);
+        if (!dependenciesStatus.success) {
+          const detailsFailed = dependenciesStatus.details.filter(detail => detail.success === false);
+          if (pluginResource.install.ignoreErrors === true) {
+            log(`Warning: Error installing dependencies: ${JSON.stringify(detailsFailed)}. Continuing as ignoreErrors is true.`);
+          } else {
+            process.send?.({ event: "error", error: `Error installing dependencies: ${JSON.stringify(detailsFailed)}` });
+            return;
+          }
         }
-    }
+      }
 
-    // Forward log/metric/trace calls
-    if (msg.type === "newLog" && plugin?.newLog) {
-        plugin.newLog(msg.payload);
-    }
+      let module;
+      if (pluginResource?.moduleFormat?.toLowerCase() === "esm") {
+        module = await importFromString(pluginResource.sourceCode);
+      } else {
+        module = await requireFromString(pluginResource.sourceCode);
+      }
 
-    if (msg.type === "newMetric" && plugin?.newMetric) {
-        plugin.newMetric(msg.payload);
-    }
+      plugin = module.default?.plugin ?? module.plugin;
+      if (!plugin) throw new Error("Plugin must export a valid 'plugin' object");
 
-    if (msg.type === "newTrace" && plugin?.newTrace) {
-        plugin.newTrace(msg.payload);
-    }
-
-    if (msg.type === "unload") {
-        if (plugin && typeof plugin.unload === "function") {
-            await plugin.unload();
+      for (const fn of ["load", "isConfigured"]) {
+        if (typeof plugin[fn] !== "function") {
+          throw new Error(`Plugin is missing required function "${fn}"`);
         }
-        process.send?.({ event: "unloaded" });
-        process.exit(0);
+      }
+
+      await plugin.load(pluginResource.config);
+
+      if (!plugin.isConfigured()) {
+        throw new Error("Plugin could not be configured");
+      }
+
+      process.send?.({ event: "loaded", name: pluginResource.name || pluginResource.id || "unknown" });
+    } catch (err) {
+      process.send?.({ event: "error", error: err.message });
+      process.exit(1);
     }
+  }
+
+  // Forward log/metric/trace calls
+  if (msg.type === "newLog" && plugin?.newLog) {
+    plugin.newLog(msg.payload);
+  }
+
+  if (msg.type === "newMetric" && plugin?.newMetric) {
+    plugin.newMetric(msg.payload);
+  }
+
+  if (msg.type === "newTrace" && plugin?.newTrace) {
+    plugin.newTrace(msg.payload);
+  }
+
+  if (msg.type === "unload") {
+    if (plugin && typeof plugin.unload === "function") {
+      await plugin.unload();
+    }
+    process.send?.({ event: "unloaded" });
+    process.exit(0);
+  }
 });
 
 function normalizePluginResource(raw) {

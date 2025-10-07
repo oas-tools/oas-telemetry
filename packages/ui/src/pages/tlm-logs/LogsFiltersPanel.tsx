@@ -34,6 +34,7 @@ const LogsFiltersCard: React.FC<Props> = ({
   const [severityFilter, setSeverityFilter] = useState<string[]>([])
   const [serviceFilter, setServiceFilter] = useState<string[]>([])
   const [userInputQuery, setUserInputQuery] = useState("")
+  const [traceIdInput, setTraceIdInput] = useState("")
   const [expanded, setExpanded] = useState(false)
 
   const handleApply = () => {
@@ -52,6 +53,9 @@ const LogsFiltersCard: React.FC<Props> = ({
       if (serviceFilter.length > 0) {
         query = { ...query, ["resource.attributes.service.name"]: { $in: serviceFilter } }
       }
+      if (traceIdInput.trim().length > 0) {
+        query = { ...query, traceId: traceIdInput.trim() }
+      }
       textSearch = textSearchInput
     }
     onFiltersChange(query, textSearch)
@@ -62,6 +66,7 @@ const LogsFiltersCard: React.FC<Props> = ({
     setSeverityFilter([])
     setServiceFilter([])
     setUserInputQuery("")
+    setTraceIdInput("")
     setActiveTab(TAB_NORMAL)
     onFiltersChange({}, "")
   }
@@ -123,17 +128,32 @@ const LogsFiltersCard: React.FC<Props> = ({
                   disabled={loading}
                 />
               </div>
-              <div className="flex-1 min-w-[160px]">
-                <Label htmlFor="severity" className="text-sm">
-                  Severity Levels
-                </Label>
-                <MultiSelect
-                  id="severity"
-                  options={severityOptions}
-                  value={severityFilter}
-                  onValueChange={setSeverityFilter}
-                  disabled={loading}
-                />
+              <div className="flex-1 min-w-[160px] flex gap-4 flex-col sm:flex-row">
+                <div className="flex-1">
+                  <Label htmlFor="severity" className="text-sm">
+                    Severity Levels
+                  </Label>
+                  <MultiSelect
+                    id="severity"
+                    options={severityOptions}
+                    value={severityFilter}
+                    onValueChange={setSeverityFilter}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Label htmlFor="trace-id" className="text-sm">
+                    Trace ID
+                  </Label>
+                  <Input
+                    id="trace-id"
+                    placeholder="Enter trace id..."
+                    value={traceIdInput}
+                    onChange={(e) => setTraceIdInput(e.target.value)}
+                    className="min-h-[40px]"
+                    disabled={loading}
+                  />
+                </div>
               </div>
             </div>
           </TabsContent>
