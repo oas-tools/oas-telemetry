@@ -1,6 +1,6 @@
 export default function WorkInProgressPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       <section className="bg-gradient-to-br from-green-600 to-lime-400 text-white py-20">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-5xl font-bold mb-6">Work In Progress</h1>
@@ -9,7 +9,6 @@ export default function WorkInProgressPage() {
           </p>
         </div>
       </section>
-      <div className="my-56" />
     </div>
   )
 }

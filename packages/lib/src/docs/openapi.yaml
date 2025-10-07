@@ -842,7 +842,7 @@ paths:
                     type: string
                     example: Started generating mock logs
 
-  /utils/wait/{seconds}:
+  /utils/generate-wait/{seconds}:
     get:
       summary: Wait for the specified seconds
       tags:
@@ -884,119 +884,6 @@ paths:
                     type: string
                     example: OK
 
-  /ai/chat:
-    post:
-      summary: Answer a question using AI
-      tags:
-        - ai
-      requestBody:
-        required: true
-        description: The question to be answered.
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                question:
-                  type: string
-                  description: The question to ask the AI.
-              example:
-                question: "What insights can you share about the logs in this system?"
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  answer:
-                    type: string
-                    description: The AI's response to the question.
-                    example: "Telemetry is the process of recording and transmitting data from remote or inaccessible sources."
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Missing question"
-
-  /ai/microservices:
-    post:
-      summary: Set known microservices
-      tags:
-        - ai
-      requestBody:
-        required: true
-        description: List of known microservices.
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                microservices:
-                  type: array
-                  items:
-                    type: string
-                  description: Array of microservice names.
-              example:
-                microservices:
-                  - "service-a"
-                  - "service-b"
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Microservices configuration updated successfully."
-                  knownMicroservices:
-                    type: array
-                    items:
-                      type: string
-                    example:
-                      - "service-a"
-                      - "service-b"
-                  note:
-                    type: string
-                    example: "In the future, OAS-Telemetry will support autodiscovery, making this configuration unnecessary."
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Invalid microservices format. Expected an array."
-    get:
-      summary: Get known microservices
-      tags:
-        - ai
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  knownMicroservices:
-                    type: array
-                    items:
-                      type: string
-                    example:
-                      - "service-a"
-                      - "service-b"
 
   /plugins:
     get:
@@ -1326,3 +1213,187 @@ paths:
                     type: boolean
                 example:
                   enabled: true
+
+  /ai/chat/health:
+    get:
+      summary: AI service health (alias)
+      tags:
+        - ai
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: AI service is healthy
+
+  /ai/chat:
+    get:
+      summary: List AI conversations (alias)
+      tags:
+        - ai
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                example:
+                  - id: "conv-1"
+                    name: "Conversation 1"
+    post:
+      summary: Create a new AI conversation (alias)
+      tags:
+        - ai
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                example:
+                  id: "conv-123"
+                  name: "New Conversation"
+
+  /ai/chat/{conversationId}:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Conversation ID
+    get:
+      summary: Get conversation history (alias)
+      tags:
+        - ai
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        content:
+                          type: string
+                example:
+                  id: "conv-123"
+                  messages:
+                    - role: "user"
+                      content: "Hello"
+                    - role: "assistant"
+                      content: "Hi, how can I help?"
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                example:
+                  error: Not found
+    delete:
+      summary: Delete a conversation (alias)
+      tags:
+        - ai
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                example:
+                  error: Not found
+
+  /ai/chat/{conversationId}/message:
+    parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Conversation ID
+    post:
+      summary: Send a message to a conversation (alias)
+      tags:
+        - ai
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+              required:
+                - content
+            example:
+              content: "Hello, summarize my last request."
+      responses:
+        '200':
+          description: Message sent, returns updated messages or assistant reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        content:
+                          type: string
+                example:
+                  messages:
+                    - role: "user"
+                      content: "Hello"
+                    - role: "assistant"
+                      content: "Here is a summary..."
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                example:
+                  error: Missing content

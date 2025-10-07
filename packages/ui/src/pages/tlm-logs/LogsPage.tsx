@@ -3,7 +3,6 @@ import { toast } from "sonner"
 import { logsService, type LogEntry } from "@/services/logService"
 import LogsFiltersCard from "./LogsFiltersPanel"
 import LogsList from "./LogsListPanel"
-import LogsGeneratorPanel from "./LogsGeneratorPanel" // <-- Import the generator panel
 import LogsCollectionPanel from "./LogsCollectionPanel"
 
 const LOGS_PER_FETCH = 30
@@ -124,7 +123,6 @@ export default function LogsPage() {
     <div className="min-h-screen bg-background">
       <main className="container mx-auto px-4 py-4 md:py-8 space-y-4 md:space-y-6">
         <LogsCollectionPanel onLogsReset={handleLogsReset} />
-        <LogsGeneratorPanel />
         <LogsFiltersCard
           uniqueServices={uniqueServices}
           loading={loading}

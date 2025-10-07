@@ -8,6 +8,7 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
     router.get('/spec', (req, res) => specLoader(req, res, oasTlmConfig));
     router.get('/oas-telemetry-spec', (req, res) => getOasTelemetrySpec(req, res));
     router.get('/heapStats', heapStats);
+    //This route is NOT ignored by the spanExporter (includes "generate")
     router.post('/generate-log', async (req, res) => {
         const log = req.body.log || 'Default log message';
         const repeat = parseInt(req.body.repeat as string) || 1;
@@ -22,14 +23,15 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
             await new Promise(resolve => setTimeout(resolve, 50)); // Slight delay between logs
         }
     });
-    
+
+    // This route is NOT ignored by the spanExporter (includes "generate")
     router.post('/generate-mock-logs', async (req, res) => {
         const count = parseInt(req.body.count as string) || 50;
         generateMockLogs(count);
         res.send({ message: 'Started generating mock logs' });
     });
-
-    router.get('/wait/:seconds?', async (req, res) => {
+    // This route is NOT ignored by the spanExporter
+    router.get('/generate-wait/:seconds?', async (req, res) => {
         const seconds = parseInt(req.params.seconds ?? "1", 10);
         const waitTime = isNaN(seconds) ? 1 : seconds;
         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));

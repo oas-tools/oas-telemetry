@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import AceEditor from "react-ace"
-import { Wand2, Eraser } from "lucide-react"
+import { Wand2, Eraser, Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,14 +20,18 @@ import "ace-builds/src-noconflict/mode-javascript"
 import "ace-builds/src-noconflict/mode-json"
 import "ace-builds/src-noconflict/theme-monokai"
 
+// Replace dependency example with globalOptions and control flags
 const dependencyExample = {
-  globalOptions: '--no-save',
+  globalOptions: ["--no-save"],
   verbose: false,
   ignoreErrors: false,
   dependencies: [
-    { name: 'lodash', options: '--no-save', override: false },
+    {
+      name: "lodash@latest",
+    }
   ]
 };
+
 
 const sourceExample = `
 import _ from "lodash";
@@ -71,8 +75,8 @@ const configExample = {
   setting3: "value3"
 };
 
-const nameExample = "Capitalize Plugin";
-const descriptionExample = "A plugin that demonstrates usage of lodash's capitalize function.";
+const nameExample = "Sample Plugin";
+const descriptionExample = "This plugin demonstrates all available features: it reads configuration, imports a dependency (lodash) to capitalize the first letter of a message, and logs when it receives traces, metrics, or logs. You can extend it to perform any custom logic, such as sending a message to Slack or Telegram when a log matches a specific regex.";
 
 export default function PluginCreatePage() {
   const navigate = useNavigate()
@@ -82,6 +86,7 @@ export default function PluginCreatePage() {
   const [sourceType, setSourceType] = useState<"url" | "code">("code")
   const [dependenciesEnabled, setDependenciesEnabled] = useState(false)
   const [configEnabled, setConfigEnabled] = useState(false)
+  const [showDepInfo, setShowDepInfo] = useState(false)
 
   const [formData, setFormData] = useState({
     id: "",
@@ -115,7 +120,7 @@ export default function PluginCreatePage() {
 
   const handleLoadExample = () => {
     setFormData({
-      id: "capitalize-plugin",
+      id: "sample-plugin",
       name: nameExample,
       description: descriptionExample,
       moduleFormat: "esm",
@@ -375,8 +380,62 @@ export default function PluginCreatePage() {
                   <span className="text-xs text-muted-foreground">Enable</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Optional dependencies to install (npm @motero2k/dynamic-installer syntax)
+                  Optional dependencies to install (dynamic installer syntax)
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowDepInfo((v) => !v)}
+                    title="Dynamic installer syntax info"
+                  >
+                    <Info className="h-2 w-2" />
+                  </Button>
                 </p>
+
+
+
+
+                {showDepInfo && (
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-900 mb-2">
+                    <div className="font-semibold mb-1">Dynamic Installer: quick guide</div>
+                    <div className="mb-2">
+                      This syntax configures programmatic npm installs. Use <b>globalOptions</b> to pass flags applied to every install (for example <code>--no-save</code>). Each dependency can include its own <b>options</b>, and set <b>override</b> to true to ignore globalOptions for that dependency. Enable <b>verbose</b> to get detailed logs and set <b>ignoreErrors</b> to true to continue installing even if one package fails.
+                    </div>
+                    <div>
+                      <div className="font-medium mb-1">Detailed example</div>
+                      <pre className="bg-blue-100 border rounded p-2 overflow-x-auto text-xs">
+                        {`{
+  "globalOptions": ["--no-save"],
+  "verbose": true,
+  "ignoreErrors": false,
+  "dependencies": [
+    { "name": "eslint@8.0.0", "options": ["--save-dev"] },
+    { "name": "lodash@latest", "options": ["-E"] },
+    { "name": "axios@latest", "options": ["--save-exact"], "override": true },
+    { "name": "typescript", "options": ["--save-optional"] }
+  ]
+}`}
+                      </pre>
+                      <div className="mt-2">
+                        Quick notes:
+                        <ul className="list-disc ml-5">
+                          <li><b>globalOptions</b> (here <code>--no-save</code>) are applied to all installs unless a dependency sets <b>override</b>.</li>
+                          <li>In the example, <code>axios</code> sets <b>override</b> true → it will install only with its own options.</li>
+                          <li><b>verbose</b> produces console logs for each command; <b>ignoreErrors</b> controls whether the installer stops on first failure.</li>
+                        </ul>
+                      </div>
+                      <a
+                        href="https://github.com/motero2k/dynamic-installer"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 underline ml-2"
+                      >
+                        GitHub: dynamic-installer
+                      </a>
+                    </div>
+                  </div>
+                )}
+
                 {dependenciesEnabled && (
                   <AceEditor
                     mode="json"

@@ -37,12 +37,20 @@ const ApiDocsPage = () => {
 
     // Group endpoints by tag
     const endpointsByTag: Record<string, Array<{ path: string, method: string, details: any }>> = {};
-    Object.entries(spec.paths).forEach(([path, methods]) => {
-        Object.entries(methods as Record<string, any>).forEach(([method, details]: any) => {
-            const tags = details.tags || ["default"];
+    Object.entries(spec.paths).forEach(([path, methodsObj]) => {
+        const pathParams = (methodsObj as any)?.parameters || [];
+        Object.entries(methodsObj as Record<string, any>).forEach(([method, details]: any) => {
+            // skip the path-level "parameters" entry
+            if (method === "parameters") return;
+            // merge path-level parameters into operation parameters
+            const mergedDetails = {
+                ...(details || {}),
+                parameters: [...(pathParams || []), ...(details?.parameters || [])],
+            };
+            const tags = mergedDetails.tags || ["default"];
             tags.forEach((tag: string) => {
                 if (!endpointsByTag[tag]) endpointsByTag[tag] = [];
-                endpointsByTag[tag].push({ path, method, details });
+                endpointsByTag[tag].push({ path, method, details: mergedDetails });
             });
         });
     });

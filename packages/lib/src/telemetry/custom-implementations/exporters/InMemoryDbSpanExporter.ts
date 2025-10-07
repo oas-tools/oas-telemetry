@@ -43,9 +43,9 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
                 .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
                 .filter(span => {
                     const target = span?.attributes?.http?.target;
-                    // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils/generate-log' or 'telemetry/utils/wait'
+                    // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils/generate-log' or 'telemetry/utils/generate-wait'
                     if (target && target.includes(this._baseUrl)) {
-                        return (target === `${this._baseUrl}/generate-log` || target.startsWith(`${this._baseUrl}/wait`));
+                        return (target.includes("generate"))
                     }
                     return true;
                 });

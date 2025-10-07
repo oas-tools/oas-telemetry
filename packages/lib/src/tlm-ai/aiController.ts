@@ -1,49 +1,66 @@
 import { Request, Response } from 'express';
-import { getAgent } from './agent.js';
-import { setKnownMicroservices, getKnownMicroservices } from './knownMicroservices.js';
-import logger from '../utils/logger.js';
-import { OasTlmConfig } from "../config/config.types.js";
+import { getAiService } from './aiService.js';
+import OpenAI from 'openai';
 
-export const answerQuestion = (oasTlmConfig: OasTlmConfig) => async (req: Request, res: Response) => {
+export async function createConversation(req: Request, res: Response) {
     try {
-        const { question } = req.body;
-        if (!question) res.status(400).json({ error: 'Missing question' });
-
-        const getAgentResponse = getAgent(oasTlmConfig);
-        const answer = await getAgentResponse(question);
-        res.json({ answer });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({ error: 'Internal error' });
+        const conversation = getAiService().createConversation();
+        res.status(201).json(conversation);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
     }
-};
+}
 
-export const setKnownMicroservicesHandler = () => (req: Request, res: Response) => {
+export async function listConversations(req: Request, res: Response) {
     try {
-        const { microservices } = req.body;
-        if (!Array.isArray(microservices)) {
-            res.status(400).json({ error: 'Invalid microservices format. Expected an array.' });
+        // Only return id and name for each conversation
+        const conversations = getAiService().listConversationsMinimal();
+        res.json(conversations);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+export async function getConversationHistory(req: Request, res: Response) {
+    try {
+        const { conversationId } = req.params;
+        const conversation = getAiService().getConversation(conversationId);
+        if (!conversation) {
+            res.status(404).json({ error: 'Not found' });
+            return;
+        }
+        res.json(conversation);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+export async function deleteConversation(req: Request, res: Response) {
+    try {
+        const { conversationId } = req.params;
+        const deleted = getAiService().deleteConversation(conversationId);
+        if (!deleted) {
+            res.status(404).json({ error: 'Not found' });
+            return;
+        }
+        res.status(204).send();
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+export async function sendMessage(req: Request, res: Response) {
+    try {
+        const { conversationId } = req.params;
+        const { content } = req.body;
+        if (!content) {
+            res.status(400).json({ error: 'Missing content' });
             return;
         }
 
-        setKnownMicroservices(microservices);
-        res.json({
-            message: "Microservices configuration updated successfully.",
-            knownMicroservices: getKnownMicroservices(),
-            note: "In the future, OAS-Telemetry will support autodiscovery, making this configuration unnecessary.",
-        });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({ error: 'Internal error' });
+        const messages = await getAiService().sendMessage(conversationId, content);
+        res.json(messages);
+    } catch (err: any) {
+        res.status(500).json({ error: err.message });
     }
-};
-
-export const getKnownMicroservicesHandler = () => (req: Request, res: Response) => {
-    try {
-        const microservices = getKnownMicroservices();
-        res.json({ knownMicroservices: microservices });
-    } catch (error) {
-        logger.error(error);
-        res.status(500).json({ error: 'Internal error' });
-    }
-};
+}

@@ -3,19 +3,39 @@
 
 **OAS Telemetry** is a library that automatically configures telemetry in your Express application based on OpenAPI, with no extra code required. Simply use the middleware to instantly access endpoints for viewing recent requests, system logs, and metrics—all stored in memory. This allows you to analyze your API’s behavior and debug issues easily, without manual setup or complex integration. OpenTelemetry is used under the hood to collect traces, metrics, and logs.
 
-The middleware is highly configurable and supports both **ES Module (ESM)** and **CommonJS (CJS)** formats (ESM targeting **ES2020**). Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
+The middleware is highly configurable and supports both **ES Module (ESM-ES2020)** and **CommonJS (CJS)** formats. Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
 
 > ⚠️ **Warning: Early Development Notice**
 >
-> **OAS Telemetry** is a functional and working package, but it is currently at version 0 and remains under active development. Features, APIs, and behavior are subject to change at any time. Please review the following current status before use:
+> **OAS Telemetry** is a functional and working package currently progressing toward version **1.0**.  
+> While the core architecture is solid, features and APIs may still receive refinements or minor changes before the first stable release.  
+> Below is the current module status and roadmap:
 >
-> - **Traces:** Semi-stable. Currently supports HTTP instrumentation. We are studying switching to auto-instrumentation, but we need to test memory usage and performance first.
-> - **Logs:** Semi-stable. Supports fast search by message content and Mongo-like search (similar to traces).
-> - **Metrics:** Not stable. Currently uses OpenTelemetry host metrics. This area is subject to change to improve memory usage and data handling.
-> - **Configuration:** Semi-stable. All configuration options will be available as parameters at initialization and via environment variables (see the `.env.example` file). The configuration system is under active development and will change significantly in future releases.
-> - **UI:** Not stable. Migration to React is in progress. Most views are placeholders except for the AI agent, which is fully functional and can answer questions about traces, and logs (Not yet for metrics). Plugin management page is also functional. Next steps include logs page (almost done) and traces page (subject to change based on instrumentation approach). Metrics page will be the last to be implemented, as we want to support custom metrics in the future.
+> - **Logs:** Fully functional and stable for general use. Only minor changes are expected before version 1.0.  
+>   Supports fast search by message content and Mongo-like query syntax (similar to traces).
 >
-> Please if you want to use this package contact us via motero6@us.es
+> - **AI Chat:** Fully functional and stable. Integrated with OpenAI, requiring an API key set via environment variable or in the `.env` file.  
+>   Only small improvements or new provider integrations are planned.
+>
+> - **Plugin System:** Operational and stable. Only minor adjustments may occur before 1.0.  
+>   The plugin management page in the UI is already functional.
+>
+> - **Configuration:** The configuration system is considered stable in design.  
+>   Using environment variables and initialization parameters has proven to be convenient and flexible.  
+>   We do not expect breaking changes — new configuration options will be added only when new functionality is introduced, and all updates will always be documented in the `.env.example` file and official documentation.
+>
+> - **UI:** Under active development. Major changes to React have already been completed.  
+>   Logs, Plugin, and ChatAI pages are available and functional.  
+>   Next, we will work on the **Traces** and **Metrics** pages.
+>
+> - **Traces:** Currently functional with HTTP instrumentation.  
+>   We are evaluating a possible switch to auto-instrumentation, depending on memory and performance testing results.
+>
+> - **Metrics:** Functional but expected to change.  
+>   We are exploring optimizations to reduce memory usage and improve data handling before 1.0.
+>
+> Please, if you want to use this package or collaborate, contact us via **motero6@us.es**.
+
 
 ## Usage
 
@@ -198,7 +218,7 @@ You can access the telemetry UI at the endpoint `/telemetry` (or `/custom-teleme
 - `GET /utils/spec`: Load the OpenAPI specification.
 - `GET /utils/heapStats`: Show v8 heap statistics.
 - `GET /utils/generate-log`: Generate a log message.
-- `GET /utils/wait/:seconds?`: Wait for a specified number of seconds.
+- `GET /utils/generate-wait/:seconds?`: Wait for a specified number of seconds.
 - `GET /utils/health`: Perform a health check.
 
 ## Telemetry Plugins
@@ -222,7 +242,7 @@ Using OAS Telemetry, you can access telemetry data through the UI (WIP), the `/t
 
 Note: if authentication is enabled, you must provide the correct credentials to access the telemetry data.
 
-### Simple Search Example
+### Search Example
 
 To perform a simple search, send a POST request to the `/telemetry/traces/find` endpoint with the following JSON payload:
 
@@ -239,9 +259,7 @@ To perform a simple search, send a POST request to the `/telemetry/traces/find` 
 }
 ```
 
-### Complex Search Example
-
-For more complex searches using regex, additional parsing on the server and extra attributes in the POST request are required. Send a POST request to the `/telemetry/traces/find` endpoint with the following JSON payload:
+You can also use regular expressions and comparison operators for more complex searches. For example, to find all GET requests to paths starting with `/api/v1/pets` that returned a status code less than or equal to 400, you can use the following query:
 
 ```json
 {

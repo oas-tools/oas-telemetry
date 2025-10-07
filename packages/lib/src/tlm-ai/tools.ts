@@ -1,8 +1,5 @@
-import axios from 'axios';
 import { ChatCompletionTool } from 'openai/resources/index.js';
 import logger from '../utils/logger.js';
-import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
-import { getKnownMicroservices } from './knownMicroservices.js';
 import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter } from '../telemetry/telemetryRegistry.js';
 
 const getTraces = async (searchInput: string) => {
@@ -25,26 +22,23 @@ const getTraces = async (searchInput: string) => {
     }
 };
 
-const getLogs = async (startDate: Date, endDate: Date) => {
+const getLogs = async (startDate: string | undefined, endDate: string | undefined) => {
     logger.debug("getLogs called with startDate:", startDate, "endDate:", endDate);
     try {
-
-        let nedbQuery = {};
-        if (!startDate && !endDate) {
-            logger.debug("No date range provided, fetching all logs.");
-        } else {
-            logger.debug(`Fetching logs from ${startDate} to ${endDate}`);
-            nedbQuery = {
-                timestamp: {
-                    $gte: startDate ? new Date(startDate).getTime() : 0, // Epoch ms
-                    $lte: endDate ? new Date(endDate).getTime() : Date.now() // Epoch ms
-                }
-            };
-        }
+        // Timestamps are stored in microseconds in the DB (must multiply by 1000)
+        const startEpoch = startDate ? new Date(startDate).getTime() * 1000 : 0;
+        const endEpoch = endDate ? new Date(endDate).getTime() * 1000 : Date.now() * 1000;
+        logger.debug(`Fetching logs from ${startEpoch} to ${endEpoch}`);
+        const nedbQuery = {
+            timestamp: {
+                $gte: startEpoch,
+                $lte: endEpoch
+            }
+        };
         const logs: any[] = (await inMemoryDbLogExporter.find({
             query: nedbQuery,
             messageSearch: null,
-            limit: 1000 // or any appropriate limit
+            limit: 50 // or any appropriate limit
         })) || [];
         logger.debug(`Found ${logs.length} logs in the specified range.`);
         const simplifiedLogs = getSimplifiedLogs(logs);
@@ -55,31 +49,8 @@ const getLogs = async (startDate: Date, endDate: Date) => {
     }
 };
 
-const getMetrics = async (searchInput: Record<string, any>) => {
-    logger.debug("getMetrics called with searchInput:", searchInput);
-    try {
-        const search = searchInput || {};
-        const metrics: ResourceMetrics[] = await new Promise((resolve, reject) => {
-            inMemoryDbMetricExporter.find(search, (err: any, docs: ResourceMetrics[]) => {
-                if (err) reject(err);
-                else resolve(docs || []);
-            });
-        });
-        const simplifiedMetrics = getSimplifiedMetrics(metrics);
-        logger.debug(`Searching for metrics with searchInput: ${JSON.stringify(search)}`);
-        logger.debug(`Metrics found: ${JSON.stringify(simplifiedMetrics.length)}`);
-        return { metrics: simplifiedMetrics };
-    } catch (error) {
-        logger.error('Error fetching metrics:', error);
-        throw error;
-    }
-};
 
-const getCurrentTimestampInEpoch = () => {
-    logger.debug("Getting the current timestamp in epoch format...");
-    const now = new Date();
-    return { currentTimestampInEpoch: now.getTime(), currentTimestampInEpochSeconds: Math.floor(now.getTime() / 1000) };
-};
+
 
 const startTelemetry = () => {
     logger.debug("Starting telemetry...");
@@ -112,29 +83,10 @@ const getTelemetryStatus = () => {
 }
 
 
-const talkToExternalMicroserviceAgent = async (message: string, microserviceId: string) => {
-    logger.debug("talkToExternalMicroserviceAgent called with question:", message, "microservice:", microserviceId);
-    const knownMicroservices = getKnownMicroservices();
-    const identifiedMicroservice = knownMicroservices.find(m => m.id === microserviceId);
-    if (!identifiedMicroservice) {
-        logger.error(`Agent tried to call an unknown microservice: ${microserviceId}, available microservices: ${knownMicroservices.map(m => m.id).join(', ')}`);
-        return {
-            microservice: microserviceId,
-            response: `I cannot help with that. The microservice ${microserviceId} is not recognized. Available microservices are: ${knownMicroservices.map(m => m.id).join(', ')}`
-        }
-    }
-    const microserviceResponse = await axios.post(identifiedMicroservice.url, {
-        question: message
-    });
-    return {
-        microservice: microserviceId,
-        response: microserviceResponse.data
-    };
-};
-
-const getMicroserviceAgents = () => {
-    logger.debug("Getting microservice agents...");
-    return getKnownMicroservices();
+const getCurrentDate = () => {
+    logger.debug("Getting the current date in ISO format...");
+    const now = new Date();
+    return { currentDateISO: now.toISOString() };
 };
 
 const tools: ChatCompletionTool[] = [
@@ -227,7 +179,8 @@ const tools: ChatCompletionTool[] = [
             description: `Fetches log data for the microservice. 
         Logs provide information about system events, including timestamps, log levels (e.g., info, error), and messages. 
         The 'startDate' and 'endDate' parameters define the time range for fetching logs. 
-        If don't provide a range, all logs will be fetched. Providing a specific range improves performance.
+        If you need a date, you MUST first call the "getCurrentDate" tool to obtain the current date in ISO format, and then use it as a parameter.
+        If you don't provide a range, all logs will be fetched. Providing a specific range improves performance.
         Example 'startDate' and 'endDate':
         {
           "startDate": "2023-10-01T00:00:00Z",
@@ -244,41 +197,6 @@ const tools: ChatCompletionTool[] = [
                         type: "string"
                     }
                 },
-            }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getMetrics",
-            description: `Fetches metrics data for the microservice. 
-        Metrics provide performance-related data, such as CPU usage, memory usage, and process-specific metrics. 
-        The 'searchInput' parameter is an object used to filter metrics based on specific criteria. 
-        This is a NeDB query using MongoDB-like (NeDB) syntax. If 'searchInput' is null, all metrics will be fetched. Providing specific filters improves performance.
-        
-        Example 'searchInput':
-        {
-          "timestamp": { "$gte": 1747651105757, "$lte": 1747651200935 }
-        }
-        
-        Common filters include timestamps.`,
-            parameters: {
-                type: "object",
-                properties: {
-                    searchInput: {
-                        type: "object",
-                        description: `Optional search criteria for filtering metrics. 
-              This is a NeDB query using MongoDB-like (NeDB) syntax. 
-              For example, you can filter by timestamps. 
-              If null, all metrics will be returned.`,
-                        properties: {
-                            "timestamp": { type: "object", properties: { "$gte": { type: "integer" }, "$lte": { type: "integer" } } },
-                            "cpuUsageData.cpuNumber": { type: "string" },
-                            "memoryData.used": { type: "integer" }
-                        }
-                    }
-                },
-                required: ["searchInput"]
             }
         }
     },
@@ -321,50 +239,9 @@ const tools: ChatCompletionTool[] = [
     {
         type: "function",
         function: {
-            name: "getCurrentTimestampInEpoch",
-            description: `Retrieves the current timestamp in epoch format (miliseconds or seconds). 
-        This function calculates the timestamp for the current moment in milliseconds since the Unix epoch.in .currentTimestampInEpoch. Also returns the current timestamp in seconds in .currentTimestampInEpochSeconds.`,
-            parameters: {}
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "talkToExternalMicroserviceAgent",
-            description: `Use this function to communicate with external microservice agent.
-        if you want to talk to a microservice agent, you must provide the message and the microservice you want to talk to.  
-        When you call this function, it will send the message to the specified microservice and return the response.
-
-        Example 'message':
-        {
-          "message": "What is the status of the service?",
-          "microservice": "Reporter"
-        }
-
-        Microservices Availables (by ID):
-        ${getKnownMicroservices().map(m => m.id).join(", ")}
-        `,
-            parameters: {
-                type: "object",
-                properties: {
-                    message: {
-                        type: "string",
-                        description: `The message to be sent to the external microservice agent.`
-                    },
-                    microservice: {
-                        type: "string"
-                    }
-                },
-                required: ["message", "microservice"]
-            }
-        }
-    },
-    {
-        type: "function",
-        function: {
-            name: "getMicroserviceAgents",
-            description: `Retrieves the list of available microservice agents. 
-        This function provides information about the microservices that can be communicated with.`,
+            name: "getCurrentDate",
+            description: `Returns the current date in ISO 8601 format (e.g., "2024-06-07T12:34:56.789Z"). 
+        Use this tool to obtain the current date when you need to specify a date for other tools, such as "getLogs".`,
             parameters: {}
         }
     }
@@ -373,122 +250,17 @@ const tools: ChatCompletionTool[] = [
 const availableTools = {
     getTraces,
     getLogs,
-    getMetrics,
     startTelemetry,
     stopTelemetry,
     resetTelemetry,
     getTelemetryStatus,
-    getCurrentTimestampInEpoch,
-    talkToExternalMicroserviceAgent,
-    getMicroserviceAgents
+    getCurrentDate
 };
 
 export {
     tools,
     availableTools,
 };
-
-
-
-function getSimplifiedMetrics(metrics: any[]): any[] {
-    return metrics.map(resourceMetric => {
-        const serviceName = resourceMetric.resource?._memoizedAttributes?.service?.name || 'unknown-service';
-
-        const cpuUtilization = {};
-        let cpuCount = 0;
-        const memoryUsageMB = { used: 0, free: 0 };
-        const memoryUtilizationPercent = { used: 0, free: 0 };
-        const networkIO = { transmit: 0, receive: 0 };
-        const processCPU = {};
-        let processMemoryUsage = 0;
-
-        for (const scopeMetric of resourceMetric.scopeMetrics) {
-            for (const metric of scopeMetric.metrics) {
-                const name = metric.descriptor.name;
-
-                if (name === 'system.cpu.utilization') {
-                    const stateSums = {};
-                    const stateCounts = {};
-                    for (const dp of metric.dataPoints) {
-                        const state = dp.attributes?.system?.cpu?.state;
-                        if (!state) continue;
-                        // @ts-expect-error index signature
-                        stateSums[state] = (stateSums[state] || 0) + dp.value;
-                        // @ts-expect-error index signature
-                        stateCounts[state] = (stateCounts[state] || 0) + 1;
-                    }
-
-                    for (const state in stateSums) {
-                        // @ts-expect-error index signature
-                        cpuUtilization[state] = stateSums[state] / stateCounts[state];
-                    }
-
-                    cpuCount = Math.max(...metric.dataPoints.map((dp: any) => parseInt(dp.attributes?.system?.cpu?.logical_number || 0, 10))) + 1;
-                }
-
-                if (name === 'system.memory.usage') {
-                    for (const dp of metric.dataPoints) {
-                        const state = dp.attributes?.system?.memory?.state;
-                        //  @ts-expect-error index signature
-                        if (state) memoryUsageMB[state] = dp.value;
-                    }
-                }
-
-                if (name === 'system.memory.utilization') {
-                    for (const dp of metric.dataPoints) {
-                        const state = dp.attributes?.system?.memory?.state;
-                        //  @ts-expect-error index signature
-                        if (state) memoryUtilizationPercent[state] = dp.value;
-                    }
-                }
-
-                if (name === 'system.network.io') {
-                    for (const dp of metric.dataPoints) {
-                        const direction = dp.attributes?.network?.io?.direction;
-                        //  @ts-expect-error index signature
-                        if (direction) networkIO[direction] += dp.value;
-                    }
-                }
-
-                if (name === 'process.cpu.time') {
-                    for (const dp of metric.dataPoints) {
-                        const state = dp.attributes?.process?.cpu?.state;
-                        //  @ts-expect-error index signature
-                        if (state) processCPU[state] = dp.value;
-                    }
-                }
-
-                if (name === 'process.memory.usage') {
-                    processMemoryUsage = metric.dataPoints[0]?.value || 0;
-                }
-            }
-        }
-
-        return {
-            service: serviceName,
-            cpu: {
-                avgUtilization: cpuUtilization,
-                cores: cpuCount,
-            },
-            memory: {
-                usedGB: (memoryUsageMB.used || 0) / (1024 ** 3),
-                freeGB: (memoryUsageMB.free || 0) / (1024 ** 3),
-                usedPercent: (memoryUtilizationPercent.used || 0) * 100,
-                freePercent: (1 - (memoryUtilizationPercent.used || 0)) * 100,
-            },
-            network: {
-                transmittedMB: networkIO.transmit / (1024 ** 2),
-                receivedMB: networkIO.receive / (1024 ** 2),
-            },
-            process: {
-                cpuTimeSec: processCPU,
-                memoryUsageMB: processMemoryUsage / (1024 ** 2),
-            }
-        };
-    });
-}
-
-
 
 function getSimplifiedTraces(spans: any[]) {
     return spans.map((span: any) => {
@@ -509,10 +281,10 @@ function getSimplifiedTraces(spans: any[]) {
 function getSimplifiedLogs(logs: any[]) {
     return logs.map((log: any) => ({
         service: log.resource?.attributes?.service?.name || undefined,
-        timestamp: log.timestamp,
+        timestamp: new Date(log.timestamp / 1000).toISOString(), // converting microseconds to milliseconds
+        severityText: log.severityText,
         message: log.body,
         traceId: log.traceId,
-        spanId: log.spanId,
-        source: log.attributes?.source?.source || undefined,
+        source: log.attributes?.source || undefined,
     }));
 }
