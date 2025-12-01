@@ -4,7 +4,6 @@ import { LogRecord } from '@opentelemetry/sdk-logs';
 import { ChildProcess } from 'child_process';
 
 
-// TODO plugin system should be moved to a separate exporter
 
 
 export interface PluginResource {

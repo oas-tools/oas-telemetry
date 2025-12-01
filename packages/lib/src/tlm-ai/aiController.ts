@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { getAiService } from './aiService.js';
-import OpenAI from 'openai';
 
 export async function createConversation(req: Request, res: Response) {
     try {

@@ -61,7 +61,7 @@ class AIService {
         // Use the agent function with tools
         // Internaly pushes new messages to conversation.messages
         const currentMessagesCount = conversation.messages.length
-        await agent(this.openai, conversation.messages, model || this.model, this.extraPrompts);
+        await agent(this.openai, conversation.messages, model || this.model);
 
         // Return the last assistant message (the one just added by agent)
         const generatedMessages = conversation.messages.slice(currentMessagesCount);

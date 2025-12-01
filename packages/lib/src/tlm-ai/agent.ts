@@ -3,7 +3,7 @@ import { tools, availableTools } from './tools.js';
 import logger from '../utils/logger.js';
 
 
-export async function agent(openai: OpenAI, messages: any[], model: string = "gpt-3.5-turbo", extraPrompts: string[] = []) {
+export async function agent(openai: OpenAI, messages: any[], model: string = "gpt-3.5-turbo") {
     for (let i = 0; i < 5; i++) {
         const modelResponse = await openai.chat.completions.create({
             model,

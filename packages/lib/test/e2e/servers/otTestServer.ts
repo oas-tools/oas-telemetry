@@ -1,8 +1,9 @@
-import dotenv from 'dotenv';
+import { customInstrumentations } from './instrumentation.js';
+import oasTelemetry, {getTracer, getMeter, getLogger} from '../../../src/index.js';
 //import oasTelemetry from '@oas-tools/oas-telemetry';
+import dotenv from 'dotenv';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { UserConfig } from '../../../src/config/config.types.js';
-import oasTelemetry from '../../../src/index.js';
 
 import express from 'express';
 import { ConsoleLogRecordExporter, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
@@ -73,6 +74,9 @@ const spec = {
         }
     }
 }
+// Lets register our own instrumentations to be used by oas-telemetry
+// MUST set OASTLM_BOOT_AUTOINSTRUMENTATIONS_LOGS_DISABLED = "true"; in the .env file to avoid double registration of LogsInstrumentation
+const myInstrumentations = customInstrumentations
 
 const oasTlmConfig: UserConfig = {
     general: {
@@ -85,7 +89,7 @@ const oasTlmConfig: UserConfig = {
     },
     metrics: {
         mainMetricReaderOptions: {
-            exportIntervalMillis: 1000 * 30, // 30 seconds
+            exportIntervalMillis: 1000 * 5, // 5 seconds
         },
         // extraReaders: [ new PeriodicExportingMetricReader( {
         //     exportIntervalMillis: 1000 * 30, // 30 seconds
@@ -110,10 +114,71 @@ const oasTlmConfig: UserConfig = {
             "This server is a Pet Clinic API. It provides information about pets and clinics. You should have access to traces, metrics, and logs of the API. Use the tools provided to answer questions about the API.",
             "My name is Developer 146, you can call me Dev146. I am a developer working on this API.",
         ]
+    },
+    instrumentations: {
+        alreadyRegistered: myInstrumentations
     }
 }
 
-app.use(oasTelemetry(oasTlmConfig));
+
+// Use new API: configure and use global accessors
+const telemetryRouter = oasTelemetry(oasTlmConfig);
+app.use(telemetryRouter);
+
+const logger = getLogger('PetClinic', '1.0.0');
+const meter = getMeter('PetClinic', '1.0.0');
+const tracer = getTracer('PetClinic', '1.0.0');
+
+// Custom metric: count custom endpoint hits
+const customCounter = meter.createCounter('custom.endpoint.hits', {
+    description: 'Counts hits to /custom-metric endpoint',
+});
+
+// Custom trace: create a span for a custom endpoint
+app.get('/custom-metric', (req, res) => {
+    customCounter.add(1, { endpoint: '/custom-metric' });
+    res.json({ message: 'Custom metric incremented' });
+});
+
+app.get('/custom-trace', (req, res) => {
+    const span = tracer.startSpan('custom-trace-span', {
+        attributes: { endpoint: '/custom-trace' }
+    });
+    
+    // Simulate some work
+    setTimeout(() => {
+        span.end();
+        res.json({ message: 'Custom trace span created' });
+    }, 50);
+});
+
+app.get('/custom-log', (req, res) => {
+    logger.emit({
+        severityNumber: 9, // INFO
+        severityText: 'INFO',
+        body: 'This is a custom log message from /custom-log endpoint',
+        attributes: { endpoint: '/custom-log' }
+    });
+    res.json({ message: 'Custom log emitted' });
+});
+
+app.get('/custom-trace-log', (req, res) => {
+    const span = tracer.startSpan('custom-trace-log-span', {
+        attributes: { endpoint: '/custom-trace-log' }
+    });
+    
+    // Simulate some work
+    setTimeout(() => {
+        logger.emit({
+            severityNumber: 9, // INFO
+            severityText: 'INFO',
+            body: 'Log message from /custom-trace-log endpoint within trace span',
+            attributes: { endpoint: '/custom-trace-log' }
+        });
+        span.end();
+        res.json({ message: 'Custom trace span and log created' });
+    }, 50);
+});
 
 app.use(express.json());
 

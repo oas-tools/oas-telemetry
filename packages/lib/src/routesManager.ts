@@ -15,6 +15,9 @@ import { bootEnvVariables } from "./config/bootConfig.js";
 import { getPluginRoutes } from "./tlm-plugin/pluginRoutes.js";
 
 export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
+    if (!oasTlmConfig.general.spec && !oasTlmConfig.general.specFileName) {
+        logger.warn("No spec provided, endpoint filtering will not be available. Please provide either `spec` or `specFileName` in the configuration.");
+    }
     if (bootEnvVariables.OASTLM_BOOT_ENV === 'development') {
         logger.info("Running in development mode, enabling CORS for all origins");
         router.use(cors({

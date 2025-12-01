@@ -36,7 +36,6 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     export(readableSpans: ReadableSpan[], resultCallback: (arg0: { code: ExportResultCode; error?: Error; }) => void) {
         logger.debug('InMemoryDbSpanExporter.export called with spans: ', readableSpans.length);
         try {
-
             // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
             const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
