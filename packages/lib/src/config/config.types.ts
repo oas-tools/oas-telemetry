@@ -38,4 +38,11 @@ export type UserConfig = {
     memoryExporter?: Partial<OasTlmConfig["logs"]["memoryExporter"]>;
   };
   plugins?: Partial<OasTlmConfig["plugins"]>;
+  /**
+   * User can register its own instrumentations to be used by oas-telemetry. oas-telemetry will assign the providers to these instrumentations.
+   * This is useful when the user wants to use instrumentations that are not included by default in oas-telemetry.
+   */
+  instrumentations?: {
+    alreadyRegistered: any[];
+  };
 };
