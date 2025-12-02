@@ -1,7 +1,7 @@
 import { ExportResult } from "@opentelemetry/core";
 import { LogRecordExporter, ReadableLogRecord } from "@opentelemetry/sdk-logs";
 import { AggregationOption, AggregationTemporality, CollectionResult, IMetricReader, InstrumentType, MetricProducer } from "@opentelemetry/sdk-metrics";
-import { CollectionOptions, ForceFlushOptions, ShutdownOptions } from "@opentelemetry/sdk-metrics/build/src/types";
+import { CollectionOptions, ForceFlushOptions, ShutdownOptions } from "@opentelemetry/sdk-metrics/build/src/types.js";
 import { ReadableSpan, SpanExporter } from "@opentelemetry/sdk-trace-node";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import logger from "../../utils/logger.js";

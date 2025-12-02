@@ -1,5 +1,5 @@
 //import oasTelemetry from '@oas-tools/oas-telemetry';
-import oasTelemetry from '../../../dist/esm/index.js';
+import {oasTelemetry} from '../../../dist/esm/index.js';
 import express from 'express';
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'test') {

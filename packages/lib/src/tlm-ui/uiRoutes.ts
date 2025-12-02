@@ -13,9 +13,10 @@ export const getUIRoutes = () => {
         logger.warn('🚧 This process is serving the OASTLM UI from the build directory, but you are in development mode. For live updates, run the React app separately and access it at http://localhost:5173/.');
     }
 
-    const customFilename = fileURLToPath(import.meta.url);
-    const customDirname = path.dirname(customFilename);
-    const staticFilesPath = path.join(customDirname, relativePath);
+    const isCjs = typeof __filename !== "undefined" && typeof __dirname !== "undefined";
+    // @ts-ignore -- import.meta no existe en el build CJS
+    const currentDirectory = isCjs ? __dirname : path.dirname(fileURLToPath(import.meta.url));
+    const staticFilesPath = path.join(currentDirectory, relativePath);
     const router = Router();
 
     // This only works once the app is built: src/ --> dist/esm/

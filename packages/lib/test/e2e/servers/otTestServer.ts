@@ -1,5 +1,5 @@
 import { customInstrumentations } from './instrumentation.js';
-import oasTelemetry, {getTracer, getMeter, getLogger} from '../../../src/index.js';
+import { oasTelemetry, getTracer, getMeter, getLogger } from '../../../src/index.js';
 //import oasTelemetry from '@oas-tools/oas-telemetry';
 import dotenv from 'dotenv';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -144,7 +144,7 @@ app.get('/custom-trace', (req, res) => {
     const span = tracer.startSpan('custom-trace-span', {
         attributes: { endpoint: '/custom-trace' }
     });
-    
+
     // Simulate some work
     setTimeout(() => {
         span.end();
@@ -166,7 +166,7 @@ app.get('/custom-trace-log', (req, res) => {
     const span = tracer.startSpan('custom-trace-log-span', {
         attributes: { endpoint: '/custom-trace-log' }
     });
-    
+
     // Simulate some work
     setTimeout(() => {
         logger.emit({

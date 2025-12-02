@@ -22,7 +22,7 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
             console.error(`ERROR loading spec file ${oasTlmConfig.general.specFileName}: ${e}`);
         }
     } else if (oasTlmConfig.general.spec) {
-        let spec = null;
+        let spec: null | string = null;
         try {
             spec = JSON.parse(oasTlmConfig.general.spec);
         } catch (ej) {
@@ -46,28 +46,20 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
 export const heapStats = (req: Request, res: Response) => {
     const heapStats = v8.getHeapStatistics();
     const roundedHeapStats = Object.getOwnPropertyNames(heapStats).reduce(function (map, stat) {
-        //@ts-expect-error yes
         map[stat] = Math.round((heapStats[stat] / 1024 / 1024) * 1000) / 1000;
         return map;
     }, {});
-    // @ts-expect-error yes
     roundedHeapStats['units'] = 'MB';
     res.send(roundedHeapStats);
 };
 
 const isCjs = typeof __filename !== "undefined" && typeof __dirname !== "undefined";
-
-const __filenameUniversal = isCjs
-    ? __filename
-    : fileURLToPath(import.meta.url);
-
-const __dirnameUniversal = isCjs
-    ? __dirname
-    : path.dirname(__filenameUniversal);
+// @ts-ignore -- import.meta no existe en el build CJS
+const currentDirectory = isCjs ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
 export const getOasTelemetrySpec = (_req: Request, res: Response) => {
     try {
-        const specPath = path.join(__dirnameUniversal, '../docs/openapi.yaml');
+        const specPath = path.join(currentDirectory, '../docs/openapi.yaml');
         const data = readFileSync(specPath, { encoding: 'utf8', flag: 'r' });
         let json = data;
         json = JSON.stringify(yaml.load(data), null, 2);

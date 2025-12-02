@@ -16,15 +16,14 @@ export async function agent(openai: OpenAI, messages: any[], model: string = "gp
         if (finish_reason === "tool_calls" && message.tool_calls) {
             logger.debug("Tool calls detected:", message.tool_calls);
 
-            const results = [];
+            const results: { name: string; response: any }[] = [];
 
             for (const toolCall of message.tool_calls) {
                 const functionName = toolCall.function.name as keyof typeof availableTools;
-                const functionToCall = availableTools[functionName];
+                const functionToCall = availableTools[functionName] as any;
                 const functionArgs = JSON.parse(toolCall.function.arguments);
                 const functionArgsArr: any[] = Object.values(functionArgs);
 
-                // @ts-expect-error yes
                 // eslint-disable-next-line prefer-spread
                 const functionResponse = await functionToCall.apply(null, functionArgsArr);
                 results.push({

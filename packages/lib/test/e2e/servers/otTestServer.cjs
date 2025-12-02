@@ -1,5 +1,5 @@
 //let oasTelemetry = require('@oas-tools/oas-telemetry');
-let oasTelemetry = require('../../../dist/cjs/index.cjs');
+let { oasTelemetry } = require('../../../dist/cjs/index.cjs');
 let express = require('express');
 let dotenv = require('dotenv');
 if (process.env.NODE_ENV !== 'test') {

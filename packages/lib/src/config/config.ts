@@ -1,10 +1,10 @@
 import merge from 'lodash.merge';
-import { OasTlmConfig, DeepPartial, UserConfig } from './config.types';
+import { OasTlmConfig, DeepPartial, UserConfig } from './config.types.js';
 import { BufferConfig, SpanExporter, SpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { IMetricReader, MetricProducer } from '@opentelemetry/sdk-metrics';
 import { LogRecordExporter, LogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { type PluginResource } from '../types/index.js';
-import { ViewOptions } from '@opentelemetry/sdk-metrics/build/src/view/View';
+import { type ViewOptions } from '@opentelemetry/sdk-metrics/build/src/view/View.js';
 
 // Environment-level config (highest priority)
 // If NOT defined, it should return UNDEFINED so it dose not override the userConfig or defaultConfig.

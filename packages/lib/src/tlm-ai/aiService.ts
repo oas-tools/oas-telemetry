@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { OasTlmConfig } from '../config/config.types';
+import { OasTlmConfig } from '../config/config.types.js';
 import { agent } from './agent.js';
 
 type Message = { role: 'user' | 'assistant' | 'function' | 'system'; content: string; name?: string; timestamp: string };
