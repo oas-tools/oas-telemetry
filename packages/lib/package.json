@@ -13,14 +13,16 @@
     "dev": "env OASTLM_BOOT_ENV=development tsx test/e2e/servers/otTestServer.ts",
     "esm": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.mjs",
     "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.cjs",
-    "build": "npm run build:esm && npm run build:cjs && npm run copy:types",
-    "build:esm": "tsc -p tsconfig.json && npm run copy:spec",
+    "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs && npm run copy:spec",
+    "clean": "rm -rf dist",
+    "build:types": "tsc --declaration --emitDeclarationOnly --declarationDir ./dist/types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json && npm run postbuild:cjs",
+    "postbuild:cjs": "find dist/cjs -name '*.js' -exec bash -c 'mv \"$1\" \"${1%.js}.cjs\"' _ {} \\; && find dist/cjs -name '*.cjs' -exec sed -i \"s/\\.js'/\\.cjs'/g\" {} \\; && find dist/cjs -name '*.cjs' -exec sed -i 's/\\.js\"/\\.cjs\"/g' {} \\; && find dist/cjs -name '*.cjs' -exec sed -i 's/import\\.meta\\.url/__filename/g' {} \\;",
     "copy:spec": "mkdir -p dist/esm/docs dist/cjs/docs && cp src/docs/openapi.yaml dist/esm/docs/ && cp src/docs/openapi.yaml dist/cjs/docs/",
-    "build:cjs": "babel ./dist/esm -d ./dist/cjs --out-file-extension .cjs --config-file ./.babelrc",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "lint": "eslint --ext .ts . --fix",
-    "copy:types": "mkdir -p dist/types && cp src/types/cjs-index.d.ts dist/types/index.d.ts"
+    "lint": "eslint --ext .ts . --fix"
   },
   "files": [
     ".env.example",
@@ -31,11 +33,11 @@
     ".": {
       "require": {
         "types": "./dist/types/index.d.ts",
-        "require": "./dist/cjs/index.cjs"
+        "default": "./dist/cjs/index.cjs"
       },
       "import": {
         "types": "./dist/types/index.d.ts",
-        "import": "./dist/esm/index.js"
+        "default": "./dist/esm/index.js"
       }
     }
   },
@@ -70,11 +72,6 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.24.1",
-    "@babel/core": "^7.24.4",
-    "@babel/plugin-transform-class-properties": "^7.27.1",
-    "@babel/plugin-transform-object-rest-spread": "^7.27.3",
-    "@babel/preset-env": "^7.24.4",
     "@eslint/js": "^9.29.0",
     "@opentelemetry/api": "^1.9.0",
     "@types/cookie-parser": "^1.4.9",
@@ -83,9 +80,6 @@
     "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash.merge": "^4.6.9",
-    "babel-plugin-add-module-exports": "^1.0.4",
-    "babel-plugin-module-extension": "^0.1.3",
-    "babel-plugin-transform-import-meta": "^2.3.3",
     "eslint": "^9.29.0",
     "eslint-plugin-import": "^2.32.0",
     "tsx": "^4.20.1",

@@ -64,19 +64,13 @@ export const registerPlugin = async (req: Request, res: Response) => {
     }
 
     const isCjs = typeof __filename !== "undefined" && typeof __dirname !== "undefined";
-
-    const __filenameUniversal = isCjs
-        ? __filename
-        : fileURLToPath(import.meta.url);
-
-    const __dirnameUniversal = isCjs
-        ? __dirname
-        : path.dirname(__filenameUniversal);
+    // @ts-ignore -- import.meta no existe en el build CJS
+    const currentDirectory = isCjs ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
     const pluginProcessFile = isCjs
         ? "pluginProcess.cjs"
         : "pluginProcess.js";
-    const child = fork(path.resolve(__dirnameUniversal, pluginProcessFile), [], {
+    const child = fork(path.resolve(currentDirectory, pluginProcessFile), [], {
         stdio: ["pipe", "pipe", "pipe", "ipc"],
     });
 
