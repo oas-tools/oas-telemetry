@@ -10,7 +10,7 @@ import { getFrontendBaseName } from "./services/Backend";
 
 // Lazy loaded pages
 const LandingPage = lazy(() => import("./pages/LandingPage"));
-// const MetricsPage = lazy(() => import("./pages/metrics/MetricsPage"));
+const MetricsPage = lazy(() => import("./pages/metrics/metrics-page"));
 // const TracesPage = lazy(() => import("./pages/traces/TracesPage"));
 // const TracesDetailPage = lazy(() => import("./pages/traces/TracesDetailPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
@@ -33,6 +33,7 @@ function App() {
             <Routes>
               <Route path="/" element={<PageTemplate activeTab="home"><LandingPage /></PageTemplate>} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/metrics" element={<PageTemplate activeTab="metrics"><MetricsPage /></PageTemplate>} />
               <Route path="/logs" element={<PageTemplate activeTab="logs"><LogsPage /></PageTemplate>} />
               <Route path="/plugins" element={<PageTemplate activeTab="plugins"><PluginManagerPage /></PageTemplate>} />
               <Route path="/plugins/create" element={<PageTemplate activeTab="plugins"><PluginCreatePage /></PageTemplate>} />

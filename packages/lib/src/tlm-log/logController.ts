@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { inMemoryDbLogExporter } from '../telemetry/telemetryRegistry.js';
 import logger from '../utils/logger.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
+import { logs } from '@opentelemetry/api-logs';
 
 export const findLogs = async (req: Request, res: Response) => {
     const body = req.body || {};
@@ -32,7 +33,8 @@ export const findLogs = async (req: Request, res: Response) => {
         const docs = await inMemoryDbLogExporter.find(findConfig);
 
         res.send({
-            items: docs,
+            logsCount: docs.length,
+            logs: docs,
         });
     } catch (err: any) {
         logger.error(err);

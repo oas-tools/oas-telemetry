@@ -89,7 +89,7 @@ const oasTlmConfig: UserConfig = {
     },
     metrics: {
         mainMetricReaderOptions: {
-            exportIntervalMillis: 1000 * 5, // 5 seconds
+            exportIntervalMillis: 1000, // 5 seconds
         },
         // extraReaders: [ new PeriodicExportingMetricReader( {
         //     exportIntervalMillis: 1000 * 30, // 30 seconds
@@ -130,13 +130,13 @@ const meter = getMeter('PetClinic', '1.0.0');
 const tracer = getTracer('PetClinic', '1.0.0');
 
 // Custom metric: count custom endpoint hits
-const customCounter = meter.createCounter('custom.endpoint.hits', {
+const customCounter = meter.createCounter('telkops.custom.endpoint.hits', {
     description: 'Counts hits to /custom-metric endpoint',
 });
 
 // Custom trace: create a span for a custom endpoint
 app.get('/custom-metric', (req, res) => {
-    customCounter.add(1, { endpoint: '/custom-metric' });
+    customCounter.add(1, { 'telkops.endpoint': '/custom-metric' });
     res.json({ message: 'Custom metric incremented' });
 });
 
