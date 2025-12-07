@@ -47,7 +47,7 @@ class LogsService {
     const { limit = 50, query = {}, textSearch } = criteria;
     const sort = { timestamp: -1 }; // Descending timestamp, from New to Old
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort });
-    const logs = res.data.items || [];
+    const logs = res.data.logs || [];
     return { logs: logs.reverse() }; // Reverse to have Oldest at top, Newest at bottom
   }
 
@@ -57,7 +57,7 @@ class LogsService {
     const logSortOrder = { timestamp: -1 }; // Descending timestamp, from Old to New
     // Descending because we want first the newest of the older logs first (to not lose any when slicing), later we will reverse the array
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort: logSortOrder });
-    const logs = res.data.items || [];
+    const logs = res.data.logs || [];
     logs.reverse(); // Reverse to have Oldest at top, Newest at bottom
     // These are the closest (limited by 'limit') older logs, in ascending order (Old to New)
     return { logs };
@@ -69,7 +69,7 @@ class LogsService {
     const logSortOrder = { timestamp: 1 }; // Ascending timestamp, from New to Old
     // No need to reverse, as they are already in the right order
     const res = await backend.post("/logs/find", { query, limit, textSearch, sort: logSortOrder });
-    const logs = res.data.items || [];
+    const logs = res.data.logs || [];
     // These are the closest (limited by 'limit') newer logs, in ascending order (Old to New)
     return { logs };
   }

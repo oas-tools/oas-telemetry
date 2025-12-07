@@ -41,7 +41,7 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
         if (req.body !== undefined) {
             return next(); // Already parsed, no need to parse again.
         }
-        return json({ limit: '10mb' })(req, res, next);
+        return json({ limit: '500mb' })(req, res, next);
     });
 
     telemetryRouter.get('/health', (_req, res) => {

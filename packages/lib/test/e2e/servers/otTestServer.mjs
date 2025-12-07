@@ -1,5 +1,5 @@
 //import oasTelemetry from '@oas-tools/oas-telemetry';
-import {oasTelemetry} from '../../../dist/esm/index.js';
+import {oasTelemetry, getTracer, getMeter, getLogger} from '../../../dist/esm/index.js';
 import express from 'express';
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'test') {
@@ -70,6 +70,61 @@ const spec = {
 
 app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
 
+const logger = getLogger('PetClinic', '1.0.0');
+const meter = getMeter('PetClinic', '1.0.0');
+const tracer = getTracer('PetClinic', '1.0.0');
+
+// Custom metric: count custom endpoint hits
+const customCounter = meter.createCounter('telkops.custom.endpoint.hits', {
+    description: 'Counts hits to /custom-metric endpoint',
+});
+
+// Custom trace: create a span for a custom endpoint
+app.get('/custom-metric', (req, res) => {
+    customCounter.add(1, { 'telkops.endpoint': '/custom-metric' });
+    res.json({ message: 'Custom metric incremented' });
+});
+
+app.get('/custom-trace', (req, res) => {
+    const span = tracer.startSpan('custom-trace-span', {
+        attributes: { endpoint: '/custom-trace' }
+    });
+
+    // Simulate some work
+    setTimeout(() => {
+        span.end();
+        res.json({ message: 'Custom trace span created' });
+    }, 50);
+});
+
+app.get('/custom-log', (req, res) => {
+    logger.emit({
+        severityNumber: 9, // INFO
+        severityText: 'INFO',
+        body: 'This is a custom log message from /custom-log endpoint',
+        attributes: { endpoint: '/custom-log' }
+    });
+    res.json({ message: 'Custom log emitted' });
+});
+
+app.get('/custom-trace-log', (req, res) => {
+    const span = tracer.startSpan('custom-trace-log-span', {
+        attributes: { endpoint: '/custom-trace-log' }
+    });
+
+    // Simulate some work
+    setTimeout(() => {
+        logger.emit({
+            severityNumber: 9, // INFO
+            severityText: 'INFO',
+            body: 'Log message from /custom-trace-log endpoint within trace span',
+            attributes: { endpoint: '/custom-trace-log' }
+        });
+        span.end();
+        res.json({ message: 'Custom trace span and log created' });
+    }, 50);
+});
+
 app.use(express.json());
 
 app.listen(port, () => {
@@ -80,6 +135,7 @@ let pets = [{ name: "rocky" }, { name: "pikachu" }];
 let clinics = [{ name: "Pet Heaven" }, { name: "Pet Care" }];
 
 app.get("/api/v1/pets", (req, res) => {
+    console.log("GET /api/v1/pets called, this log should be associated with the request in telemetry");
     res.send(pets);
 });
 app.post("/api/v1/pets", (req, res) => {

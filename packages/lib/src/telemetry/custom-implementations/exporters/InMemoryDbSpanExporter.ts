@@ -85,8 +85,8 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         return Promise.resolve();
     };
     //err,docs
-    find(search: any, callback: any) {
-        this._spans.find(search, callback);
+    find(query: any, callback: any) {
+        this._spans.find(query, callback);
     }
     reset() {
         this._spans = new dataStore();

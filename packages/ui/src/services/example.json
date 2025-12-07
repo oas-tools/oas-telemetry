@@ -1,0 +1,1293 @@
+{
+    "metricsCount": 15,
+    "metrics": [
+        {
+            "metricKey": "@opentelemetry/instrumentation-http:http.server.duration",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-http:http.server.duration",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-http",
+                    "version": "0.208.0"
+                },
+                "descriptor": {
+                    "name": "http.server.duration",
+                    "type": "HISTOGRAM",
+                    "description": "Measures the duration of inbound HTTP requests.",
+                    "unit": "ms",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 0
+            },
+            "series": [
+                {
+                    "labels": {
+                        "http": {
+                            "scheme": "http",
+                            "method": "GET",
+                            "flavor": "1.1",
+                            "status_code": 200
+                        },
+                        "net": {
+                            "host": {
+                                "name": "localhost",
+                                "port": 3000
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": {
+                                "min": 1.054808,
+                                "max": 6.989821,
+                                "sum": 9.247693,
+                                "buckets": {
+                                    "boundaries": [
+                                        0,
+                                        5,
+                                        10,
+                                        25,
+                                        50,
+                                        75,
+                                        100,
+                                        250,
+                                        500,
+                                        750,
+                                        1000,
+                                        2500,
+                                        5000,
+                                        7500,
+                                        10000
+                                    ],
+                                    "counts": [
+                                        0,
+                                        2,
+                                        1,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                },
+                                "count": 3
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.utilization",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.utilization",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.utilization",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop utilization",
+                    "unit": "1",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.2855065612831759
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.time",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.time",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.time",
+                    "type": "OBSERVABLE_COUNTER",
+                    "description": "Cumulative duration of time the event loop has been in each state.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 3,
+                "isMonotonic": true
+            },
+            "series": [
+                {
+                    "labels": {
+                        "nodejs": {
+                            "eventloop": {
+                                "state": "active"
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 3.4793997789988236
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "nodejs": {
+                            "eventloop": {
+                                "state": "idle"
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 5.02331053
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.min",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.min",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.min",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop minimum delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.009068544
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.max",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.max",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.max",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop maximum delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.014745599
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.mean",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.mean",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.mean",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop mean delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.010111993768762678
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.stddev",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.stddev",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.stddev",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop standard deviation delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.00022957062959934625
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p50",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p50",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.p50",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop 50 percentile delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.010100735
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p90",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p90",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.p90",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop 90 percentile delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.010174463
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p99",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:nodejs.eventloop.delay.p99",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "nodejs.eventloop.delay.p99",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Event loop 99 percentile delay.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {},
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0.010379263
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.gc.duration",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.gc.duration",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "v8js.gc.duration",
+                    "type": "HISTOGRAM",
+                    "description": "Garbage collection duration by kind, one of major, minor, incremental or weakcb.",
+                    "unit": "s",
+                    "valueType": 1,
+                    "advice": {
+                        "explicitBucketBoundaries": [
+                            0.01,
+                            0.1,
+                            1,
+                            10
+                        ]
+                    }
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 0
+            },
+            "series": [
+                {
+                    "labels": {
+                        "v8js": {
+                            "gc": {
+                                "type": "minor"
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": {
+                                "min": 0.0009271239973604679,
+                                "max": 0.0009271239973604679,
+                                "sum": 0.0009271239973604679,
+                                "buckets": {
+                                    "boundaries": [
+                                        0.01,
+                                        0.1,
+                                        1,
+                                        10
+                                    ],
+                                    "counts": [
+                                        1,
+                                        0,
+                                        0,
+                                        0,
+                                        0
+                                    ]
+                                },
+                                "count": 1
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.limit",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.limit",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "v8js.memory.heap.limit",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Total heap memory size pre-allocated.",
+                    "unit": "By",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "read_only_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 33554432
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "old_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 100450304
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 2359296
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 4759552
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 1204224
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.used",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.used",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "v8js.memory.heap.used",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Heap Memory size allocated.",
+                    "unit": "By",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "read_only_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 6967160
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "old_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 98314736
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 1968832
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 4374296
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 1160672
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.space.available_size",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.space.available_size",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "v8js.memory.heap.space.available_size",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Heap space available size.",
+                    "unit": "By",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "read_only_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 9527432
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "old_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 369720
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 242720
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 300696
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 16777216
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.space.physical_size",
+            "metadata": {
+                "metricKey": "@opentelemetry/instrumentation-runtime-node:v8js.memory.heap.space.physical_size",
+                "scope": {
+                    "name": "@opentelemetry/instrumentation-runtime-node",
+                    "version": "0.22.0"
+                },
+                "descriptor": {
+                    "name": "v8js.memory.heap.space.physical_size",
+                    "type": "OBSERVABLE_GAUGE",
+                    "description": "Committed size of a heap space.",
+                    "unit": "By",
+                    "valueType": 1,
+                    "advice": {}
+                },
+                "aggregationTemporality": 1,
+                "dataPointType": 2
+            },
+            "series": [
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "read_only_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 33554432
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "old_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 100663296
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 2285568
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 4980736
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "new_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 1204224
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "code_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "shared_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                },
+                {
+                    "labels": {
+                        "v8js": {
+                            "heap": {
+                                "space": {
+                                    "name": "trusted_large_object_space"
+                                }
+                            }
+                        }
+                    },
+                    "samples": [
+                        {
+                            "timestamp": 1764795514677000000,
+                            "value": 0
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "format": "raw"
+}

@@ -5,7 +5,7 @@ import { startServer } from "../utils/serverStarter";
 import { ChildProcess } from "child_process";
 
 type Log = { id?: string; body?: string };
-type LogsResponse = { items: Log[] }; // logsCount removed, use items.length
+type LogsResponse = { logs: Log[]; logsCount: number };
 
 export function defineLogsApiTests(config: E2ETestConfig) {
     const { label, port, telemetryPath } = config;
@@ -91,10 +91,10 @@ export function defineLogsApiTests(config: E2ETestConfig) {
             const generateResponse = await axios.post(generateLogUrl, { log: sampleLog }).catch((err) => err.response);
             expect(generateResponse.status).toBe(200);
 
-            const logsResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
+            const logsResponse = await axios.post<LogsResponse>(findLogsUrl, {}).catch((err) => err.response);
             expect(logsResponse.status).toBe(200);
-            expect(Array.isArray(logsResponse.data.items)).toBe(true);
-            expect(logsResponse.data.items.some((log: any) => log.body === sampleLog)).toBe(true);
+            expect(Array.isArray(logsResponse.data.logs)).toBe(true);
+            expect(logsResponse.data.logs.some((log: any) => log.body === sampleLog)).toBe(true);
         });
 
         it('[e2e][Logs:List][-] should not store new logs when logging is inactive', async () => {
@@ -103,12 +103,12 @@ export function defineLogsApiTests(config: E2ETestConfig) {
 
             const sampleLog = "ThisShouldNotBeStoredWhenInactive";
             const generateResponse = await axios.post(generateLogUrl, { log: sampleLog }).catch((err) => err.response);
-                expect([200, 404]).toContain(generateResponse.status);
+            expect(generateResponse.status).toBe(200);
 
-            const logsResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
+            const logsResponse = await axios.post<LogsResponse>(findLogsUrl, {}).catch((err) => err.response);
             expect(logsResponse.status).toBe(200);
-            expect(Array.isArray(logsResponse.data.items)).toBe(true);
-            expect(logsResponse.data.items.some((log: any) => log.body === sampleLog)).toBe(false);
+            expect(Array.isArray(logsResponse.data.logs)).toBe(true);
+            expect(logsResponse.data.logs.some((log: any) => log.body === sampleLog)).toBe(false);
         });
 
         it('[e2e][Logs:Reset][+] should reset logs', async () => {
@@ -117,25 +117,25 @@ export function defineLogsApiTests(config: E2ETestConfig) {
             const resetResponse = await axios.post(logsResetUrl).catch((err) => err.response);
             expect(resetResponse.status).toBe(200);
 
-            const logsResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
+            const logsResponse = await axios.post<LogsResponse>(findLogsUrl, {}).catch((err) => err.response);
             expect(logsResponse.status).toBe(200);
-            expect(logsResponse.data.items.length).toBe(0);
+            expect(logsResponse.data.logs.length).toBe(0);
         });
 
         it('[e2e][Logs:Insert][+] should insert logs without deleting existing data', async () => {
             await axios.post(generateLogUrl, { log: "SampleLog" }).catch((err) => err.response);
 
-            const initialResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
+            const initialResponse = await axios.post<LogsResponse>(findLogsUrl, {}).catch((err) => err.response);
             expect(initialResponse.status).toBe(200);
-            const initialCount = initialResponse.data.items.length;
+            const initialCount = initialResponse.data.logs.length;
 
             const insertResponse = await axios.post(logsUrl, { logs: [{ id: "test-log" }] }).catch((err) => err.response);
             expect(insertResponse.status).toBe(200);
             expect(insertResponse.data.message).toContain("Inserted");
 
-            const afterInsertResponse = await axios.get<LogsResponse>(logsUrl).catch((err) => err.response);
+            const afterInsertResponse = await axios.post<LogsResponse>(findLogsUrl, {}).catch((err) => err.response);
             expect(afterInsertResponse.status).toBe(200);
-            expect(afterInsertResponse.data.items.length).toBe(initialCount + 1);
+            expect(afterInsertResponse.data.logs.length).toBe(initialCount + 1);
         });
 
         it('[e2e][Logs:Find][+] should find logs with valid query', async () => {
@@ -149,8 +149,8 @@ export function defineLogsApiTests(config: E2ETestConfig) {
 
             const findResponse = await axios.post(findLogsUrl, validQuery).catch((err) => err.response);
             expect(findResponse.status).toBe(200);
-            expect(Array.isArray(findResponse.data.items)).toBe(true);
-            expect(findResponse.data.items.length).toBeGreaterThan(0);
+            expect(Array.isArray(findResponse.data.logs)).toBe(true);
+            expect(findResponse.data.logs.length).toBeGreaterThan(0);
         });
 
         it('[e2e][Logs:Find][+] should find by textSearch', async () => {
@@ -164,9 +164,9 @@ export function defineLogsApiTests(config: E2ETestConfig) {
 
             const findResponse = await axios.post(findLogsUrl, textSearchPayload).catch((err) => err.response);
             expect(findResponse.status).toBe(200);
-            expect(Array.isArray(findResponse.data.items)).toBe(true);
-            expect(findResponse.data.items.length).toBe(1);
-            expect(findResponse.data.items[0].body).toBe(uniqueLog);
+            expect(Array.isArray(findResponse.data.logs)).toBe(true);
+            expect(findResponse.data.logs.length).toBe(1);
+            expect(findResponse.data.logs[0].body).toBe(uniqueLog);
         });
 
         it('[e2e][Logs:Find][+] should find by textSearch and query at the same time', async () => {
@@ -186,9 +186,9 @@ export function defineLogsApiTests(config: E2ETestConfig) {
 
             const findResponse = await axios.post(findLogsUrl, payload).catch((err) => err.response);
             expect(findResponse.status).toBe(200);
-            expect(Array.isArray(findResponse.data.items)).toBe(true);
-            expect(findResponse.data.items.length).toBe(1);
-            expect(findResponse.data.items[0].body).toBe(includedLog);
+            expect(Array.isArray(findResponse.data.logs)).toBe(true);
+            expect(findResponse.data.logs.length).toBe(1);
+            expect(findResponse.data.logs[0].body).toBe(includedLog);
         });
 
         it('[e2e][Logs:Find][-] should get retention time successfully', async () => {
