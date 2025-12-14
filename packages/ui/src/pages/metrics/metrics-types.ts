@@ -13,8 +13,8 @@ export enum AggregationTemporality {
 }
 
 export interface HistogramBuckets {
-  boundaries: number[]
-  counts: number[]
+  boundaries: number[] // Ensure boundaries exist
+  counts: number[] // Ensure counts exist
 }
 
 export interface HistogramValue {
@@ -49,8 +49,8 @@ export interface MetricDescriptor {
   type: string
   description: string
   unit: string
-  valueType?: number
-  advice?: any
+  valueType: number // Added valueType
+  advice?: Record<string, any> // Added advice
 }
 
 export interface MetricScope {
@@ -59,7 +59,6 @@ export interface MetricScope {
 }
 
 export interface MetricMetadata {
-  metricKey: string
   scope: MetricScope
   descriptor: MetricDescriptor
   aggregationTemporality: AggregationTemporality
@@ -69,11 +68,16 @@ export interface MetricMetadata {
 
 export interface Series {
   labels: LabelSet
-  samples: Sample[]
+  timestamps: number[] // nanoseconds
+  startTimes: number[] 
+  endTimes: number[] 
+  values: Array<number | HistogramValue | ExponentialHistogramValue>
+  valueType: DataPointType
+  attributes: Record<string, any> 
 }
 
 export interface Metric {
-  metricKey: string
+  metricName: string
   metadata: MetricMetadata
   series: Series[]
 }

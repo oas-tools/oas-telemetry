@@ -94,8 +94,9 @@ function MetricsToolbar({
             return
         }
 
+        console.log("Applying absolute time range:", { startMs, endMs })
         onTimeRangeChange({
-            label: `${new Date(startMs).toLocaleString()} — ${new Date(endMs).toLocaleString()}`,
+            label: `${new Date(startMs).toISOString()} — ${new Date(endMs).toISOString()}`,
             startTimeNs: startMs * 1_000_000,
             endTimeNs: endMs * 1_000_000,
             isRelative: false,
@@ -261,7 +262,7 @@ function MetricsToolbar({
 
                             <div className="hidden sm:flex items-center gap-1 text-xs lg:text-sm">
                                 <Database className="h-3 w-3 text-muted-foreground" />
-                                <span className="font-medium">{stats.totalSamples.toLocaleString()}</span>
+                                <span className="font-medium">{stats.totalSamples?.toLocaleString()}</span>
                                 <span className="text-muted-foreground hidden lg:inline">samples</span>
                             </div>
 

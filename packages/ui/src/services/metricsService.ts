@@ -1,9 +1,14 @@
 import backend from "./Backend";
 
-// Raw format types (from TSDB)
-export interface Sample {
-  timestamp: number; // nanoseconds
-  value: number | HistogramValue;
+export interface ScopeMetricQuery {
+  metricId: {
+    scope: {
+      name: string;
+      version?: string;
+    };
+    metricName: string;
+  };
+  filters?: Record<string, string>;
 }
 
 export interface HistogramValue {
@@ -12,154 +17,77 @@ export interface HistogramValue {
   buckets?: { boundary: number; count: number }[];
 }
 
-export interface LabelSet {
-  [key: string]: string | number | boolean;
+export interface MetricQueryResult {
+  scope: {
+    name: string;
+    version?: string;
+  };
+  descriptor: {
+    name: string;
+    unit?: string;
+    description?: string;
+    // ...other descriptor fields
+  };
+  series: Array<{
+    attributes: Record<string, any>;
+    startTimes: number[];
+    endTimes: number[];
+    values: number[];
+  }>;
 }
 
-export interface MetricMetadata {
-  dataPointType: number; // 0=Histogram, 1=ExponentialHistogram, 2=Gauge, 3=Sum
-  aggregationTemporality?: number; // 0=Delta, 1=Cumulative
-  isMonotonic?: boolean;
-  unit?: string;
-}
-
-export interface Series {
-  labels: LabelSet;
-  samples: Sample[];
-}
-
-export interface RawMetric {
-  metricKey: string;
-  metadata: MetricMetadata;
-  series: Series[];
-}
-
-export interface MetricsResponse {
+export interface MetricsFindResponse {
   format: string;
-  metrics: RawMetric[];
+  scopeMetricsCount: number;
+  scopeMetrics: MetricQueryResult[];
 }
 
-export interface MetricsStats {
-  totalMetrics: number;
-  totalSeries: number;
-  totalSamples: number;
-  memoryUsageBytes: number;
-}
-
-export interface SearchCriteria {
-  metricKeys?: string[]; // Support multiple metric keys (unique identifiers)
-  instrumentation?: string;
-  labels?: Record<string, any>;
-  startTimeNs?: number;
-  endTimeNs?: number;
+export interface FindMetricsCriteria {
+  scopeMetrics?: ScopeMetricQuery[];
+  startTime?: number;
+  endTime?: number;
   format?: "raw" | "otel";
+}
+export interface ScopeMetricsInfo {
+  scope: {
+    name: string;
+    version?: string;
+  };
+  metrics: Array<{
+    descriptor: {
+      name: string;
+      unit?: string;
+      description?: string;
+    };
+    aggregationTemporality?: number;
+    dataPointType?: number;
+    dataPoints: any[];
+  }>;
 }
 
 class MetricsService {
-  /**
-   * Fetch all metrics with optional filters
-   */
-  async findMetrics(criteria: SearchCriteria = {}): Promise<MetricsResponse> {
-    const { format = "raw", metricKeys, labels, instrumentation, startTimeNs, endTimeNs } = criteria;
-    const params = new URLSearchParams();
-    params.set("format", format);
-    
-    if (metricKeys && metricKeys.length > 0) {
-      params.set("metricKeys", metricKeys.join(","));
-    }
-    
-    if (instrumentation) {
-      params.set("instrumentation", instrumentation);
-    }
-    
-    if (labels) {
-      params.set("labels", JSON.stringify(labels));
-    }
 
-    if (startTimeNs) {
-      params.set("startTimeNs", startTimeNs.toString());
-    }
-
-    if (endTimeNs) {
-      params.set("endTimeNs", endTimeNs.toString());
-    }
-
-    const res = await backend.get(`/metrics?${params.toString()}`);
+  async findMetrics(criteria: FindMetricsCriteria = {}): Promise<MetricsFindResponse> {
+    const body = {
+      scopeMetrics: criteria.scopeMetrics,
+      startTime: criteria.startTime,
+      endTime: criteria.endTime,
+      format: criteria.format || "raw"
+    };
+    const res = await backend.post("/metrics/find", body);
     return res.data;
   }
 
-  /**
-   * Fetch metrics that have changed since a given timestamp (for polling)
-   */
-  async findNewerMetrics(
-    criteria: SearchCriteria,
-    sinceTimestamp: number
-  ): Promise<MetricsResponse> {
-    const { format = "raw", metricKeys, labels, instrumentation, startTimeNs, endTimeNs } = criteria;
-    const params = new URLSearchParams();
-    params.set("format", format);
-    params.set("startTimeNs", sinceTimestamp.toString());
-    
-    if (metricKeys && metricKeys.length > 0) {
-      params.set("metricKeys", metricKeys.join(","));
-    }
-
-    if (instrumentation) {
-      params.set("instrumentation", instrumentation);
-    }
-    
-    if (labels) {
-      params.set("labels", JSON.stringify(labels));
-    }
-
-    if (endTimeNs) {
-      params.set("endTimeNs", endTimeNs.toString());
-    }
-
-    const res = await backend.get(`/metrics?${params.toString()}`);
-    return res.data;
-  }
-
-  /**
-   * Get statistics about the metrics storage
-   */
-  async getStats(): Promise<MetricsStats> {
+  async getStats(): Promise<any> {
     const res = await backend.get("/metrics/stats");
     return res.data;
   }
 
-  /**
-   * Get list of unique metric names (optimized endpoint)
-   * Optional instrumentation filter
-   */
-  async getMetricNames(instrumentation?: string): Promise<string[]> {
-    const params = new URLSearchParams();
-    if (instrumentation) {
-      params.set("instrumentation", instrumentation);
-    }
-    const res = await backend.get(`/metrics/names?${params.toString()}`);
-    return res.data.names || [];
+  async getScopeMetricsInfo(): Promise<ScopeMetricsInfo[]> {
+    const res = await backend.get("/metrics/scope-metrics-info");
+    return res.data.scopeMetrics || [];
   }
 
-  /**
-   * Get list of unique instrumentations (optimized endpoint)
-   */
-  async getInstrumentations(): Promise<string[]> {
-    const res = await backend.get("/metrics/instrumentations");
-    return res.data.instrumentations || [];
-  }
-
-  /**
-   * Get unique label keys across all metrics (optimized endpoint)
-   */
-  async getLabelKeys(): Promise<string[]> {
-    const res = await backend.get("/metrics/label-keys");
-    return res.data.labelKeys || [];
-  }
-
-  /**
-   * Control metrics collection
-   */
   async startCollection(): Promise<void> {
     await backend.post("/metrics/start");
   }
@@ -168,7 +96,7 @@ class MetricsService {
     await backend.post("/metrics/stop");
   }
 
-  async getStatus(): Promise<{ active: boolean }> {
+  async getStatus() {
     const res = await backend.get("/metrics/status");
     return { active: !!res.data.active };
   }
@@ -177,7 +105,7 @@ class MetricsService {
     await backend.post("/metrics/reset");
   }
 
-  async setRetentionTime(retentionTimeInSeconds: number): Promise<{ message: string }> {
+  async setRetentionTime(retentionTimeInSeconds: number) {
     const res = await backend.post("/metrics/retention-time", { retentionTimeInSeconds });
     return { message: res.data.message };
   }

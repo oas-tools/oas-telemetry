@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { RefreshCw, Clock, Globe, Activity } from "lucide-react"
 import { telemetryService, type ParsedTrace, type TraceSpan } from "@/services/telemetryService"
-import { getStatusColor } from "@/utils/styles";
-import { getMethodColor } from "@/utils/styles";
+import { getStatusColor } from "@/lib/utils/trace-styles";
+import { getMethodColor } from "@/lib/utils/trace-styles";
 
 interface TracesDetailPageProps {
   path?: string

@@ -23,7 +23,7 @@ interface MetricPanelProps {
 
 function MetricPanel({ metric, viewMode, timeRange, onTimeRangeSelect, isExpanded, onToggleExpand }: MetricPanelProps) {
   const { metadata, series } = metric
-  const { instrumentation, name } = parseMetricKey(metric.metricKey)
+  const { instrumentation, name } = parseMetricKey(metric.metricName)
   const dataPointType = metadata.dataPointType
   let unit = metadata.descriptor?.unit
   if (unit === "1") {
@@ -111,14 +111,14 @@ function MetricPanel({ metric, viewMode, timeRange, onTimeRangeSelect, isExpande
                     // One chart per label with p50, p95, p99 lines
                     series.map((s, idx) => (
                       <GrafanaChart
-                        key={`${metric.metricKey}-percentiles-${idx}`}
+                        key={`${metric.metricName}-percentiles-${idx}`}
                         series={[s]}
                         dataPointType={dataPointType}
                         unit={unit}
                         height={220}
                         timeRange={timeRange}
                         onTimeRangeSelect={onTimeRangeSelect}
-                        metricKey={metric.metricKey}
+                        metricKey={metric.metricName}
                       />
                     ))
                 ) : (
@@ -129,7 +129,7 @@ function MetricPanel({ metric, viewMode, timeRange, onTimeRangeSelect, isExpande
                       height={220}
                       timeRange={timeRange}
                       onTimeRangeSelect={onTimeRangeSelect}
-                      metricKey={metric.metricKey}
+                      metricKey={metric.metricName}
                     />
                   )}
                 </div>

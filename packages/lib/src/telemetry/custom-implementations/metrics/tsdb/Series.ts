@@ -30,10 +30,10 @@ export class Series {
     /**
      * Append a sample to the series
      */
-    append(timestamp: number, value: number | HistogramValue): void {
+    append(startTime: number, endTime: number, value: number | HistogramValue): void {
         // Get or create current chunk
         let currentChunk = this.chunks[this.chunks.length - 1];
-        
+
         if (!currentChunk || currentChunk.isFull()) {
             // Create new chunk
             currentChunk = new Chunk(this.chunkSize, this.isHistogram);
@@ -45,33 +45,98 @@ export class Series {
             }
         }
 
-        currentChunk.append(timestamp, value);
+        currentChunk.append(startTime, endTime, value);
     }
+
 
     /**
-     * Get all samples within time range
+     * Query slices with options object. Example:
+     *   querySlices({ startTime, endTime, includeStartTimes: true })
+     *   includeStartTimes defaults to false.
      */
-    querySamples(startTime?: number, endTime?: number): Sample[] {
-        const samples: Sample[] = [];
-        
-        // If no time range specified, get all samples
-        if (startTime === undefined && endTime === undefined) {
-            for (const chunk of this.chunks) {
-                samples.push(...chunk.getSamples());
-            }
-        } else {
-            const start = startTime ?? 0;
-            const end = endTime ?? Number.MAX_SAFE_INTEGER;
-            
-            for (const chunk of this.chunks) {
-                if (chunk.overlaps(start, end)) {
-                    samples.push(...chunk.getSamples(start, end));
-                }
-            }
+    querySlices(options?: {
+        startTime?: number;
+        endTime?: number;
+        includeStartTimes?: boolean;
+    }): {
+        startTimes?: Float64Array;
+        endTimes: Float64Array;
+        values: Float64Array | (HistogramValue | null)[];
+    } {
+        const start = options?.startTime ?? 0;
+        const end = options?.endTime ?? Number.MAX_SAFE_INTEGER;
+        const includeStartTimes = options?.includeStartTimes ?? false;
+
+        let totalLength = 0;
+        for (const chunk of this.chunks) {
+            if (!chunk.overlaps(start, end)) continue;
+            const slice = chunk.getSlices(start, end);
+            totalLength += slice.startTimes.length;
         }
 
-        return samples;
+        if (totalLength === 0) {
+            const empty: any = {
+                endTimes: new Float64Array(0),
+                values: this.isHistogram ? [] : new Float64Array(0),
+            };
+            if (includeStartTimes) {
+                empty.startTimes = new Float64Array(0);
+            }
+            return empty;
+        }
+
+        let resultStart: Float64Array | undefined;
+        if (includeStartTimes) {
+            resultStart = new Float64Array(totalLength);
+        }
+        const resultEnd = new Float64Array(totalLength);
+
+        const resultValues = this.isHistogram
+            ? new Array<HistogramValue | null>(totalLength)
+            : new Float64Array(totalLength);
+
+        let offset = 0;
+
+        for (const chunk of this.chunks) {
+            if (!chunk.overlaps(start, end)) continue;
+
+            const slice = chunk.getSlices(start, end);
+            const len = slice.startTimes.length;
+            if (len === 0) continue;
+
+            // Copy start and end times
+            if (includeStartTimes && resultStart) {
+                resultStart.set(slice.startTimes, offset);
+            }
+            resultEnd.set(slice.endTimes, offset);
+
+            // Copy values (different type depending on metric)
+            if (this.isHistogram) {
+                (resultValues as (HistogramValue | null)[]).splice(
+                    offset,
+                    len,
+                    ...(slice.values as (HistogramValue | null)[])
+                );
+            } else {
+                (resultValues as Float64Array).set(
+                    slice.values as Float64Array,
+                    offset
+                );
+            }
+
+            offset += len;
+        }
+
+        const result: any = {
+            endTimes: resultEnd,
+            values: resultValues
+        };
+        if (includeStartTimes && resultStart) {
+            result.startTimes = resultStart;
+        }
+        return result;
     }
+
 
     /**
      * Remove chunks older than threshold
@@ -92,11 +157,12 @@ export class Series {
         return this.metadata;
     }
 
-    /**
-     * Get label set
-     */
     getLabels(): Record<string, any> {
         return this.labelSet.labels;
+    }
+
+    getOriginalAttributes(): Record<string, any> {
+        return this.labelSet.originalAttributes;
     }
 
     /**
@@ -106,15 +172,12 @@ export class Series {
         return this.labelSet.hash;
     }
 
-    /**
-     * Get series statistics
-     */
     getStats() {
         const totalSamples = this.chunks.reduce((sum, chunk) => sum + chunk.size(), 0);
         const memoryBytes = this.chunks.reduce((sum, chunk) => sum + chunk.getMemoryUsage(), 0);
-        
+
         return {
-            metricKey: this.metadata.metricKey,
+            metricName: this.metadata.descriptor.name,
             labels: this.labelSet.labels,
             chunks: this.chunks.length,
             samples: totalSamples,

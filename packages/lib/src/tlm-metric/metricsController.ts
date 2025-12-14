@@ -1,55 +1,6 @@
 import { Request, Response } from 'express';
 import { inMemoryDbMetricExporter } from '../telemetry/telemetryRegistry.js';
 
-export const listMetrics = async (req: Request, res: Response) => {
-    try {
-        // Support query params: ?format=raw&metricKeys=X,Y,Z&instrumentation=Y&startTimeNs=Z&endTimeNs=W&labels={...}
-        const format = (req.query.format as 'otel' | 'raw') || 'raw'; // Default to raw for efficiency
-        const metricKeyParam = req.query.metricKeys as string | undefined;
-        // Support multiple metric keys separated by comma
-        const metricKeys = metricKeyParam ? metricKeyParam.split(',').map(n => n.trim()) : undefined;
-        const instrumentation = req.query.instrumentation as string | undefined;
-        const startTimeNs = req.query.startTimeNs ? Number(req.query.startTimeNs) : undefined;
-        const endTimeNs = req.query.endTimeNs ? Number(req.query.endTimeNs) : undefined;
-        let labels: Record<string, any> | undefined;
-        
-        if (req.query.labels) {
-            try {
-                labels = JSON.parse(req.query.labels as string);
-            } catch (e) {
-                res.status(400).send({ error: 'Invalid labels JSON format' });
-                return;
-            }
-        }
-
-        const query: any = { format };
-        if (metricKeys) query.metricKeys = metricKeys;
-        if (instrumentation) query.instrumentation = instrumentation;
-        if (startTimeNs) query.startTimeNs = startTimeNs;
-        if (endTimeNs) query.endTimeNs = endTimeNs;
-        if (labels) query.labels = labels;
-
-        // Use find() with query options if filters are present
-        if (metricKeys || instrumentation || startTimeNs || endTimeNs || labels) {
-            inMemoryDbMetricExporter.find(query, (err: any, docs: any) => {
-                if (err) {
-                    console.error(err);
-                    res.status(500).send({ error: err.message || 'Failed to find metrics' });
-                    return;
-                }
-                res.send({ metricsCount: docs.length, metrics: docs, format });
-            });
-        } else {
-            // No filters, get all metrics
-            const data = inMemoryDbMetricExporter.getFinishedMetrics(format);
-            res.send({ metricsCount: data.result.length, metrics: data.result, format: data.format });
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).send({ error: 'Failed to list metrics data' });
-    }
-}
-
 export const getMetricsStats = async (req: Request, res: Response) => {
     try {
         res.send(inMemoryDbMetricExporter.rawDataDB);
@@ -62,7 +13,6 @@ export const getMetricsStats = async (req: Request, res: Response) => {
     }
 }
 
-// Removed findMetrics - use listMetrics with query params instead
 
 export const resetMetrics = (req: Request, res: Response) => {
     inMemoryDbMetricExporter.reset();
@@ -70,80 +20,32 @@ export const resetMetrics = (req: Request, res: Response) => {
 }
 
 export const insertMetricsToDb = async (req: Request, res: Response) => {
-    const jsonContent = req.body.metrics;
-    const resetData = req.query.reset === 'true';
-    const format = (req.body.format || req.query.format || 'raw') as 'raw' | 'otel';
-    
-    if (!Array.isArray(jsonContent)) {
-        res.status(400).send({ error: 'Invalid data format. Expected array in body.metrics' });
-        return;
-    }
-
     try {
+        const scopeMetricsData = req.body.scopeMetrics;
+        const resetData = req.query.reset === 'true';
+        const format = (req.body.format || req.query.format || 'raw') as 'raw' | 'otel';
+
+        if (!Array.isArray(scopeMetricsData)) {
+            res.status(400).send({ error: 'Invalid data format. Expected array in body.scopeMetrics' });
+            return;
+        }
+
         let message = '';
         if (resetData) {
             inMemoryDbMetricExporter.reset();
             message += 'Metrics Database reset. ';
         }
 
-        // Convert to OTEL internal format based on input format
-        let scopeMetrics: any[];
-        
-        if (format === 'raw') {
-            // Raw format: [{metricKey, metadata, series: [{labels, samples}]}]
-            // Convert to OTEL internal format
-            scopeMetrics = jsonContent.map((rawMetric: any) => {
-                const { metricKey, metadata, series } = rawMetric;
-                const [instrumentation, name] = metricKey.split(':');
-                
-                // Convert series to dataPoints
-                const dataPoints: any[] = [];
-                series.forEach((s: any) => {
-                    s.samples.forEach((sample: any) => {
-                        const timeNs = sample.timestamp;
-                        const startSec = Math.floor(timeNs / 1_000_000_000);
-                        const startNano = timeNs % 1_000_000_000;
-                        
-                        dataPoints.push({
-                            attributes: s.labels,
-                            startTime: [startSec, startNano],
-                            endTime: [startSec, startNano],
-                            value: sample.value
-                        });
-                    });
-                });
-                
-                return {
-                    scope: { name: instrumentation, version: metadata.scope?.version },
-                    metrics: [{
-                        descriptor: metadata.descriptor || { name, type: 'unknown' },
-                        aggregationTemporality: metadata.aggregationTemporality,
-                        dataPointType: metadata.dataPointType,
-                        isMonotonic: metadata.isMonotonic,
-                        dataPoints
-                    }]
-                };
-            });
-        } else {
-            // OTEL format: already in scopeMetrics format
-            scopeMetrics = jsonContent.map((metric: any) => {
-                const { _id, ...rest } = metric;
-                return rest;
-            });
-        }
+        // Store samples
+        if(format === 'otel') inMemoryDbMetricExporter.insertOtel(scopeMetricsData);
+        else inMemoryDbMetricExporter.insertRaw(scopeMetricsData);
 
-        await new Promise((resolve, reject) => {
-            inMemoryDbMetricExporter.insert(scopeMetrics, (err: any, newDocs: any[]) => {
-                if (err) {
-                    console.error('Error inserting metrics:', err);
-                    return reject(err);
-                }
-                resolve(newDocs);
-            });
+        message += `Inserted ${scopeMetricsData.length} scopeMetrics (format: ${format}).`;
+        res.send({ 
+            message, 
+            scopeMetricsCount: scopeMetricsData.length,
+            format 
         });
-
-        message += `Inserted ${jsonContent.length} metrics (format: ${format}).`;
-        res.send({ message, InsertedMetricsCount: jsonContent.length, format });
     } catch (err: any) {
         console.error(err);
         res.status(500).send({ error: 'Failed to reset and insert data', details: err.message });
@@ -182,42 +84,86 @@ export const getMetricRetentionTime = (req: Request, res: Response) => {
 };
 
 /**
- * Get list of unique metric names (optimized endpoint)
- * Optional query param: ?instrumentation=X to filter by instrumentation
+ * Find metrics by scope+metric queries with filters (POST /metrics/find)
+ * All parameters are optional:
+ * - If scopeMetrics is not provided or empty, returns all metrics
+ * - If startTime/endTime not provided, returns all available data
+ * - format can be 'raw' (default) or 'otel'
  */
-export const getMetricNames = async (req: Request, res: Response) => {
+export const findMetrics = async (req: Request, res: Response) => {
     try {
-        const instrumentation = req.query.instrumentation as string | undefined;
-        const names = inMemoryDbMetricExporter.getMetricNames(instrumentation);
-        res.send({ names });
+        const { scopeMetrics, startTime, endTime, format } = req.body;
+
+        // Validate scopeMetrics structure if provided
+        if (scopeMetrics && Array.isArray(scopeMetrics)) {
+            for (const query of scopeMetrics) {
+                if (!query.metricId || !query.metricId.scope || !query.metricId.scope.name || !query.metricId.metricName) {
+                    res.status(400).json({
+                        error: 'Each query must have metricId.scope.name and metricId.metricName'
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Execute query
+        const response = inMemoryDbMetricExporter.findMetrics({
+            scopeMetrics: scopeMetrics && scopeMetrics.length > 0 ? scopeMetrics : undefined,
+            startTime,
+            endTime,
+            format: format || 'raw'
+        });
+
+        res.json({
+            format: format || 'raw',
+            scopeMetricsCount: response.results.length,
+            scopeMetrics: response.results,
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).send({ error: 'Failed to get metric names' });
+        res.status(500).json({ error: 'Failed to find metrics' });
     }
 };
 
 /**
- * Get list of unique instrumentations
+ * Get all scope-metric combinations with metadata (no data)
  */
-export const getInstrumentations = async (req: Request, res: Response) => {
+export const getScopeMetricsInfo = async (req: Request, res: Response) => {
     try {
-        const instrumentations = inMemoryDbMetricExporter.getInstrumentations();
-        res.send({ instrumentations });
+        const info = inMemoryDbMetricExporter.getScopeMetricsInfo();
+        res.json({ scopeMetrics: info });
     } catch (err) {
         console.error(err);
-        res.status(500).send({ error: 'Failed to get instrumentations' });
+        res.status(500).json({ error: 'Failed to get scope-metrics info' });
     }
 };
 
 /**
- * Get list of unique label keys (optimized, doesn't load data)
+ * Check data consistency between rawDataDB and queried data
+ * Compares raw exports with findMetrics(format=otel) without filters
  */
-export const getLabelKeys = async (req: Request, res: Response) => {
+export const checkMetricsConsistency = async (req: Request, res: Response) => {
     try {
-        const labelKeys = inMemoryDbMetricExporter.getLabelKeys();
-        res.send({ labelKeys });
+        // Get raw exported data
+        const rawData = inMemoryDbMetricExporter.rawDataDB;
+
+        // Query all data with OTEL format
+        const response = inMemoryDbMetricExporter.findMetrics({
+            format: 'otel'
+        });
+
+        const queriedData = response.results;
+
+        // Compare counts
+        const statusCheck = rawData.length === queriedData.length;
+
+        res.json({
+            statusCheck,
+            raw: rawData,
+            queried: queriedData
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).send({ error: 'Failed to get label keys' });
+        res.status(500).json({ error: 'Failed to check metrics consistency' });
     }
 };

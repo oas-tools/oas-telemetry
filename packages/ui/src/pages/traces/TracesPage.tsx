@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { RefreshCw, Activity, MemoryStick, Globe, ChevronUp, ChevronDown } from "lucide-react"
 import { telemetryService, type ApiEndpoint, type HeapStats, type TelemetryStatus } from "@/services/telemetryService"
-import { getMethodColor, getStatusColor } from "@/utils/styles"
+import { getMethodColor, getStatusColor } from "@/lib/utils/trace-styles"
 import Loading from "@/components/pages/loading"
 
 

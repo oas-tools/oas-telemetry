@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import {
-    listMetrics,
     resetMetrics,
     insertMetricsToDb,
     startMetrics,
@@ -9,9 +8,8 @@ import {
     setMetricRetentionTime,
     getMetricRetentionTime,
     getMetricsStats,
-    getMetricNames,
-    getInstrumentations,
-    getLabelKeys
+    findMetrics,
+    getScopeMetricsInfo
 } from './metricsController.js';
 
 export const getMetricsRoutes = () => {
@@ -26,13 +24,11 @@ export const getMetricsRoutes = () => {
     router.get('/retention-time', getMetricRetentionTime);
 
     // Optimized endpoints (no data loading)
-    router.get('/names', getMetricNames);
-    router.get('/instrumentations', getInstrumentations);
-    router.get('/label-keys', getLabelKeys);
+    router.get('/scope-metrics-info', getScopeMetricsInfo);
     router.get('/stats', getMetricsStats);
     
-    // Data endpoints (use GET / with query params for filtering)
-    router.get('/', listMetrics);
+    // Query endpoints
+    router.post('/find', findMetrics);
     router.post('/', insertMetricsToDb);
 
     return router;
