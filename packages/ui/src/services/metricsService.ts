@@ -44,34 +44,37 @@ export interface MetricsFindResponse {
 
 export interface FindMetricsCriteria {
   scopeMetrics?: ScopeMetricQuery[];
-  startTime?: number;
-  endTime?: number;
+  from?: number;
+  to?: number;
   format?: "raw" | "otel";
 }
-export interface ScopeMetricsInfo {
-  scope: {
-    name: string;
-    version?: string;
-  };
+export type InstrumentationScope = {
+  name: string;
+  version?: string;
+};
+
+export type MetricDescriptor = {
+  name: string;
+  unit?: string;
+  description?: string;
+  [key: string]: any;
+};
+
+export type MetricInfo = {
+  scope: InstrumentationScope;
   metrics: Array<{
-    descriptor: {
-      name: string;
-      unit?: string;
-      description?: string;
-    };
-    aggregationTemporality?: number;
-    dataPointType?: number;
-    dataPoints: any[];
+    descriptor: MetricDescriptor;
+    series: string[];
   }>;
-}
+};
 
 class MetricsService {
 
   async findMetrics(criteria: FindMetricsCriteria = {}): Promise<MetricsFindResponse> {
     const body = {
       scopeMetrics: criteria.scopeMetrics,
-      startTime: criteria.startTime,
-      endTime: criteria.endTime,
+      from: criteria.from,
+      to: criteria.to,
       format: criteria.format || "raw"
     };
     const res = await backend.post("/metrics/find", body);
@@ -83,7 +86,7 @@ class MetricsService {
     return res.data;
   }
 
-  async getScopeMetricsInfo(): Promise<ScopeMetricsInfo[]> {
+  async getScopeMetricsInfo(): Promise<MetricInfo[]> {
     const res = await backend.get("/metrics/scope-metrics-info");
     return res.data.scopeMetrics || [];
   }

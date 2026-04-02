@@ -1,28 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useRef, useMemo, useState, use } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { getColorFromPalette, formatTimeString } from "./utils";
 import { ChartTooltip, type TooltipData } from "./chart-tooltip";
+import UplotDemoReact from "./UplotDemoReact";
 
 export type SeriesConfig = {
-  id: string;
-  label: string;
-  defaultInterval: number;
-  generateValue: (now: number) => number;
-  color?: string; // Optional: if not provided, uPlot will generate colors automatically
+    id: string;
+    label: string;
+    color?: string; // Optional: if not provided, uPlot will generate colors automatically
 };
 
 export type TimeSeriesChartProps = {
     data: (number | null)[][];
     seriesConfig: SeriesConfig[];
-    title?: string;
     height?: number;
     onRangeSelect?: (from: number, to: number) => void;
     timeRange?: { from: number; to: number };
+    animateXAxis?: boolean;
     className?: string;
 };
+
 
 
 
@@ -32,24 +32,19 @@ export function TimeSeriesChart({
     height = 350,
     onRangeSelect,
     timeRange,
+    animateXAxis,
     className,
 }: TimeSeriesChartProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const uplotRef = useRef<uPlot | null>(null);
     const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
-    const onRangeSelectRef = useRef(onRangeSelect);
-    const targetRangeRef = useRef<{ from: number; to: number } | null>(null);
-    const animationFrameRef = useRef<number | null>(null);
+    const [plotSize, setPlotSize] = useState({ width: 0, height });
 
-    // Keep ref updated
-    useEffect(() => {
-        onRangeSelectRef.current = onRangeSelect;
-    }, [onRangeSelect]);
-
-    const plugins = useMemo(() => [tooltipPlugin(seriesConfig, setTooltipData)], [seriesConfig]);
-
+    // Only create chart on mount or when main params change.
     useEffect(() => {
         if (!chartRef.current) return;
+        if (uplotRef.current) return; // Already created
+        const plugin = tooltipPlugin(seriesConfig, setTooltipData);
 
         const options: uPlot.Options = {
             width: chartRef.current.clientWidth,
@@ -61,25 +56,22 @@ export function TimeSeriesChart({
                 drag: {
                     x: true,
                     y: false,
-                    setScale: true,
+                    setScale: false,
                 },
                 dataIdx: (self, seriesIdx, hoveredIdx, cursorXVal) => {
                     const prevIdx = self.data[0][hoveredIdx] > cursorXVal ? hoveredIdx - 1 : hoveredIdx;
                     const yVals = self.data[seriesIdx];
-
                     let idx = prevIdx;
                     while (idx >= 0 && yVals[idx] == null) {
                         idx--;
                     }
-
                     return idx >= 0 ? idx : hoveredIdx;
                 },
             },
             scales: {
-                x: {},
-                y: {
-                    range: (u, dataMin, dataMax) => [dataMin, dataMax],
-                },
+                x: {
+                    time: false,
+                }
             },
             axes: [
                 {
@@ -104,13 +96,13 @@ export function TimeSeriesChart({
                 },
             ],
             series: [
-                {},
+                {}, // x-axis
                 ...seriesConfig.map((cfg, i) => {
                     const color = cfg.color || getColorFromPalette(i);
                     return {
                         label: cfg.label,
                         stroke: color,
-                        width: 1.5,
+                        width: 2,
                         spanGaps: true,
                         paths: uPlot.paths.linear!(),
                         points: {
@@ -123,11 +115,12 @@ export function TimeSeriesChart({
             legend: {
                 show: true,
                 live: false,
+
             },
             hooks: {
                 setSelect: [
                     (u) => {
-                        if (!onRangeSelectRef.current) return;
+                        if (!onRangeSelect) return;
 
                         const min = u.select.left;
                         const max = u.select.left + u.select.width;
@@ -135,91 +128,59 @@ export function TimeSeriesChart({
                         if (min !== undefined && max !== undefined) {
                             const minX = u.posToVal(min, "x");
                             const maxX = u.posToVal(max, "x");
-                            onRangeSelectRef.current(minX, maxX);
+                            console.log(`selecting range: ${new Date(minX).toISOString()} ${new Date(maxX).toISOString()}`)
+                            onRangeSelect(minX, maxX);
                         }
                     },
                 ],
             },
-            plugins,
+            plugins: [plugin],
         };
-
+        // Create with empty data
         const plot = new uPlot(
             options,
-            [[], ...seriesConfig.map(() => [])],
+            [[], []],
             chartRef.current
         );
-
         uplotRef.current = plot;
-
+        setPlotSize({ width: plot.over.clientWidth, height: plot.over.clientHeight });
+        console.log("Created uPlot chart");
         return () => {
             plot.destroy();
+            uplotRef.current = null;
         };
-    }, [seriesConfig, height, plugins]);
+        //If seriesConfig changes, we need to recreate the chart to update series
+    }, [height, onRangeSelect, seriesConfig]);
 
-    // Update data first
+    // Update data when it changes, no need to recreate chart
     useEffect(() => {
         if (!uplotRef.current) return;
-        uplotRef.current.setData(data as any);
+        uplotRef.current.setData(data as any, true);
+        //TODO REMOVE THIS
+        console.log("Updated uPlot data for metric:", seriesConfig.map(s => s.label).join(", "));
     }, [data]);
 
-    // Then animate range changes smoothly
+    // Animate x-axis if animateXAxis is true
     useEffect(() => {
-        if (!uplotRef.current || !timeRange) return;
-        
-        const currentScale = uplotRef.current.scales.x;
-        const currentMin = currentScale.min ?? timeRange.from;
-        const currentMax = currentScale.max ?? timeRange.to;
-        
-        targetRangeRef.current = { from: timeRange.from, to: timeRange.to };
-        
-        // If values are the same, no need to animate
-        if (Math.abs(currentMin - timeRange.from) < 1 && Math.abs(currentMax - timeRange.to) < 1) {
-            return;
+        let rafId: number | null = null;
+        let running = true;
+        if (animateXAxis && timeRange && uplotRef.current) {
+            const animate = () => {
+                if (!running) return;
+                const now = Date.now();
+                const windowSize = timeRange.to - timeRange.from;
+                uplotRef.current!.setScale("x", { min: now - windowSize, max: now });
+                rafId = requestAnimationFrame(animate);
+            };
+            animate();
         }
-        
-        // Cancel previous animation
-        if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-        }
-        
-        const duration = 400; // ms
-        const startTime = performance.now();
-        const startMin = currentMin;
-        const startMax = currentMax;
-        
-        const animate = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Ease out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            
-            const newMin = startMin + (timeRange.from - startMin) * eased;
-            const newMax = startMax + (timeRange.to - startMax) * eased;
-            
-            if (uplotRef.current) {
-                uplotRef.current.setScale("x", {
-                    min: newMin,
-                    max: newMax,
-                });
-            }
-            
-            if (progress < 1) {
-                animationFrameRef.current = requestAnimationFrame(animate);
-            } else {
-                animationFrameRef.current = null;
-            }
-        };
-        
-        animationFrameRef.current = requestAnimationFrame(animate);
-        
         return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
+            running = false;
+            if (rafId) cancelAnimationFrame(rafId);
         };
-    }, [timeRange]);
+    }, [timeRange, animateXAxis]);
 
+    // Resize handler
     useEffect(() => {
         const handleResize = () => {
             if (uplotRef.current && chartRef.current) {
@@ -227,16 +188,16 @@ export function TimeSeriesChart({
                     width: chartRef.current.clientWidth,
                     height,
                 });
+                setPlotSize({ width: chartRef.current.clientWidth, height });
             }
         };
-
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, [height]);
 
     const hasData = data[0]?.length > 0;
-    const plotWidth = uplotRef.current?.over.clientWidth || 0;
-    const plotHeight = uplotRef.current?.over.clientHeight || 0;
+    const plotWidth = plotSize.width;
+    const plotHeight = plotSize.height;
 
     return (
         <div className={className}>
@@ -248,8 +209,9 @@ export function TimeSeriesChart({
                 )}
                 <div ref={chartRef} style={{ width: "100%" }} />
             </div>
-            
             <ChartTooltip data={tooltipData} plotWidth={plotWidth} plotHeight={plotHeight} />
+            {/* React uPlot demo for comparison */}
+            <UplotDemoReact />
         </div>
     );
 }
@@ -263,7 +225,9 @@ function tooltipPlugin(
     let bLeft = 0;
     let bTop = 0;
 
+
     function syncBounds() {
+        if (!overPlot) return;
         const bbox = overPlot.getBoundingClientRect();
         bLeft = bbox.left;
         bTop = bbox.top;
@@ -279,14 +243,8 @@ function tooltipPlugin(
             setSize: () => syncBounds(),
             setCursor: (u) => {
                 const { left, top, idx } = u.cursor;
-                
-                if (left == null || top == null || idx == null) {
-                    onTooltipUpdate(null);
-                    return;
-                }
 
-                const timestamp = u.data[0][idx];
-                if (!timestamp) {
+                if (left == null || top == null || idx == null || !(u.data[0][idx])) {
                     onTooltipUpdate(null);
                     return;
                 }
@@ -299,13 +257,13 @@ function tooltipPlugin(
                     const seriesIdx = u.cursor.idxs?.[i + 1] ?? idx;
                     return {
                         label: cfg.label,
-                        value: u.data[i + 1][seriesIdx],
+                        value: u.data[i + 1]?.[seriesIdx] ?? null,
                         color: cfg.color || getColorFromPalette(i),
                     };
                 });
 
                 onTooltipUpdate({
-                    timeString: formatTimeString(timestamp),
+                    timeString: formatTimeString(u.data[0][idx] as number),
                     x: left,
                     y: top,
                     left: bLeft,

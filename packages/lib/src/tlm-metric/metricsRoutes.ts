@@ -9,7 +9,6 @@ import {
     getMetricRetentionTime,
     getMetricsStats,
     findMetrics,
-    getScopeMetricsInfo
 } from './metricsController.js';
 
 export const getMetricsRoutes = () => {
@@ -22,13 +21,10 @@ export const getMetricsRoutes = () => {
     router.post('/reset', resetMetrics);
     router.post('/retention-time', setMetricRetentionTime);
     router.get('/retention-time', getMetricRetentionTime);
-
-    // Optimized endpoints (no data loading)
-    router.get('/scope-metrics-info', getScopeMetricsInfo);
-    router.get('/stats', getMetricsStats);
     
     // Query endpoints
     router.post('/find', findMetrics);
+    router.get('/stats', getMetricsStats);
     router.post('/', insertMetricsToDb);
 
     return router;

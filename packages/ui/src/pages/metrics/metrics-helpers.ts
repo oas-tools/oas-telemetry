@@ -35,27 +35,6 @@ export function formatTimestampSmart(nsTimestamp: number, rangeDurationMs: numbe
     })
 }
 
-export function formatTimestamp(nsTimestamp: number): string {
-    const date = new Date(nsTimestamp / 1_000_000)
-    return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-    })
-}
-
-export function formatFullTimestamp(nsTimestamp: number): string {
-    const date = new Date(nsTimestamp / 1_000_000)
-    return date.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-    })
-}
 
 
 

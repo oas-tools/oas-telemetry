@@ -1,8 +1,7 @@
 import { Series } from './Series.js';
 import { ScopeMetricQuery, MetricMetadata, MetricQueryResult } from './types.js';
 import { InstrumentationScope } from '@opentelemetry/core';
-import { ScopeMetrics } from '@opentelemetry/sdk-metrics';
-import { Attributes } from '@opentelemetry/api';
+import { MetricDescriptor, ScopeMetrics } from '@opentelemetry/sdk-metrics';
 
 
 /*
@@ -89,15 +88,10 @@ export class SeriesRegistry {
         if (!scopeMetrics || scopeMetrics.length === 0) {
             const queries: ScopeMetricQuery[] = Array.from(this.metricIdIndex.keys()).map(indexKey => {
                 const [scopeId, metricName] = indexKey.split(':').slice(0, 2);
-                const scope = this.scopes.get(scopeId);
+                const scope = this.scopes.get(scopeId)!;
                 return {
-                    metricId: {
-                        scope: {
-                            name: scope?.name || '',
-                            version: scope?.version || 'none'
-                        },
-                        metricName
-                    },
+                    scope,
+                    descriptor: { name: metricName },
                     filters: undefined
                 };
             });
@@ -111,8 +105,6 @@ export class SeriesRegistry {
             .filter((result): result is MetricQueryResult => result !== null);
     }
 
-    // _queryAll eliminado
-
     /**
      * Query single metric with attribute filters
      */
@@ -121,11 +113,9 @@ export class SeriesRegistry {
         startTime?: number,
         endTime?: number
     ): MetricQueryResult | null {
-        const scopeId = query.metricId.scope.version
-            ? `${query.metricId.scope.name}@${query.metricId.scope.version}`
-            : `${query.metricId.scope.name}@none`;
+        const scopeId = scopeToId(query.scope);
 
-        const indexKey = `${scopeId}:${query.metricId.metricName}`;
+        const indexKey = makeMetricId(scopeId, query.descriptor.name);
         const seriesKeysInMetric = this.metricIdIndex.get(indexKey);
 
         if (!seriesKeysInMetric || seriesKeysInMetric.size === 0) {
@@ -156,6 +146,7 @@ export class SeriesRegistry {
                 const series = this.series.get(key)!;
                 const { startTimes, endTimes, values } = series.querySlices({ startTime, endTime, includeStartTimes: true });
                 return {
+                    id: key,
                     attributes: series.getOriginalAttributes(),
                     startTimes: startTimes ? Array.from(startTimes) : undefined,
                     endTimes: Array.from(endTimes),
@@ -258,51 +249,27 @@ export class SeriesRegistry {
     size(): number {
         return this.series.size;
     }
-
-    /**
-     * Get all scope-metric combinations with metadata (no data)
-     */
-    getScopeMetricsInfo(): ScopeMetrics[] {
-        const result: ScopeMetrics[] = [];
-
-        for (const [indexKey] of this.metricIdIndex.entries()) {
-            const scopeId = indexKey.split(':')[0];
-            const scope = this.scopes.get(scopeId);
-            const metricData = this.metricMetadataMap.get(indexKey);
-
-            if (scope && metricData) {
-                result.push({
-                    scope: {
-                        name: scope.name,
-                        version: scope.version
-                    },
-                    metrics: [{
-                        descriptor: metricData.descriptor,
-                        aggregationTemporality: metricData.aggregationTemporality,
-                        dataPointType: metricData.dataPointType,
-                        dataPoints: []
-                    }] as any
-                });
-            }
-        }
-
-        return result;
-    }
 }
-
 
 // Utility: Create deterministic ID from attributes
 function attributesToId(attributes: Record<string, any>): string {
-    return Object.keys(attributes).sort().map(key => `${key}=${attributes[key]}`).join(',');
+    return Object.keys(attributes).sort().map(key => `${key}=${attributes[key]}`).join(',') || 'no_attrs';
 }
 function scopeToId(scope: InstrumentationScope): string {
-    return `${scope.name}@${scope.version ?? 'none'}`;
+    return `${scope.name}@${scope.version ?? 'no_version'}`;
 }
 function makeMetricId(scopeId: string, metricName: string): string {
     return `${scopeId}:${metricName}`;
 }
 function makeSeriesId(metricId: string, attributesId: string): string {
-    return `${metricId}::${attributesId}`;
+    return `${metricId}$${attributesId}`;
 }
 
 
+export type MetricInfo = {
+    scope: InstrumentationScope
+    metrics: Array<{
+        descriptor: MetricDescriptor
+        series: string[];
+    }>;
+};

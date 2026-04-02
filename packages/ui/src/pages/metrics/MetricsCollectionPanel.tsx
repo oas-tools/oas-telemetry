@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { logsService, type LogStatus } from "@/services/logService"
+import { metricsService } from "@/services/metricsService"
 import CollectionPanel from "@/components/CollectionPanel"
 
 interface Props {
-  onLogsReset?: () => void
+  onMetricsReset?: () => void
 }
 
-const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
+const MetricsCollectionPanel: React.FC<Props> = ({ onMetricsReset }) => {
   const [loading, setLoading] = useState(true)
-  const [logStatus, setLogStatus] = useState<LogStatus>({ active: false })
+  const [status, setStatus] = useState<{ active: boolean }>({ active: false })
   const [retentionTimeInSeconds, setRetentionTime] = useState("3600")
   const [expanded, setExpanded] = useState(true)
 
@@ -30,7 +30,7 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
       Promise.all([
         (async () => {
           try {
-            const time = await logsService.getRetentionTime()
+            const time = await metricsService.getRetentionTime()
             setRetentionTime(time.toString())
           } catch {
             toast.error("Failed to fetch retention time")
@@ -38,10 +38,10 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
         })(),
         (async () => {
           try {
-            const status = await logsService.getStatus()
-            setLogStatus(status)
+            const status = await metricsService.getStatus()
+            setStatus(status)
           } catch {
-            setLogStatus({ active: true })
+            setStatus({ active: true })
             toast("Could not connect to telemetry service")
           }
         })(),
@@ -49,31 +49,31 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
     )
   }, [])
 
-  const handleLogToggle = async (checked: boolean) => {
+  const handleToggle = async (checked: boolean) => {
     await setLoadingWithDelay((async () => {
       try {
         if (checked) {
-          await logsService.startCollection()
-          toast.success("Logs collection started")
+          await metricsService.startCollection()
+          toast.success("Metrics collection started")
         } else {
-          await logsService.stopCollection()
-          toast.warning("Logs collection stopped")
+          await metricsService.stopCollection()
+          toast.warning("Metrics collection stopped")
         }
-        setLogStatus({ active: checked })
+        setStatus({ active: checked })
       } catch {
-        toast.error(`Failed to ${checked ? "start" : "stop"} log collection`)
+        toast.error(`Failed to ${checked ? "start" : "stop"} metrics collection`)
       }
     })())
   }
 
-  const handleResetLogs = async () => {
+  const handleReset = async () => {
     await setLoadingWithDelay((async () => {
       try {
-        await logsService.resetLogs()
-        toast.success("All logs cleared")
-        onLogsReset?.()
+        await metricsService.resetMetrics()
+        toast.success("All metrics cleared")
+        onMetricsReset?.()
       } catch {
-        toast.error("Failed to reset logs")
+        toast.error("Failed to reset metrics")
       }
     })())
   }
@@ -86,8 +86,8 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
           toast.error("Retention time must be a positive number")
           return
         }
-        await logsService.setRetentionTime(time)
-        toast.success(`Logs will be retained for ${time} seconds`)
+        await metricsService.setRetentionTime(time)
+        toast.success(`Metrics will be retained for ${time} seconds`)
       } catch {
         toast.error("Failed to set retention time")
       }
@@ -96,14 +96,14 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
 
   return (
     <CollectionPanel
-      title="Logs Collection"
-      description="Control logs collection and retention settings"
-      status={logStatus.active ? "collecting" : "paused"}
+      title="Metrics Collection"
+      description="Control metrics collection and retention settings"
+      status={status.active ? "collecting" : "paused"}
       loading={loading}
       retentionTime={retentionTimeInSeconds}
       onRetentionTimeChange={setRetentionTime}
-      onToggleCollection={handleLogToggle}
-      onReset={handleResetLogs}
+      onToggleCollection={handleToggle}
+      onReset={handleReset}
       onSetRetentionTime={handleSetRetentionTime}
       expanded={expanded}
       onToggleExpand={() => setExpanded((v) => !v)}
@@ -111,4 +111,4 @@ const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
   )
 }
 
-export default LogsCollectionPanel
+export default MetricsCollectionPanel
