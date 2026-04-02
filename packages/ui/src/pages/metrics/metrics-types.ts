@@ -87,20 +87,9 @@ export interface MetricsResponse {
   metrics: Metric[]
 }
 
-export interface TimeRange {
-  label: string
-  startTimeNs: number
-  endTimeNs: number
-  isRelative?: boolean
-  // For relative ranges, store the preset minutes to recalculate on refresh
-  relativeMinutes?: number
-}
 
-export interface GlobalTimeWindow {
-  // The absolute bounds of the entire available time domain
-  absoluteStartNs: number
-  absoluteEndNs: number
-}
+
+
 
 export interface MetricsStats {
   totalMetrics: number
@@ -109,7 +98,6 @@ export interface MetricsStats {
   memoryUsageBytes: number
 }
 
-export type ViewMode = "history" | "latest" | "both"
 
 export type CollectionStatus = "collecting" | "paused" | "error"
 

@@ -1,6 +1,6 @@
 import { InstrumentationScope } from "@opentelemetry/core";
 import { MetricData, Histogram, MetricDescriptor } from "@opentelemetry/sdk-metrics";
-import { Attributes} from "@opentelemetry/api";
+import { Attributes } from "@opentelemetry/api";
 
 export type MetricMetadata = Omit<MetricData, "dataPoints">
 export type HistogramValue = Histogram;
@@ -18,7 +18,7 @@ export interface LabelSet {
  * Series identifier: scope + metricName + attributes
  */
 export interface SeriesKey {
-    scopeId: string;  
+    scopeId: string;
     metricName: string;
     attributesId: number;
 }
@@ -47,20 +47,17 @@ export interface RawScopeMetric {
 }
 
 export interface ScopeMetricQuery {
-    metricId: {
-        scope: {
-            name: string;
-            version?: string;
-        };
-        metricName: string;
-    };
+    scope: InstrumentationScope;
+    descriptor: {
+        name: string;
+    }
     filters?: Record<string, string>;  // Attribute filters (exact match or regex with ~)
 }
 
 export interface FindMetricsRequest {
     scopeMetrics?: ScopeMetricQuery[];  // Optional - if not provided, returns all
-    startTime?: number;  // Unix timestamp (ms or ns)
-    endTime?: number;    // Unix timestamp (ms or ns)
+    from?: number;  // Unix timestamp (ms or ns)
+    to?: number;    // Unix timestamp (ms or ns)
     format?: 'otel' | 'raw';  // Output format
 }
 
@@ -74,7 +71,7 @@ export interface MetricQueryResult {
         attributes: Attributes;
         startTimes?: number[];
         endTimes: number[];
-        values: number[] | (Histogram|null)[];
+        values: number[] | (Histogram | null)[];
     }>;
 }
 

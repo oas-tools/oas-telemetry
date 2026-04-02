@@ -68,7 +68,9 @@ export function ChartTooltip({ data, plotWidth, plotHeight }: ChartTooltipProps)
                             <span className="text-muted-foreground">{s.label}</span>
                         </div>
                         <span className="font-semibold text-foreground tabular-nums">
-                            {s.value != null ? s.value.toFixed(2) : "—"}
+                            {s.value != null && s.value !== undefined && !isNaN(Number(s.value))
+                                ? s.value.toString()
+                                : "-"}
                         </span>
                     </div>
                 ))}

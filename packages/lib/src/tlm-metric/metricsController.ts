@@ -92,14 +92,14 @@ export const getMetricRetentionTime = (req: Request, res: Response) => {
  */
 export const findMetrics = async (req: Request, res: Response) => {
     try {
-        const { scopeMetrics, startTime, endTime, format } = req.body;
+        const { scopeMetrics, from, to, format } = req.body;
 
         // Validate scopeMetrics structure if provided
         if (scopeMetrics && Array.isArray(scopeMetrics)) {
             for (const query of scopeMetrics) {
-                if (!query.metricId || !query.metricId.scope || !query.metricId.scope.name || !query.metricId.metricName) {
+                if (!query.scope || !query.scope.name || !query.descriptor || !query.descriptor.name) {
                     res.status(400).json({
-                        error: 'Each query must have metricId.scope.name and metricId.metricName'
+                        error: 'Each query must have scope.name and descriptor.name defined'
                     });
                     return;
                 }
@@ -109,8 +109,8 @@ export const findMetrics = async (req: Request, res: Response) => {
         // Execute query
         const response = inMemoryDbMetricExporter.findMetrics({
             scopeMetrics: scopeMetrics && scopeMetrics.length > 0 ? scopeMetrics : undefined,
-            startTime,
-            endTime,
+            from,
+            to,
             format: format || 'raw'
         });
 
@@ -122,19 +122,6 @@ export const findMetrics = async (req: Request, res: Response) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to find metrics' });
-    }
-};
-
-/**
- * Get all scope-metric combinations with metadata (no data)
- */
-export const getScopeMetricsInfo = async (req: Request, res: Response) => {
-    try {
-        const info = inMemoryDbMetricExporter.getScopeMetricsInfo();
-        res.json({ scopeMetrics: info });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to get scope-metrics info' });
     }
 };
 

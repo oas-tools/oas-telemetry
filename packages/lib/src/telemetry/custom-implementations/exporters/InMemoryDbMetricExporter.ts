@@ -5,7 +5,7 @@ import logger from '../../../utils/logger.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
 import { Resource } from '@opentelemetry/resources';
 import { rawToOtel } from '../metrics/tsdb/utils.js';
-import { SeriesRegistry } from '../metrics/tsdb/SeriesRegistry.js';
+import { MetricInfo, SeriesRegistry } from '../metrics/tsdb/SeriesRegistry.js';
 import { FindMetricsRequest } from '../metrics/tsdb/types.js';
 
 export interface ExporterConfig {
@@ -124,8 +124,8 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         // Get raw results from registry using new unified query method
         const rawResults = this.registry.query(
             request.scopeMetrics,
-            request.startTime,
-            request.endTime
+            request.from,
+            request.to
         );
 
         // Convert format if needed
@@ -134,13 +134,6 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         }
 
         return { results: rawResults };
-    }
-
-    /**
-     * Get all scope-metric combinations with metadata (no data)
-     */
-    getScopeMetricsInfo(): ScopeMetrics[] {
-        return this.registry.getScopeMetricsInfo();
     }
 
         /**

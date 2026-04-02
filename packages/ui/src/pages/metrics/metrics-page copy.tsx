@@ -81,8 +81,8 @@ export default function MetricsPage() {
       const [metricsResponse, statsResponse] = await Promise.all([
         metricsService.findMetrics({
           format: "raw",
-          startTime: timeRange.startTimeNs,
-          endTime: timeRange.endTimeNs,
+          from: timeRange.startTimeNs,
+          to: timeRange.endTimeNs,
           // Filtering by instrumentation/metric names if needed
           scopeMetrics: selectedInstrumentation
             ? [{ metricId: { scope: { name: selectedInstrumentation }, metricName: "" } }]
