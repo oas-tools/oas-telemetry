@@ -76,6 +76,24 @@ class TracesService {
     const res = await backend.get("/traces/retention-time");
     return res.data.retentionTimeInSeconds || 0;
   }
+
+  download(): void {
+    const baseUrl = backend.defaults.baseURL;
+    const downloadUrl = `${baseUrl}/traces/export`;
+    window.open(downloadUrl, '_blank');
+  }
+
+  async import(file: File, options: { reset: boolean }): Promise<void> {
+    const text = await file.text();
+    const baseUrl = backend.defaults.baseURL;
+    const importUrl = `${baseUrl}/traces/import?reset=${options.reset}`;
+    const response = await fetch(importUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-ndjson' },
+      body: text,
+    });
+    if (!response.ok) throw new Error(`Import failed: ${response.statusText}`);
+  }
 }
 
 export const traceService = new TracesService();

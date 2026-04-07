@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, text } from 'express';
 import {
     resetMetrics,
     insertMetricsToDb,
@@ -9,6 +9,8 @@ import {
     getMetricRetentionTime,
     getMetricsStats,
     findMetrics,
+    exportMetrics,
+    importMetrics,
 } from './metricsController.js';
 
 export const getMetricsRoutes = () => {
@@ -22,6 +24,11 @@ export const getMetricsRoutes = () => {
     router.post('/retention-time', setMetricRetentionTime);
     router.get('/retention-time', getMetricRetentionTime);
     
+    // Export/Import
+    router.get('/export', exportMetrics);
+    // Use text middleware for import to handle NDJSON format
+    router.post('/import', text({ type: 'application/x-ndjson' }), importMetrics);
+
     // Query endpoints
     router.post('/find', findMetrics);
     router.get('/stats', getMetricsStats);

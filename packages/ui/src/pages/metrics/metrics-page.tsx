@@ -6,6 +6,7 @@ import { useUPlotStyles } from "@/hooks/use-uplot-styles";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { metricsService } from "@/services/metricsService";
 import { DashboardControlPanel, type DashboardOption } from "./DashboardControlPanel";
+import MetricsCollectionPanel from "./MetricsCollectionPanel";
 
 
 const RELATIVE_OPTIONS: DashboardOption[] = [
@@ -157,36 +158,42 @@ export default function MetricsPage() {
         );
     }, []);
 
+    const handleMetricsReset = useCallback(() => {
+        setMetricsCacheVersion(v => v + 1);
+        // Refetch with current range
+        setRange(r => ({ ...r }));
+    }, []);
+
     // Use cache for rendering
     const metricsList = Object.values(metricsCacheRef.current);
 
     return (
         <div className="min-h-screen bg-background">
-            <DashboardControlPanel
-                from={range.from}
-                to={range.to}
-                onChangeRange={handleChangeRange}
-                onManualRefresh={() => {
-                    let startMs = range.from;
-                    let endMs = range.to;
-                    if (isRelative && relativeOption?.value != null) {
-                        const now = Date.now();
-                        startMs = now - relativeOption.value;
-                        endMs = now;
-                        setRange({ from: startMs, to: endMs });
-                    } else {
-                        setRange(r => ({ ...r })); // force update
-                    }
-                }}
-                relativeValue={relativeOption}
-                autoRefresh={autoRefreshOption}
-                setAutoRefresh={setAutoRefreshOption}
-                relativeOptions={RELATIVE_OPTIONS}
-                autoRefreshOptions={AUTOREFRESH_OPTIONS}
-            />
+            <main className="container mx-auto px-4 py-4 md:py-8 space-y-6">
+                <MetricsCollectionPanel onMetricsReset={handleMetricsReset} />
 
-            <main className="container mx-auto px-4 py-4 md:py-8 space-y-4 md:space-y-6">
-                Current time range: {new Date(range.from).toLocaleString()} - {new Date(range.to).toLocaleString()}
+                <DashboardControlPanel
+                    from={range.from}
+                    to={range.to}
+                    onChangeRange={handleChangeRange}
+                    onManualRefresh={() => {
+                        let startMs = range.from;
+                        let endMs = range.to;
+                        if (isRelative && relativeOption?.value != null) {
+                            const now = Date.now();
+                            startMs = now - relativeOption.value;
+                            endMs = now;
+                            setRange({ from: startMs, to: endMs });
+                        } else {
+                            setRange(r => ({ ...r })); // force update
+                        }
+                    }}
+                    relativeValue={relativeOption}
+                    autoRefresh={autoRefreshOption}
+                    setAutoRefresh={setAutoRefreshOption}
+                    relativeOptions={RELATIVE_OPTIONS}
+                    autoRefreshOptions={AUTOREFRESH_OPTIONS}
+                />
 
                 {loading && metricsList.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">Loading metrics...</div>

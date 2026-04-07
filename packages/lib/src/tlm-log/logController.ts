@@ -4,6 +4,28 @@ import logger from '../utils/logger.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
 import { logs } from '@opentelemetry/api-logs';
 
+/**
+ * Parse NDJSON import data
+ * Each line must be a valid JSON object
+ * @param body - Request body (raw string)
+ * @returns Array of log objects
+ */
+function parseImportData(body: any): any[] {
+    if (typeof body !== 'string') {
+        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
+    }
+
+    const lines = body.split('\n').filter((line: string) => line.trim());
+    return lines.map((line: string, index: number) => {
+        try {
+            return JSON.parse(line);
+        } catch (e) {
+            logger.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
+            throw new Error(`Invalid JSON on line ${index + 1}`);
+        }
+    });
+}
+
 export const findLogs = async (req: Request, res: Response) => {
     const body = req.body || {};
     const messageSearch = body.textSearch || null;
@@ -87,6 +109,47 @@ export const insertLogsToDb = async (req: Request, res: Response) => {
     }
 };
 
+export const importLogs = async (req: Request, res: Response) => {
+    const resetData = req.query.reset === 'true';
+
+    try {
+        // Parse NDJSON format
+        const logs = parseImportData(req.body);
+
+        if (logs.length === 0) {
+            res.status(400).send({ error: 'No valid logs found in import data' });
+            return;
+        }
+
+        const cleanedLogs = logs.map((log: any) => {
+            const { _id, ...rest } = log; // Remove _id if it exists
+            return rest;
+        });
+
+        let message = '';
+        if (resetData) {
+            inMemoryDbLogExporter.reset();
+            message += 'Logs Database reset. ';
+        }
+
+        await new Promise((resolve, reject) => {
+            inMemoryDbLogExporter.insert(cleanedLogs, (err: any, newDocs: any[]) => {
+                if (err) {
+                    logger.error('Error importing logs:', err);
+                    return reject(err);
+                }
+                resolve(newDocs);
+            });
+        });
+
+        message += `Imported ${cleanedLogs.length} logs.`;
+        res.send({ message, ImportedLogsCount: cleanedLogs.length });
+    } catch (err: any) {
+        logger.error('Import failed:', err);
+        res.status(400).send({ error: 'Failed to import logs', details: err.message });
+    }
+};
+
 export const startLogs = (req: Request, res: Response) => {
     inMemoryDbLogExporter.enable();
     res.send('Log collection started');
@@ -116,4 +179,31 @@ export const setLogRetentionTime = (req: Request, res: Response) => {
 export const getLogRetentionTime = (req: Request, res: Response) => {
     const retentionTimeInSeconds = inMemoryDbLogExporter.retentionTimeInSeconds || 0;
     res.send({ retentionTimeInSeconds: retentionTimeInSeconds });
+};
+
+export const exportLogs = async (req: Request, res: Response) => {
+    try {
+        // Get ALL logs without practical limit
+        const findConfig = {
+            query: {},
+            messageSearch: null,
+            limit: 9999999,
+            sortOrder: { timestamp: -1 }
+        };
+        const docs = await inMemoryDbLogExporter.find(findConfig);
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        res.setHeader('Content-Type', 'application/x-ndjson');
+        res.setHeader('Content-Disposition', `attachment; filename="logs-${timestamp}.ndjson"`);
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        // Stream as NDJSON (one JSON object per line)
+        docs.forEach(doc => {
+            res.write(JSON.stringify(doc) + '\n');
+        });
+        res.end();
+    } catch (err: any) {
+        logger.error('Failed to export logs:', err);
+        res.status(500).send({ error: 'Failed to export logs', details: err.message });
+    }
 };

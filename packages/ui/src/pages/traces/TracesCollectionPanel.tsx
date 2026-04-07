@@ -1,13 +1,12 @@
 import React, { useMemo } from "react"
 import { traceService } from "@/services/traceService"
-import CollectionControlPanel from "@/components/CollectionControlPanel"
+import CollectionPanel from "@/components/CollectionPanel"
 
 interface Props {
   onTracesReset?: () => void
 }
 
 const TracesCollectionPanel: React.FC<Props> = ({ onTracesReset }) => {
-  // Adapt traceService to the CollectionService interface - memoized to prevent unnecessary re-renders
   const adaptedService = useMemo(
     () => ({
       getStatus: () => traceService.getStatus(),
@@ -21,9 +20,14 @@ const TracesCollectionPanel: React.FC<Props> = ({ onTracesReset }) => {
   )
 
   return (
-    <CollectionControlPanel
+    <CollectionPanel
       service={adaptedService}
       resourceType="traces"
+      onDownload={() => {
+        traceService.download()
+        return Promise.resolve()
+      }}
+      onImport={(file, options) => traceService.import(file, options)}
       onReset={onTracesReset}
     />
   )

@@ -115,6 +115,24 @@ class LogsService {
     const res = await backend.post("/utils/generate-mock-logs", { count });
     return res.data.message;
   }
+
+  download(): void {
+    const baseUrl = backend.defaults.baseURL;
+    const downloadUrl = `${baseUrl}/logs/export`;
+    window.open(downloadUrl, '_blank');
+  }
+
+  async import(file: File, options: { reset: boolean }): Promise<void> {
+    const text = await file.text();
+    const baseUrl = backend.defaults.baseURL;
+    const importUrl = `${baseUrl}/logs/import?reset=${options.reset}`;
+    const response = await fetch(importUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-ndjson' },
+      body: text,
+    });
+    if (!response.ok) throw new Error(`Import failed: ${response.statusText}`);
+  }
 }
 
 export const logsService = new LogsService()
