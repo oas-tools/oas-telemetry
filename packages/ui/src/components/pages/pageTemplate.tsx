@@ -2,7 +2,7 @@ import { TelemetryHeader } from "@/components/pages/telemetry-header";
 import { Footer } from "./footer";
 import type { ReactNode } from "react";
 import { ChatPopupTrigger } from "@/components/ai/chat-popup-trigger"
-import { ChatProvider } from "@/lib/chat-store"
+import { ChatProvider } from "@/lib/store/chat"
 import { useLocation } from "react-router-dom"
 
 

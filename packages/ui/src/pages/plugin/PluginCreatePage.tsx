@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Code, Globe, Loader2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { getPluginService } from "@/services/pluginService"
-import type { CreatePluginRequest } from "@/lib/types"
+import type { CreatePluginRequest } from "@/lib/types/plugins"
 import { Switch } from "@/components/ui/switch"
 
 import "ace-builds/src-noconflict/mode-javascript"

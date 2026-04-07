@@ -18,9 +18,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Download, Upload, Loader2, AlertCircle, CheckCircle, FileText } from "lucide-react"
-import type { Plugin, CreatePluginRequest } from "@/lib/types"
+import type { Plugin, CreatePluginRequest } from "@/lib/types/plugins"
 import { getPluginService } from "@/services/pluginService"
-import { exportPluginsToJson, validatePluginImport } from "@/lib/utils/plugin-utils"
+import { exportPluginsToJson, validatePluginImport } from "@/lib/utils/plugin"
 import { toast } from "sonner"
 
 interface PluginExportProps {

@@ -7,7 +7,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { TimeRange, calculateTimeRange } from "@/lib/time-series";
+import { TimeRange, calculateTimeRange } from "@/lib/utils/time-series";
 
 export function useTimeRange(initialRange: number = 15 * 60_000) {
   const [timeRange, setTimeRange] = useState<TimeRange>({

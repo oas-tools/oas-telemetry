@@ -1,4 +1,4 @@
-import type { Plugin } from "@/lib/types"
+import type { Plugin } from "../types/plugins"
 
 export function getPluginOrigin(plugin: Plugin): "code" | "url" {
   return plugin.code ? "code" : "url"

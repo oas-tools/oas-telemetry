@@ -2,8 +2,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import type { Plugin } from "@/lib/types"
-import { getPluginOrigin } from "@/lib/utils/plugin-utils"
+import type { Plugin } from "@/lib/types/plugins"
+import { getPluginOrigin } from "@/lib/utils/plugin"
 import { getPluginService } from "@/services/pluginService"
 import {
   ChevronDown,

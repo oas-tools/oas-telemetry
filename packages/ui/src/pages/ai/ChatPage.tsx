@@ -1,5 +1,5 @@
 import { ChatContainer } from "@/components/ai/chat-container"
-import { ChatProvider } from "@/lib/chat-store"
+import { ChatProvider } from "@/lib/store/chat"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 export default function ChatPage() {

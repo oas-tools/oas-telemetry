@@ -1,112 +1,30 @@
-import React, { useEffect, useState } from "react"
-import { toast } from "sonner"
-import { logsService, type LogStatus } from "@/services/logService"
-import CollectionPanel from "@/components/CollectionPanel"
+import React, { useMemo } from "react"
+import { logsService } from "@/services/logService"
+import CollectionControlPanel from "@/components/CollectionControlPanel"
 
 interface Props {
   onLogsReset?: () => void
 }
 
 const LogsCollectionPanel: React.FC<Props> = ({ onLogsReset }) => {
-  const [loading, setLoading] = useState(true)
-  const [logStatus, setLogStatus] = useState<LogStatus>({ active: false })
-  const [retentionTimeInSeconds, setRetentionTime] = useState("3600")
-  const [expanded, setExpanded] = useState(true)
-
-  // Helper for minimum loading duration
-  const setLoadingWithDelay = async (promise: Promise<any>) => {
-    setLoading(true)
-    const start = Date.now()
-    await promise
-    const elapsed = Date.now() - start
-    if (elapsed < 400) {
-      await new Promise((resolve) => setTimeout(resolve, 400 - elapsed))
-    }
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    setLoadingWithDelay(
-      Promise.all([
-        (async () => {
-          try {
-            const time = await logsService.getRetentionTime()
-            setRetentionTime(time.toString())
-          } catch {
-            toast.error("Failed to fetch retention time")
-          }
-        })(),
-        (async () => {
-          try {
-            const status = await logsService.getStatus()
-            setLogStatus(status)
-          } catch {
-            setLogStatus({ active: true })
-            toast("Could not connect to telemetry service")
-          }
-        })(),
-      ])
-    )
-  }, [])
-
-  const handleLogToggle = async (checked: boolean) => {
-    await setLoadingWithDelay((async () => {
-      try {
-        if (checked) {
-          await logsService.startCollection()
-          toast.success("Logs collection started")
-        } else {
-          await logsService.stopCollection()
-          toast.warning("Logs collection stopped")
-        }
-        setLogStatus({ active: checked })
-      } catch {
-        toast.error(`Failed to ${checked ? "start" : "stop"} log collection`)
-      }
-    })())
-  }
-
-  const handleResetLogs = async () => {
-    await setLoadingWithDelay((async () => {
-      try {
-        await logsService.resetLogs()
-        toast.success("All logs cleared")
-        onLogsReset?.()
-      } catch {
-        toast.error("Failed to reset logs")
-      }
-    })())
-  }
-
-  const handleSetRetentionTime = async () => {
-    await setLoadingWithDelay((async () => {
-      try {
-        const time = Number.parseInt(retentionTimeInSeconds)
-        if (isNaN(time) || time <= 0) {
-          toast.error("Retention time must be a positive number")
-          return
-        }
-        await logsService.setRetentionTime(time)
-        toast.success(`Logs will be retained for ${time} seconds`)
-      } catch {
-        toast.error("Failed to set retention time")
-      }
-    })())
-  }
+  // Adapt logsService to the CollectionService interface - memoized to prevent unnecessary re-renders
+  const adaptedService = useMemo(
+    () => ({
+      getStatus: () => logsService.getStatus(),
+      startCollection: () => logsService.startCollection(),
+      stopCollection: () => logsService.stopCollection(),
+      resetCollection: () => logsService.resetLogs(),
+      setRetentionTime: (seconds: number) => logsService.setRetentionTime(seconds),
+      getRetentionTime: () => logsService.getRetentionTime(),
+    }),
+    []
+  )
 
   return (
-    <CollectionPanel
-      title="Logs Collection"
-      description="Control logs collection and retention settings"
-      status={logStatus.active ? "collecting" : "paused"}
-      loading={loading}
-      retentionTime={retentionTimeInSeconds}
-      onRetentionTimeChange={setRetentionTime}
-      onToggleCollection={handleLogToggle}
-      onReset={handleResetLogs}
-      onSetRetentionTime={handleSetRetentionTime}
-      expanded={expanded}
-      onToggleExpand={() => setExpanded((v) => !v)}
+    <CollectionControlPanel
+      service={adaptedService}
+      resourceType="logs"
+      onReset={onLogsReset}
     />
   )
 }

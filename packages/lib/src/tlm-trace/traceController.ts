@@ -34,28 +34,38 @@ export const listTraces = async (req: Request, res: Response) => {
     }
 };
 
-export const findTraces = (req: Request, res: Response) => {
-    const body = req.body;
-    const query = body?.query ? body.query : {};
+export const findTraces = async (req: Request, res: Response) => {
+    const body = req.body || {};
+    const findQuery = body.query || {};
+    const limit = parseInt(body.limit) || 50;
+    const sortOrder = body.sort || null;
 
     let processedQuery;
     try {
-        processedQuery = convertRegexRecursively(query);
+        processedQuery = convertRegexRecursively(findQuery);
     } catch (error: any) {
         console.error(error.message);
         res.status(400).send({ error: error.message });
         return; // Exit if invalid regex was encountered
     }
 
-    inMemoryDbSpanExporter.find(processedQuery, (err: any, docs: any) => {
-        if (err) {
-            console.error(err);
-            res.status(400).send({ spansCount: 0, spans: [], error: err.message });
-            return; // Exit the function to prevent further execution
-        }
-        const spans = docs;
-        res.send({ spansCount: spans.length, spans: spans });
-    });
+    try {
+        // Use findConfig object - identical to logs
+        const findConfig = {
+            query: processedQuery,
+            limit,
+            sortOrder
+        };
+        const docs = await inMemoryDbSpanExporter.find(findConfig);
+
+        res.send({
+            spansCount: docs.length,
+            spans: docs,
+        });
+    } catch (err: any) {
+        console.error(err);
+        res.status(500).send({ spansCount: 0, spans: [], error: err.message });
+    }
 };
 
 export const insertTracesToDb = async (req: Request, res: Response) => {

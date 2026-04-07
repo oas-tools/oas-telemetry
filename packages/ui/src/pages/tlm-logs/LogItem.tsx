@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 // Accept all possible log fields
 export interface LogEntry {
+  _id: string
   timestamp: number
   body: string
   severityText?: string

@@ -1,4 +1,4 @@
-import type { Plugin, CreatePluginRequest } from "@/lib/types"
+import type { Plugin, CreatePluginRequest } from "@/lib/types/plugins"
 import backend from "@/services/Backend"
 
 class PluginService {

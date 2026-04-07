@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "@/lib/chat-store"
+import type { Message } from "@/lib/store/chat"
 import { cn } from "@/lib/utils"
 import { Bot, MessageCircle, Sparkles, User, Wrench } from "lucide-react"
 import { marked } from "marked"
