@@ -70,7 +70,12 @@ export default function LogsPage() {
   }, [firstTimestamp, currentLogs, queryToSend, textSearchToSend])
 
   const loadNewerLogs = useCallback(async () => {
-    if (!lastTimestamp) return
+    // If no logs yet, load initial logs instead
+    if (!lastTimestamp) {
+      console.log("[loadNewerLogs] No lastTimestamp, loading initial logs")
+      return loadInitialLogs(queryToSend, textSearchToSend)
+    }
+    
     try {
       const response = await logsService.findNewerLogs(
         { query: queryToSend, textSearch: textSearchToSend, limit: LOGS_PER_FETCH },
@@ -89,7 +94,7 @@ export default function LogsPage() {
     } catch {
       toast.error("Failed to load newer logs")
     }
-  }, [lastTimestamp, currentLogs, queryToSend, textSearchToSend])
+  }, [lastTimestamp, currentLogs, queryToSend, textSearchToSend, loadInitialLogs])
 
   // Initial load
   useEffect(() => {

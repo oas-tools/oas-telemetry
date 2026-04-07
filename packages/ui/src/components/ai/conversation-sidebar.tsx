@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import type { Conversation } from "@/lib/chat-store"
+import type { Conversation } from "@/lib/store/chat"
 import { cn } from "@/lib/utils"
 import { MessageSquare, Trash2, Menu, Plus } from "lucide-react"
 

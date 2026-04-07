@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { buildAlignedData, TimePoint } from "@/lib/time-series";
+import { buildAlignedData, TimePoint } from "@/lib/utils/time-series";
 import { fetchMetrics } from "@/lib/api-client";
 
 export function useTimeSeriesData(

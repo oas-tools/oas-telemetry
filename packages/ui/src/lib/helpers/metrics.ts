@@ -5,8 +5,8 @@ import type {
   LabelSet,
   DataPointType as DataPointTypeEnum,
   AggregationTemporality as AggregationTemporalityEnum,
-} from "./metrics-types"
-import { DataPointType, AggregationTemporality } from "./metrics-types"
+} from "../types/metrics"
+import { DataPointType, AggregationTemporality } from "../types/metrics"
 
 export function formatTimestampSmart(nsTimestamp: number, rangeDurationMs: number): string {
   const date = new Date(nsTimestamp / 1_000_000)

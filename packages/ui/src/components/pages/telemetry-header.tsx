@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/context/AuthContext"
 import { getLogoRelativePath } from "@/services/Backend"
 import {
+    Activity,
   BarChart3,
   Book,
   BookOpen,
@@ -26,7 +27,7 @@ import { Link } from "react-router-dom"
 
 const tabs = [
   // Disabled until implemented
-  // { id: "traces" as const, label: "Traces", icon: Activity },
+  { id: "traces" as const, label: "Traces", icon: Activity },
   { id: "metrics" as const, label: "Metrics", icon: BarChart3 },
   { id: "logs" as const, label: "Logs", icon: FileText },
   { id: "plugins" as const, label: "Plugins", icon: Puzzle },

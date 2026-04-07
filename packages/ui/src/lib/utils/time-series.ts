@@ -2,7 +2,15 @@
  * Data utilities for time series processing
  */
 
-import type { TimePoint } from "@/types/metric-types";
+// Local type definitions for time series data
+export type TimePoint = {
+  ts: number // timestamp in milliseconds
+  value: number
+}
+
+export type TimeRange = 
+  | { type: "relative"; from: number; to?: number }
+  | { type: "absolute"; from: number; to: number }
 
 
 /**
@@ -99,22 +107,18 @@ export function buildAlignedData(
 /**
  * Calculate current time range based on TimeRange config
  */
-export function calculateTimeRange(range: {
-  type: "relative" | "absolute";
-  from: number;
-  to: number;
-}): { from: number; to: number } {
-  const now = Date.now();
+export function calculateTimeRange(range: TimeRange): { from: number; to: number } {
+  const now = Date.now()
 
   if (range.type === "relative") {
     return {
       from: now - range.from,
-      to: range.to === 0 ? now : now - range.to,
-    };
+      to: range.to === undefined || range.to === 0 ? now : now - range.to,
+    }
   } else {
     return {
       from: range.from,
       to: range.to,
-    };
+    }
   }
 }
