@@ -21,13 +21,7 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
     if (bootEnvVariables.OASTLM_BOOT_ENV === 'development') {
         logger.info("Running in development mode, enabling CORS for all origins");
         router.use(cors({
-            origin: (origin, callback) => {
-                if (!origin || /^http:\/\/localhost:\d+$/.test(origin)) {
-                    callback(null, true);
-                } else {
-                    callback(new Error('Not allowed by CORS'));
-                }
-            },
+            origin: true,
             credentials: true
         }));
     }

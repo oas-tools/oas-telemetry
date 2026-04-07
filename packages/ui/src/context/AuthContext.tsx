@@ -16,27 +16,40 @@ const AuthContext = createContext<{
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setAuthenticated] = useState(false);
-    const [authEnabled, setAuthEnabled] = useState(true);
+    const [authEnabled, setAuthEnabled] = useState(false);
 
     useEffect(() => {
         isAuthEnabled().then((enabled) => {
             setAuthEnabled(enabled);
             if (enabled) {
+                // Only try to refresh auth if auth is enabled
                 refreshAuth().then((valid) => {
                     setAuthenticated(valid);
                     if (!valid) {
                         redirectToLogin();
                     }
+                }).catch(() => {
+                    setAuthenticated(false);
+                    redirectToLogin();
                 });
             } else {
+                // Auth is disabled, user is considered authenticated
                 setAuthenticated(true);
             }
+        }).catch(() => {
+            // If we can't determine auth status, assume it's disabled
+            setAuthEnabled(false);
+            setAuthenticated(true);
         });
     }, []);
 
     const logout = async () => {
         if (authEnabled) {
-            await backendLogout();
+            try {
+                await backendLogout();
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
             setAuthenticated(false);
             redirectToLogin();
         }

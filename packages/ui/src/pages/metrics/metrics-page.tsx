@@ -5,7 +5,7 @@ import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { useUPlotStyles } from "@/hooks/use-uplot-styles";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { metricsService } from "@/services/metricsService";
-import { DashboardControlPanel, type DashboardOption } from "./DashboardControlPanel";
+import { DashboardRangeSelectPanel, type DashboardOption } from "./DashboardRangeSelectPanel";
 import MetricsCollectionPanel from "./MetricsCollectionPanel";
 
 
@@ -172,7 +172,7 @@ export default function MetricsPage() {
             <main className="container mx-auto px-4 py-4 md:py-8 space-y-6">
                 <MetricsCollectionPanel onMetricsReset={handleMetricsReset} />
 
-                <DashboardControlPanel
+                <DashboardRangeSelectPanel
                     from={range.from}
                     to={range.to}
                     onChangeRange={handleChangeRange}
