@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 import { logsService, type LogEntry } from "@/services/logService"
 import LogsFiltersCard from "./LogsFiltersPanel"
@@ -23,11 +23,13 @@ export default function LogsPage() {
   // Query and text search to send to backend
   const [queryToSend, setQueryToSend] = useState<any>({})
   const [textSearchToSend, setTextSearchToSend] = useState<string>("")
+  const [hasManualSearch, setHasManualSearch] = useState(false)
 
-  const loadInitialLogs = useCallback(async (query: any = {}, textSearch: string = "") => {
+  const loadInitialLogs = useCallback(async (query: any = {}, textSearch: string = "", isManual: boolean = false) => {
     setLoading(true)
     setQueryToSend(query)
     setTextSearchToSend(textSearch)
+    setHasManualSearch(isManual)
     try {
       const response = await logsService.findLogs({
         query,
@@ -39,7 +41,8 @@ export default function LogsPage() {
       if (logs.length > 0) {
         setFirstTimestamp(getLogTimestamp(logs[0]))
         setLastTimestamp(getLogTimestamp(logs[logs.length - 1]))
-      } else {
+      } else if (isManual && logs.length === 0) {
+        // Only show "No logs found" if user did a manual search
         toast.info("No logs found")
       }
     } catch {
@@ -70,10 +73,10 @@ export default function LogsPage() {
   }, [firstTimestamp, currentLogs, queryToSend, textSearchToSend])
 
   const loadNewerLogs = useCallback(async () => {
-    // If no logs yet, load initial logs instead
+    // If no logs yet, load initial logs instead (but don't show "no logs" toast)
     if (!lastTimestamp) {
       console.log("[loadNewerLogs] No lastTimestamp, loading initial logs")
-      return loadInitialLogs(queryToSend, textSearchToSend)
+      return loadInitialLogs(queryToSend, textSearchToSend, false)
     }
     
     try {
@@ -98,31 +101,33 @@ export default function LogsPage() {
 
   // Initial load
   useEffect(() => {
-    loadInitialLogs()
+    loadInitialLogs({}, "", false)
   }, [loadInitialLogs])
 
-  const uniqueServices = Array.from(
-    new Set(currentLogs.map((log) => log.resource?.attributes?.service?.name)),
-  ).filter(Boolean) as string[]
+  // Extract and memoize unique services for filters (don't recalculate on every render)
+  const uniqueServices = useMemo(() =>
+    Array.from(
+      new Set(currentLogs.map((log) => log.resource?.attributes?.service?.name)),
+    ).filter(Boolean) as string[],
+    [currentLogs]
+  )
 
   // Handler for logs reset event from management card
   const handleLogsReset = () => {
     setCurrentLogs([])
     setFirstTimestamp(null)
     setLastTimestamp(null)
-    loadInitialLogs({}, "")
+    setHasManualSearch(false)
+    loadInitialLogs({}, "", false)
   }
 
-  // Update queryToSend and textSearchToSend when filters change
+  // Update queryToSend and textSearchToSend when filters change (user action = manual search)
   const handleFiltersChange = (query: any, textSearch: string) => {
     setCurrentLogs([])
     setFirstTimestamp(null)
     setLastTimestamp(null)
-    setQueryToSend(query)
-    setTextSearchToSend(textSearch)
-    loadInitialLogs(query, textSearch)
+    loadInitialLogs(query, textSearch, true)
   }
-
 
   return (
     <div className="min-h-screen bg-background">

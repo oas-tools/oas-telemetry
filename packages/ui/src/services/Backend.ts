@@ -8,14 +8,14 @@ export function getFrontendBaseName() {
     let result: string;
 
     if (index !== -1) {
-        console.debug("OASTLM frontend marker found in path:", path, "Marker:", path.substring(0, index + PROD_FRONTEND_MARKER.length));
+        console.log("OASTLM frontend marker found in path:", path, "Marker:", path.substring(0, index + PROD_FRONTEND_MARKER.length));
         result = path.substring(0, index + PROD_FRONTEND_MARKER.length);
     } else {
-        console.debug(`Marker: ${PROD_FRONTEND_MARKER}. OASTLM is in development mode. No marker was found in the path: ${path}`);
+        console.log(`Marker: ${PROD_FRONTEND_MARKER}. OASTLM is in development mode. No marker was found in the path: ${path}`);
         result = "";
     }
 
-    console.debug("OASTLM frontend base name:", result);
+    console.log("OASTLM frontend base name:", result);
     return result;
 }
 
@@ -29,11 +29,17 @@ function getBackendTelemetryBaseUrl() {
         // E.g. if http://localhost:3000/telemetry/oas-telemetry-ui is the path, we want http://localhost:3000/telemetry
         const backendBase = path.substring(0, index);
         result = backendBase.endsWith("/") ? backendBase.slice(0, -1) : backendBase;
+        console.log("[OASTLM] Production mode detected - Backend URL from pathname:", result);
     } else {
-        // Try to get from env, fallback to localhost
-        const envUrl = import.meta.env.VITE_OASTLM_BACKEND_URL;
-        if (envUrl && envUrl !== "") console.debug("OASTLM backend URL loaded from env");
-        result = envUrl || "http://localhost:3000/telemetry";
+        // Development mode: backend on same host but configurable port (default 3000)
+        const backendPort = import.meta.env.VITE_OASTLM_BACKEND_PORT || '3000';
+        const backendHost = `${window.location.hostname}:${backendPort}`;
+        const baseUrl = import.meta.env.VITE_OASTLM_BASE_URL || '/telemetry';
+        result = `http://${backendHost}${baseUrl}`;
+        console.log("[OASTLM] Development mode - Backend Host:", backendHost);
+        console.log("[OASTLM] Development mode - Backend Port from env:", import.meta.env.VITE_OASTLM_BACKEND_PORT);
+        console.log("[OASTLM] Development mode - Base URL from env:", import.meta.env.VITE_OASTLM_BASE_URL);
+        console.log("[OASTLM] Development mode - Final Backend URL:", result);
     }
     return result;
 }

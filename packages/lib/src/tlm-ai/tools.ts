@@ -5,12 +5,10 @@ import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter
 const getTraces = async (searchInput: string) => {
     logger.debug("getTraces called with searchInput:", searchInput);
     try {
-        const search = searchInput || {};
-        const traces: any[] = await new Promise((resolve, reject) => {
-            inMemoryDbSpanExporter.find(search, (err: any, docs: any) => {
-                if (err) reject(err);
-                else resolve(docs);
-            });
+        const search = searchInput ? JSON.parse(searchInput) : {};
+        const traces: any[] = await inMemoryDbSpanExporter.find({
+            query: search,
+            limit: 1000
         });
         const simplifiedTraces = getSimplifiedTraces(traces);
         logger.debug(`Searching for traces with searchInput: ${JSON.stringify(search)}`);
@@ -38,7 +36,7 @@ const getLogs = async (startDate: string | undefined, endDate: string | undefine
         const logs: any[] = (await inMemoryDbLogExporter.find({
             query: nedbQuery,
             messageSearch: null,
-            limit: 50 // or any appropriate limit
+            limit: 1000 // or any appropriate limit
         })) || [];
         logger.debug(`Found ${logs.length} logs in the specified range.`);
         const simplifiedLogs = getSimplifiedLogs(logs);

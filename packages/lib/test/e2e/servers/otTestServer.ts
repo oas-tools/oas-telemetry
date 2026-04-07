@@ -130,13 +130,13 @@ const meter = getMeter('PetClinic', '1.0.0');
 const tracer = getTracer('PetClinic', '1.0.0');
 
 // Custom metric: count custom endpoint hits
-const customCounter = meter.createCounter('telkops.custom.endpoint.hits', {
+const customCounter = meter.createCounter('oas-telemetry.custom.endpoint.hits', {
     description: 'Counts hits to /custom-metric endpoint',
 });
 
 // Custom trace: create a span for a custom endpoint
 app.get('/custom-metric', (req, res) => {
-    customCounter.add(1, { 'telkops.endpoint': '/custom-metric' });
+    customCounter.add(1, { 'oas-telemetry.endpoint': '/custom-metric' });
     res.json({ message: 'Custom metric incremented' });
 });
 

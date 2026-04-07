@@ -45,7 +45,7 @@ export function setGetLogger(fn: (name: string, version?: string, options?: any)
  * @param options - Optional configuration options
  * @return Meter instance
  */
-export function getMeter(name: string, version?: string, options?: any) {
+export function getMeter(name: string, version?: string, options: any = {}) {
     if (!_getMeter) {
         if (bootEnvVariables.OASTLM_BOOT_MODULE_DISABLED) {
             // Use OpenTelemetry API fallback
@@ -63,7 +63,7 @@ export function getMeter(name: string, version?: string, options?: any) {
  * @param options - Optional configuration options
  * @return Tracer instance
  */
-export function getTracer(name: string, version?: string, options?: any) {
+export function getTracer(name: string, version?: string, options: any = {}) {
     if (!_getTracer) {
         if (bootEnvVariables.OASTLM_BOOT_MODULE_DISABLED) {
             logger.warn('getTracer() called but oas-telemetry is DISABLED. Returning OpenTelemetry API\'s default trace.getTracer(). You must have created and set a TracerProvider as global before using this. If you want oas-telemetry features, enable the module.');
@@ -80,7 +80,7 @@ export function getTracer(name: string, version?: string, options?: any) {
  * @param options - Optional configuration options
  * @return Logger instance
  */
-export function getLogger(name: string, version?: string, options?: any) {
+export function getLogger(name: string, version?: string, options: any = {}) {
     if (!_getLogger) {
         if (bootEnvVariables.OASTLM_BOOT_MODULE_DISABLED) {
             logger.warn('getLogger() called but oas-telemetry is DISABLED. Returning OpenTelemetry API\'s default logs.getLogger(). You must have created and set a LoggerProvider as global before using this. If you want oas-telemetry features, enable the module.');

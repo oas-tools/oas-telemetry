@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 import { traceService, type Span } from "@/services/traceService"
 import SpansFiltersPanel from "./SpansFiltersPanel"
@@ -22,10 +22,12 @@ export default function TraceSpansPage() {
 
   // Query to send to backend
   const [queryToSend, setQueryToSend] = useState<any>({})
+  const [hasManualSearch, setHasManualSearch] = useState(false)
 
-  const loadInitialSpans = useCallback(async (query: any = {}) => {
+  const loadInitialSpans = useCallback(async (query: any = {}, isManual: boolean = false) => {
     setLoading(true)
     setQueryToSend(query)
+    setHasManualSearch(isManual)
     try {
       const response = await traceService.findSpans({
         query,
@@ -36,7 +38,8 @@ export default function TraceSpansPage() {
       if (spans.length > 0) {
         setFirstTimestamp(getSpanTimestamp(spans[0]))
         setLastTimestamp(getSpanTimestamp(spans[spans.length - 1]))
-      } else {
+      } else if (isManual && spans.length === 0) {
+        // Only show "No spans found" if user did a manual search
         toast.info("No spans found")
       }
     } catch {
@@ -67,10 +70,10 @@ export default function TraceSpansPage() {
   }, [firstTimestamp, currentSpans, queryToSend])
 
   const loadNewerSpans = useCallback(async () => {
-    // If no spans yet, load initial spans instead
+    // If no spans yet, load initial spans instead (but don't show "no spans" toast)
     if (!lastTimestamp) {
       console.log("[loadNewerSpans] No lastTimestamp, loading initial spans")
-      return loadInitialSpans(queryToSend)
+      return loadInitialSpans(queryToSend, false)
     }
     
     try {
@@ -96,29 +99,32 @@ export default function TraceSpansPage() {
 
   // Initial load
   useEffect(() => {
-    loadInitialSpans()
+    loadInitialSpans({}, false)
   }, [loadInitialSpans])
 
-  // Extract unique endpoints for filters
-  const uniqueEndpoints = Array.from(
-    new Set(currentSpans.map((span) => span.attributes?.http?.target)),
-  ).filter(Boolean) as string[]
+  // Extract and memoize unique endpoints for filters (don't recalculate on every render)
+  const uniqueEndpoints = useMemo(() => 
+    Array.from(
+      new Set(currentSpans.map((span) => span.attributes?.http?.target)),
+    ).filter(Boolean) as string[],
+    [currentSpans]
+  )
 
   // Handler for spans reset event from collection panel
   const handleSpansReset = () => {
     setCurrentSpans([])
     setFirstTimestamp(null)
     setLastTimestamp(null)
-    loadInitialSpans({})
+    setHasManualSearch(false)
+    loadInitialSpans({}, false)
   }
 
-  // Update queryToSend when filters change
+  // Update queryToSend when filters change (user action = manual search)
   const handleFiltersChange = (query: any) => {
     setCurrentSpans([])
     setFirstTimestamp(null)
     setLastTimestamp(null)
-    setQueryToSend(query)
-    loadInitialSpans(query)
+    loadInitialSpans(query, true)
   }
 
   return (

@@ -42,8 +42,9 @@ export function rawToOtel(rawScopeMetrics: MetricQueryResult[]): ScopeMetrics[] 
 
         for (const series of result.series) {
             for (let i = 0; i < series.endTimes.length; i++) {
-                const startTimeNs = series.startTimes[i];
+                const startTimeNs = series.startTimes?.[i];
                 const endTimeNs = series.endTimes[i];
+                if (!startTimeNs) continue;
                 
                 const startSec = Math.floor(startTimeNs / 1_000_000_000);
                 const startNano = startTimeNs % 1_000_000_000;
