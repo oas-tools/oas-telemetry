@@ -1,6 +1,28 @@
 import { Request, Response } from 'express';
 import { inMemoryDbMetricExporter } from '../telemetry/telemetryRegistry.js';
 
+/**
+ * Parse NDJSON import data
+ * Each line must be a valid JSON object
+ * @param body - Request body (raw string)
+ * @returns Array of metric objects
+ */
+function parseImportData(body: any): any[] {
+    if (typeof body !== 'string') {
+        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
+    }
+
+    const lines = body.split('\n').filter((line: string) => line.trim());
+    return lines.map((line: string, index: number) => {
+        try {
+            return JSON.parse(line);
+        } catch {
+            console.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
+            throw new Error(`Invalid JSON on line ${index + 1}`);
+        }
+    });
+}
+
 export const getMetricsStats = async (req: Request, res: Response) => {
     try {
         res.send(inMemoryDbMetricExporter.rawDataDB);
@@ -152,5 +174,59 @@ export const checkMetricsConsistency = async (req: Request, res: Response) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to check metrics consistency' });
+    }
+};
+
+export const exportMetrics = (req: Request, res: Response) => {
+    try {
+        const metricsData = inMemoryDbMetricExporter.rawDataDB;
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        res.setHeader('Content-Type', 'application/x-ndjson');
+        res.setHeader('Content-Disposition', `attachment; filename="metrics-${timestamp}.ndjson"`);
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        // Stream as NDJSON (one JSON object per line)
+        metricsData.forEach((metric: any) => {
+            res.write(JSON.stringify(metric) + '\n');
+        });
+        res.end();
+    } catch (err: any) {
+        console.error('Failed to export metrics:', err);
+        res.status(500).send({ error: 'Failed to export metrics', details: err.message });
+    }
+};
+
+export const importMetrics = async (req: Request, res: Response) => {
+    const resetData = req.query.reset === 'true';
+    const format = (req.query.format || 'raw') as 'raw' | 'otel';
+
+    try {
+        // Parse NDJSON format
+        const metricsArray = parseImportData(req.body);
+
+        if (metricsArray.length === 0) {
+            res.status(400).send({ error: 'No valid metrics found in import data' });
+            return;
+        }
+
+        let message = '';
+        if (resetData) {
+            inMemoryDbMetricExporter.reset();
+            message += 'Metrics Database reset. ';
+        }
+
+        // Use the same insert logic as insertMetricsToDb, respecting raw vs otel format
+        if (format === 'otel') {
+            inMemoryDbMetricExporter.insertOtel(metricsArray);
+        } else {
+            inMemoryDbMetricExporter.insertRaw(metricsArray);
+        }
+
+        message += `Imported ${metricsArray.length} metrics (format: ${format}).`;
+        res.send({ message, ImportedMetricsCount: metricsArray.length, format });
+    } catch (err: any) {
+        console.error('Import failed:', err);
+        res.status(400).send({ error: 'Failed to import metrics', details: err.message });
     }
 };

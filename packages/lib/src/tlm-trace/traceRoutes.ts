@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, text } from 'express';
 import {
     startTraces,
     stopTraces,
@@ -7,8 +7,10 @@ import {
     listTraces,
     findTraces,
     insertTracesToDb,
+    importTraces,
     setTraceRetentionTime,
-    getTraceRetentionTime
+    getTraceRetentionTime,
+    exportTraces
 } from './traceController.js';
 
 export const getTraceRoutes = () => {
@@ -20,6 +22,9 @@ export const getTraceRoutes = () => {
     router.get('/status', statusTraces);
     router.post('/reset', resetTraces);
 
+    router.get('/export', exportTraces);
+    // Use text middleware for import to handle NDJSON format
+    router.post('/import', text({ type: 'application/x-ndjson' }), importTraces);
     router.get('/', listTraces);
     router.post('/', insertTracesToDb);
     router.post('/find', findTraces);

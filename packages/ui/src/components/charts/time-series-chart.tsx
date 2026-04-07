@@ -5,7 +5,6 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { getColorFromPalette, formatTimeString } from "./utils";
 import { ChartTooltip, type TooltipData } from "./chart-tooltip";
-import UplotDemoReact from "./UplotDemoReact";
 
 export type SeriesConfig = {
     id: string;
@@ -210,8 +209,6 @@ export function TimeSeriesChart({
                 <div ref={chartRef} style={{ width: "100%" }} />
             </div>
             <ChartTooltip data={tooltipData} plotWidth={plotWidth} plotHeight={plotHeight} />
-            {/* React uPlot demo for comparison */}
-            <UplotDemoReact />
         </div>
     );
 }

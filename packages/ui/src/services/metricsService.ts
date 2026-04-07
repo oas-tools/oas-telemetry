@@ -117,6 +117,25 @@ class MetricsService {
     const res = await backend.get("/metrics/retention-time");
     return res.data.retentionTimeInSeconds || 0;
   }
+
+  download(): void {
+    const baseUrl = backend.defaults.baseURL;
+    const downloadUrl = `${baseUrl}/metrics/export`;
+    window.open(downloadUrl, '_blank');
+  }
+
+  async import(file: File, options: { reset: boolean; format?: string }): Promise<void> {
+    const text = await file.text();
+    const baseUrl = backend.defaults.baseURL;
+    const format = options.format || 'raw';
+    const importUrl = `${baseUrl}/metrics/import?reset=${options.reset}&format=${format}`;
+    const response = await fetch(importUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-ndjson' },
+      body: text,
+    });
+    if (!response.ok) throw new Error(`Import failed: ${response.statusText}`);
+  }
 }
 
 export const metricsService = new MetricsService();

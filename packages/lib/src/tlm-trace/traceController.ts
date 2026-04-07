@@ -3,6 +3,27 @@ import { InMemoryDbSpanExporter } from '../telemetry/custom-implementations/expo
 import { inMemoryDbSpanExporter } from '../telemetry/telemetryRegistry.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
 
+/**
+ * Parse import data from NDJSON or JSON format
+ * @param contentType - Content-Type header
+ * @param body - Request body (string for NDJSON, object for JSON)
+ * @returns Array of span objects
+ */
+function parseImportData(body: any): any[] {
+    if (typeof body !== 'string') {
+        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
+    }
+
+    const lines = body.split('\n').filter((line: string) => line.trim());
+    return lines.map((line: string, index: number) => {
+        try {
+            return JSON.parse(line);
+        } catch {
+            console.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
+            throw new Error(`Invalid JSON on line ${index + 1}`);
+        }
+    });
+}
 
 export const startTraces = (req: Request, res: Response) => {
     inMemoryDbSpanExporter.enable();
@@ -107,6 +128,48 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
     }
 };
 
+export const importTraces = async (req: Request, res: Response) => {
+    const resetData = req.query.reset === 'true';
+
+    try {
+        // Parse NDJSON format
+        const spans = parseImportData(req.body);
+
+        if (spans.length === 0) {
+            res.status(400).send({ error: 'No valid traces found in import data' });
+            return;
+        }
+
+        const cleanedTraces = spans.map((trace: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { _id, ...rest } = trace; // Remove _id if it exists
+            return rest;
+        });
+
+        let message = '';
+        if (resetData) {
+            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).reset();
+            message += 'Traces Database reset. ';
+        }
+
+        await new Promise((resolve, reject) => {
+            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).insert(cleanedTraces, (err: any, newDocs: any[]) => {
+                if (err) {
+                    console.error('Error importing traces:', err);
+                    return reject(err);
+                }
+                resolve(newDocs);
+            });
+        });
+
+        message += `Imported ${cleanedTraces.length} traces.`;
+        res.send({ message, ImportedTracesCount: cleanedTraces.length });
+    } catch (err: any) {
+        console.error('Import failed:', err);
+        res.status(400).send({ error: 'Failed to import traces', details: err.message });
+    }
+};
+
 export const setTraceRetentionTime = (req: Request, res: Response) => {
     const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
     if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
@@ -121,4 +184,30 @@ export const setTraceRetentionTime = (req: Request, res: Response) => {
 export const getTraceRetentionTime = (req: Request, res: Response) => {
     const retentionTimeInSeconds = inMemoryDbSpanExporter.retentionTimeInSeconds || 0;
     res.send({ retentionTimeInSeconds: retentionTimeInSeconds });
+};
+
+export const exportTraces = async (req: Request, res: Response) => {
+    try {
+        // Get ALL traces without practical limit
+        const findConfig = {
+            query: {},
+            limit: 9999999,
+            sortOrder: { startTime: -1 }
+        };
+        const docs = await inMemoryDbSpanExporter.find(findConfig);
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        res.setHeader('Content-Type', 'application/x-ndjson');
+        res.setHeader('Content-Disposition', `attachment; filename="traces-${timestamp}.ndjson"`);
+        res.setHeader('Transfer-Encoding', 'chunked');
+
+        // Stream as NDJSON (one JSON object per line)
+        docs.forEach(doc => {
+            res.write(JSON.stringify(doc) + '\n');
+        });
+        res.end();
+    } catch (err: any) {
+        console.error('Failed to export traces:', err);
+        res.status(500).send({ error: 'Failed to export traces', details: err.message });
+    }
 };

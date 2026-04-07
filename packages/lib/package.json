@@ -10,7 +10,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "env OASTLM_BOOT_ENV=development tsx test/e2e/servers/otTestServer.ts",
+    "dev": "env OASTLM_BOOT_ENV=development tsx watch test/e2e/servers/otTestServer.ts",
     "esm": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.mjs",
     "cjs": "echo 'Remember to execute: \"npm run build\"' && node test/e2e/servers/otTestServer.cjs",
     "build": "npm run clean && npm run build:types && npm run build:esm && npm run build:cjs && npm run copy:spec",
