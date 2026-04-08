@@ -197,12 +197,16 @@ export const importMetrics = async (req: Request, res: Response) => {
     const format = (req.query.format || 'raw') as 'raw' | 'otel';
 
     try {
-        // Parse NDJSON format
-        const metricsArray = parseImportData(req.body);
-
-        if (metricsArray.length === 0) {
-            res.status(400).send({ error: 'No valid metrics found in import data' });
-            return;
+        const ndjsonContent = req.body;
+        
+        // Check if this is an exported NDJSON with headers (from our export function)
+        const firstLine = ndjsonContent.split('\n')[0];
+        let isExportedFormat = false;
+        try {
+            const firstObj = JSON.parse(firstLine);
+            isExportedFormat = firstObj.type === 'header';
+        } catch {
+            // Not a valid JSON line, continue with normal parsing
         }
 
         let message = '';
@@ -211,15 +215,30 @@ export const importMetrics = async (req: Request, res: Response) => {
             message += 'Metrics Database reset. ';
         }
 
-        // Use the same insert logic as insertMetricsToDb, respecting raw vs otel format
-        if (format === 'otel') {
-            inMemoryDbMetricExporter.insertOtel(metricsArray);
+        // If it's an exported format with headers/metadata, use direct NDJSON import
+        if (isExportedFormat) {
+            inMemoryDbMetricExporter.importFromNDJSON(ndjsonContent);
+            message += `Imported metrics from exported NDJSON format.`;
+            res.send({ message, format: 'exported-ndjson' });
         } else {
-            inMemoryDbMetricExporter.insertRaw(metricsArray);
-        }
+            // Otherwise parse as raw metrics (queryresults or OTEL format)
+            const metricsArray = parseImportData(ndjsonContent);
 
-        message += `Imported ${metricsArray.length} metrics (format: ${format}).`;
-        res.send({ message, ImportedMetricsCount: metricsArray.length, format });
+            if (metricsArray.length === 0) {
+                res.status(400).send({ error: 'No valid metrics found in import data' });
+                return;
+            }
+
+            // Use the same insert logic as insertMetricsToDb, respecting raw vs otel format
+            if (format === 'otel') {
+                inMemoryDbMetricExporter.insertOtel(metricsArray);
+            } else {
+                inMemoryDbMetricExporter.insertRaw(metricsArray);
+            }
+
+            message += `Imported ${metricsArray.length} metrics (format: ${format}).`;
+            res.send({ message, ImportedMetricsCount: metricsArray.length, format });
+        }
     } catch (err: any) {
         console.error('Import failed:', err);
         res.status(400).send({ error: 'Failed to import metrics', details: err.message });

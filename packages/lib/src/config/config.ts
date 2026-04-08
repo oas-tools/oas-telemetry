@@ -120,9 +120,7 @@ export const defaultConfig = {
         enabled: true, // future feature
         extraPlugins: [] as PluginResource[],// future feature
     },
-    instrumentations: {
-        alreadyRegistered: [] as any[]
-    }
+    instrumentations: [] as any[],
 }
 
 // Helper to get an environment variable with optional transform

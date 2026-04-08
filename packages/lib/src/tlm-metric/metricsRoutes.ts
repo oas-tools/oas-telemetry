@@ -27,7 +27,7 @@ export const getMetricsRoutes = () => {
     // Export/Import
     router.get('/export', exportMetrics);
     // Use text middleware for import to handle NDJSON format
-    router.post('/import', text({ type: 'application/x-ndjson' }), importMetrics);
+    router.post('/import', text({ type: 'application/x-ndjson', limit: '500mb' }), importMetrics);
 
     // Query endpoints
     router.post('/find', findMetrics);

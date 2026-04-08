@@ -1,19 +1,23 @@
+// Register instrumetations before anything else
 import { customInstrumentations } from './instrumentation.js';
-import { oasTelemetry, getTracer, getMeter, getLogger } from '../../../src/index.js';
+// This should be at the top of the file
+import { oasTelemetry } from '../../../src/index.js';
 //import oasTelemetry from '@oas-tools/oas-telemetry';
 import dotenv from 'dotenv';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { UserConfig } from '../../../src/config/config.types.js';
 
-import express from 'express';
 import { ConsoleLogRecordExporter, SimpleLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { ConsoleMetricExporter, PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { metrics, trace  } from '@opentelemetry/api';
+import { logs } from '@opentelemetry/api-logs';
+import express from 'express';
 if (process.env.NODE_ENV !== 'test') {
     dotenv.config();
 }
-
-const app = express();
-const port = process.env.PORT || 3000;
+// Lets register our own instrumentations to be used by oas-telemetry
+// MUST set OASTLM_BOOT_AUTOINSTRUMENTATIONS_LOGS_DISABLED = "true"; in the .env file to avoid double registration of LogsInstrumentation
+const myInstrumentations = customInstrumentations
 
 const spec = {
     "paths": {
@@ -74,9 +78,6 @@ const spec = {
         }
     }
 }
-// Lets register our own instrumentations to be used by oas-telemetry
-// MUST set OASTLM_BOOT_AUTOINSTRUMENTATIONS_LOGS_DISABLED = "true"; in the .env file to avoid double registration of LogsInstrumentation
-const myInstrumentations = customInstrumentations
 
 const oasTlmConfig: UserConfig = {
     general: {
@@ -115,19 +116,24 @@ const oasTlmConfig: UserConfig = {
             "My name is Developer 146, you can call me Dev146. I am a developer working on this API.",
         ]
     },
-    instrumentations: {
-        alreadyRegistered: myInstrumentations
-    }
+    instrumentations: myInstrumentations
 }
+
+const telemetryRouter = oasTelemetry(oasTlmConfig);
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+
+
 
 
 // Use new API: configure and use global accessors
-const telemetryRouter = oasTelemetry(oasTlmConfig);
 app.use(telemetryRouter);
 
-const logger = getLogger('PetClinic', '1.0.0');
-const meter = getMeter('PetClinic', '1.0.0');
-const tracer = getTracer('PetClinic', '1.0.0');
+const meter = metrics.getMeter('PetClinic', '1.0.0');
+const logger = logs.getLogger('PetClinic', '1.0.0');
+const tracer = trace.getTracer('PetClinic', '1.0.0');
 
 // Custom metric: count custom endpoint hits
 const customCounter = meter.createCounter('oas-telemetry.custom.endpoint.hits', {
@@ -180,7 +186,7 @@ app.get('/custom-trace-log', (req, res) => {
     }, 50);
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '500mb' }));
 
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`);
@@ -191,8 +197,13 @@ const clinics = [{ name: "Pet Heaven" }, { name: "Pet Care" }];
 
 app.get("/api/v1/pets", (req, res) => {
     console.log("GET /api/v1/pets called, this log should be associated with the request in telemetry");
+    getPets();
     res.send(pets);
 });
+
+const getPets = () => {
+    return [...pets];
+}
 app.post("/api/v1/pets", (req, res) => {
     if (req.body && req.body.name) {
         pets.push(req.body);
