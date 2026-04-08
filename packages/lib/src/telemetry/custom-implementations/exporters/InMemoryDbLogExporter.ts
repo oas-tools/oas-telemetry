@@ -7,25 +7,41 @@ import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
+import { getStoragePath } from '../utils/storagePath.js';
 
 export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter {
 
-    private _db: Datastore;
-    private _miniSearch: MiniSearch;
+    private _db: Datastore | null = null;
+    private _miniSearch: MiniSearch | null = null;
     private _retentionTimeInSeconds: number;
+    private _storagePath: string | null = null;
+    private _initialized = false;
 
 
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        this._db = new Datastore({ timestampData: true });
+        this._storagePath = getStoragePath('logs');
+        this._startCleanupJob();
+    }
+
+    private _ensureInitialized(): void {
+        if (this._initialized) return;
+        this._initialized = true;
+        
+        this._db = new Datastore(this._storagePath ? { filename: this._storagePath, timestampData: true, autoload: true } : { timestampData: true });
         this._db.ensureIndex({ fieldName: 'createdAt' });
         this._miniSearch = new MiniSearch({
             fields: ['body'],
             storeFields: ['_id'],
             idField: '_id',
         });
-        this._startCleanupJob();
+        
+        if (this._storagePath) {
+            logger.info(`[LogExporter] Disk storage enabled at: ${this._storagePath}`);
+        } else {
+            logger.info(`[LogExporter] Using in-memory storage`);
+        }
     }
     /*
     * SUPER WARNING:
@@ -42,7 +58,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         logs: ReadableLogRecord[],
         resultCallback: (result: ExportResult) => void
     ) {
-
+        this._ensureInitialized();
 
         const logsToInsert = logs.map(logRecord => {
             // Remove circular references first, then apply nesting, then export info
@@ -63,7 +79,16 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     }
 
     reset(): void {
-        this._db = new Datastore();
+        this._ensureInitialized();
+        // Remove all logs from database but keep persistence enabled
+        this._db!.remove({}, { multi: true }, (err) => {
+            if (err) {
+                logger.error(`[LogExporter] Error during reset: ${err.message}`);
+            } else {
+                logger.info(`[LogExporter] Reset - all logs cleared`);
+            }
+        });
+        // Clear mini search index
         this._miniSearch = new MiniSearch({
             fields: ['body'],
             storeFields: ['_id'],
@@ -77,23 +102,25 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     public async shutdown(): Promise<void> {
         this._db = null as any;
         this._miniSearch = null as any;
+        this._initialized = false;
     }
 
 
     async find(findConfig: { query: any, messageSearch: string | null, limit?: number, sortOrder?: any }): Promise<any[]> {
+        this._ensureInitialized();
         const { query, messageSearch, limit, sortOrder } = findConfig;
         const finalQuery = { ...query };
         const effectiveSortOrder = sortOrder || { timestamp: -1 };
 
         if (messageSearch) {
-            const searchResults = this._miniSearch.search(messageSearch, { prefix: true, fuzzy: 0.2 });
+            const searchResults = this._miniSearch!.search(messageSearch, { prefix: true, fuzzy: 0.2 });
             const ids: string[] = searchResults.map((result: any) => result._id as string);
             logger.debug(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
             finalQuery._id = { $in: ids };
         }
 
         const docs = await new Promise<any[]>((resolve, reject) => {
-            let query_exec = this._db.find(finalQuery)
+            let query_exec = this._db!.find(finalQuery)
                 .sort(effectiveSortOrder);
             
             // Only apply limit if provided
@@ -112,7 +139,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     insert(data: any[], callback: (err: any, newDocs: any[]) => void): void {
         this._insertLogs(data, (result: ExportResult) => {
             if (result.code === ExportResultCode.SUCCESS) {
-                this._db.find({}, (err: any, docs: any[]) => {
+                this._db!.find({}, (err: any, docs: any[]) => {
                     if (err) {
                         logger.debug(err);
                         callback(err, []);
@@ -127,7 +154,8 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     }
 
     getFinishedLogs(): any[] {
-        return this._db.getAllData();
+        this._ensureInitialized();
+        return this._db!.getAllData();
     }
 
     /**
@@ -164,6 +192,8 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     }
 
     private _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
+        if (!this._db) return resultCallback({ code: ExportResultCode.FAILED });
+        
         this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
             if (err) {
                 console.dir(err);
@@ -171,7 +201,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
                 return;
             }
             // console.dir(newDocs, { depth: 3 });
-            newDocs.forEach((doc: any) => this._miniSearch.add(doc));
+            newDocs.forEach((doc: any) => this._miniSearch?.add(doc));
             resultCallback({ code: ExportResultCode.SUCCESS });
         });
         return;
@@ -181,6 +211,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         const interval = 1000;
 
         setInterval(() => {
+            if (!this._db) return; // Safety check
             const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
 
             this._db.remove(

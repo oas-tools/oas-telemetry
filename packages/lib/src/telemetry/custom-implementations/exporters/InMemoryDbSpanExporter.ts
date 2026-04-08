@@ -5,21 +5,36 @@ import logger from '../../../utils/logger.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
+import { getStoragePath } from '../utils/storagePath.js';
 
 
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
-    private _spans: dataStore<Record<string, any>>;
+    private _spans: dataStore<Record<string, any>> | null = null;
     private _baseUrl = '/telemetry'; // Default base URL, can be overridden by the config
     private _retentionTimeInSeconds: number;
+    private _storagePath: string | null = null;
+    private _initialized = false;
 
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        this._spans = new dataStore({ timestampData: true });
-        this._spans.ensureIndex({ fieldName: 'createdAt' });
+        this._storagePath = getStoragePath('traces');
         this._startCleanupJob();
-
     };
+
+    private _ensureInitialized(): void {
+        if (this._initialized) return;
+        this._initialized = true;
+        
+        this._spans = new dataStore(this._storagePath ? { filename: this._storagePath, timestampData: true, autoload: true } : { timestampData: true });
+        this._spans.ensureIndex({ fieldName: 'createdAt' });
+        
+        if (this._storagePath) {
+            logger.info(`[SpanExporter] Disk storage enabled at: ${this._storagePath}`);
+        } else {
+            logger.info(`[SpanExporter] Using in-memory storage`);
+        }
+    }
 
     public set baseUrl(baseUrl: string) {
         this._baseUrl = baseUrl;
@@ -34,6 +49,7 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     }
 
     export(readableSpans: ReadableSpan[], resultCallback: (arg0: { code: ExportResultCode; error?: Error; }) => void) {
+        this._ensureInitialized();
         logger.debug('InMemoryDbSpanExporter.export called with spans: ', readableSpans.length);
         try {
             // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
@@ -56,12 +72,14 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             // 
             if (this.isEnabled()) {
                 // Insert spans into the in-memory database
-                this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
-                    if (err) {
-                        logger.error(err);
-                        return;
-                    }
-                });
+                if (this._spans) {
+                    this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
+                        if (err) {
+                            logger.error(err);
+                            return;
+                        }
+                    });
+                }
             }
             return resultCallback({ code: ExportResultCode.SUCCESS });
 
@@ -75,9 +93,21 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     };
 
     shutdown() {
-        this._spans = new dataStore();
+        this._spans = null as any;
         return this.forceFlush();
     };
+
+    reset() {
+        this._ensureInitialized();
+        // Remove all spans from database but keep persistence enabled
+        this._spans!.remove({}, { multi: true }, (err) => {
+            if (err) {
+                logger.error(`[SpanExporter] Error during reset: ${err.message}`);
+            } else {
+                logger.info(`[SpanExporter] Reset - all spans cleared`);
+            }
+        });
+    }
     /**
      * Exports any pending spans in the exporter
      */
@@ -86,11 +116,12 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     };
 
     async find(findConfig: { query: any, limit?: number, sortOrder?: any }): Promise<any[]> {
+        this._ensureInitialized();
         const { query, limit, sortOrder } = findConfig;
         const effectiveSortOrder = sortOrder || { timestamp: -1 };
 
         const docs = await new Promise<any[]>((resolve, reject) => {
-            let query_exec = this._spans.find(query)
+            let query_exec = this._spans!.find(query)
                 .sort(effectiveSortOrder);
             
             // Only apply limit if provided
@@ -106,10 +137,9 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         return docs;
     }
 
-    reset() {
-        this._spans = new dataStore();
-    };
     getFinishedSpans() {
+        this._ensureInitialized();
+        if (!this._spans) return [];
         return this._spans.getAllData();
     };
     /**
@@ -118,6 +148,10 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
      * @param callback - The callback to execute after insertion.
      */
     insert(spans: any[], callback: (err: any, newDocs: any[]) => void): void {
+        this._ensureInitialized();
+        if (!this._spans) {
+            return callback(new Error('Spans database not initialized'), []);
+        }
         this._spans.insert(spans, callback);
     }
 
@@ -125,6 +159,7 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         const interval = 1000;
 
         setInterval(() => {
+            if (!this._spans) return; // Safety check - not initialized yet
             const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
 
             this._spans.remove(

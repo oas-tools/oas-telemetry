@@ -79,7 +79,7 @@ export const insertLogsToDb = async (req: Request, res: Response) => {
     }
 
     const cleanedLogs = jsonContent.map((log: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const { _id, ...rest } = log; // Remove _id if it exists
         return rest; // Return the cleaned log object
     });
@@ -187,7 +187,6 @@ export const exportLogs = async (req: Request, res: Response) => {
         const findConfig = {
             query: {},
             messageSearch: null,
-            limit: 9999999,
             sortOrder: { timestamp: -1 }
         };
         const docs = await inMemoryDbLogExporter.find(findConfig);

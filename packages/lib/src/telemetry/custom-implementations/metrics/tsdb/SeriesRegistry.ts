@@ -1,4 +1,5 @@
 import { Series } from './Series.js';
+import { Chunk } from './Chunk.js';
 import { ScopeMetricQuery, MetricMetadata, MetricQueryResult } from './types.js';
 import { InstrumentationScope } from '@opentelemetry/core';
 import { MetricDescriptor, ScopeMetrics } from '@opentelemetry/sdk-metrics';
@@ -20,6 +21,9 @@ scopeMetrics: {
     ]
 }
 */
+
+// Import fs at top level for disk operations
+import fs from 'fs';
 
 export class SeriesRegistry {
 
@@ -54,8 +58,7 @@ export class SeriesRegistry {
                 const metricName = metricData.descriptor.name;
                 const metricId = makeMetricId(scopeId, metricName);
                 if (!this.metricMetadataMap.has(metricId)) {
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                    const { dataPoints, ...metadata } = metricData;
+                    const { dataPoints: _dataPoints, ...metadata } = metricData;
                     this.metricMetadataMap.set(metricId, metadata as MetricMetadata);
                 }
                 for (const dp of metricData.dataPoints) {
@@ -114,7 +117,6 @@ export class SeriesRegistry {
         endTime?: number
     ): MetricQueryResult | null {
         const scopeId = scopeToId(query.scope);
-        console.log(`Querying metric: scope=${scopeId}, metric=${query.descriptor.name}, filters=${JSON.stringify(query.filters)}, timeRange=[${startTime}, ${endTime}]`);
         const indexKey = makeMetricId(scopeId, query.descriptor.name);
         const seriesKeysInMetric = this.metricIdIndex.get(indexKey);
 
@@ -248,6 +250,194 @@ export class SeriesRegistry {
 
     size(): number {
         return this.series.size;
+    }
+
+    /**
+     * Serialize registry to NDJSON format (newline-delimited JSON)
+     * Each line is a complete record: metadata, scope, metric, or data point
+     * Format:
+     *   {"type":"header","version":1,"timestamp":"...","stats":{...}}
+     *   {"type":"scope","id":"...","data":{...}}
+     *   {"type":"metric","id":"...","data":{...}}
+     *   {"type":"series","id":"...","labelSet":{...},"chunks":[...]}
+     */
+    serializeToNDJSON(): string {
+        const lines: string[] = [];
+        
+        // Header
+        lines.push(JSON.stringify({
+            type: 'header',
+            version: 1,
+            timestamp: new Date().toISOString(),
+            stats: this.getStats()
+        }));
+
+        // Scopes
+        for (const [scopeId, scope] of this.scopes.entries()) {
+            lines.push(JSON.stringify({
+                type: 'scope',
+                id: scopeId,
+                data: scope
+            }));
+        }
+
+        // Metric metadata
+        for (const [metricId, metadata] of this.metricMetadataMap.entries()) {
+            lines.push(JSON.stringify({
+                type: 'metric',
+                id: metricId,
+                data: metadata
+            }));
+        }
+
+        // Series headers + chunks (one chunk per line for streaming efficiency)
+        const serializedSeriesHeaders = new Set<string>();
+        for (const [seriesId, series] of this.series.entries()) {
+            const seriesPrivate = series as any;
+            
+            // Emit series header once per series
+            if (!serializedSeriesHeaders.has(seriesId)) {
+                lines.push(JSON.stringify({
+                    type: 'series',
+                    seriesId: seriesId,
+                    labelSet: seriesPrivate.labelSet,
+                    metadata: seriesPrivate.metadata
+                }));
+                serializedSeriesHeaders.add(seriesId);
+            }
+            
+            (seriesPrivate.chunks || []).forEach((chunk: any, chunkIndex: number) => {
+                const slicedStartTimes = chunk.startTimes.slice(0, chunk.cursor);
+                const slicedEndTimes = chunk.endTimes.slice(0, chunk.cursor);
+                const slicedValues = chunk.values.slice(0, chunk.cursor);
+                const slicedHistograms = chunk.histograms.slice(0, chunk.cursor);
+                
+                lines.push(JSON.stringify({
+                    type: 'chunk',
+                    seriesId: seriesId,
+                    chunkIndex: chunkIndex,
+                    startTimes: Array.from(slicedStartTimes),
+                    endTimes: Array.from(slicedEndTimes),
+                    values: Array.from(slicedValues),
+                    histograms: Array.from(slicedHistograms),
+                    cursor: chunk.cursor,
+                    minEndTime: chunk.minEndTime,
+                    maxEndTime: chunk.maxEndTime,
+                    isHistogram: chunk.isHistogram
+                }));
+            });
+        }
+
+        // Metric ID index for fast lookup
+        for (const [metricId, seriesIdSet] of this.metricIdIndex.entries()) {
+            lines.push(JSON.stringify({
+                type: 'index',
+                id: metricId,
+                seriesIds: Array.from(seriesIdSet)
+            }));
+        }
+
+        return lines.join('\n');
+    }
+
+    /**
+     * Deserialize from NDJSON format - restore from chunk lines
+     */
+    deserializeFromNDJSON(ndjsonData: string): void {
+        try {
+            const lines = ndjsonData.trim().split('\n');
+            
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                
+                const record = JSON.parse(line);
+                
+                switch (record.type) {
+                    case 'header':
+                        // Just metadata
+                        break;
+                        
+                    case 'scope':
+                        this.scopes.set(record.id, record.data as InstrumentationScope);
+                        break;
+                        
+                    case 'metric':
+                        this.metricMetadataMap.set(record.id, record.data as MetricMetadata);
+                        break;
+                        
+                    case 'index':
+                        this.metricIdIndex.set(record.id, new Set(record.seriesIds as string[]));
+                        break;
+                        
+                    case 'series': {
+                        // Create series stub - will be populated by subsequent chunk lines
+                        const metadata = this.metricMetadataMap.get(
+                            record.seriesId.substring(0, record.seriesId.lastIndexOf('$'))
+                        ) || record.metadata;
+                        if (metadata) {
+                            const series = new Series(
+                                record.labelSet,
+                                metadata,
+                                this.chunkSize,
+                                this.maxChunks
+                            );
+                            this.series.set(record.seriesId, series);
+                        }
+                        break;
+                    }
+                        
+                    case 'chunk': {
+                        // Restore chunk to series
+                        const series = this.series.get(record.seriesId);
+                        if (series) {
+                            const chunk = new Chunk(record.cursor || record.startTimes.length, record.isHistogram);
+                            const chunkPrivate = chunk as any;
+                            chunkPrivate.startTimes = new Float64Array(record.startTimes);
+                            chunkPrivate.endTimes = new Float64Array(record.endTimes);
+                            chunkPrivate.values = new Float64Array(record.values);
+                            chunkPrivate.histograms = record.histograms;
+                            chunkPrivate.cursor = record.cursor;
+                            chunkPrivate.minEndTime = record.minEndTime;
+                            chunkPrivate.maxEndTime = record.maxEndTime;
+                            chunkPrivate.isHistogram = record.isHistogram;
+                            
+                            const seriesPrivate = series as any;
+                            seriesPrivate.chunks.push(chunk);
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch {
+            // Silently fail if any parsing fails
+        }
+    }
+
+    /**
+     * Save registry to disk as NDJSON (one chunk per line)
+     */
+    saveToDisk(filePath: string): void {
+        try {
+            const ndjsonData = this.serializeToNDJSON();
+            fs.writeFileSync(filePath, ndjsonData);
+        } catch {
+            // Silently fail - don't interrupt operations
+        }
+    }
+
+    /**
+     * Load registry from disk (NDJSON format)
+     */
+    loadFromDisk(filePath: string): void {
+        try {
+            if (!fs.existsSync(filePath)) {
+                return;
+            }
+            const ndjsonData = fs.readFileSync(filePath, 'utf-8');
+            this.deserializeFromNDJSON(ndjsonData);
+        } catch {
+            // Silently fail during boot
+        }
     }
 }
 

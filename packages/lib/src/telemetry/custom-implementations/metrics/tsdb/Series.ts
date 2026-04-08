@@ -67,7 +67,6 @@ export class Series {
         const start = options?.startTime ?? 0;
         const end = options?.endTime ?? Number.MAX_VALUE;
         const includeStartTimes = options?.includeStartTimes ?? false;
-        console.log(`Querying series: metric=${this.metadata.descriptor.name}, filters=${JSON.stringify(this.labelSet.labels)}, timeRange=[${start}, ${end}], includeStartTimes=${includeStartTimes}`);
 
         let totalLength = 0;
         for (const chunk of this.chunks) {
