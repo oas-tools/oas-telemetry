@@ -85,18 +85,23 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         return Promise.resolve();
     };
 
-    async find(findConfig: { query: any, limit: number, sortOrder?: any }): Promise<any[]> {
+    async find(findConfig: { query: any, limit?: number, sortOrder?: any }): Promise<any[]> {
         const { query, limit, sortOrder } = findConfig;
         const effectiveSortOrder = sortOrder || { timestamp: -1 };
 
         const docs = await new Promise<any[]>((resolve, reject) => {
-            this._spans.find(query)
-                .sort(effectiveSortOrder)
-                .limit(limit)
-                .exec((err: any, docs: any[]) => {
-                    if (err) reject(err);
-                    else resolve(docs);
-                });
+            let query_exec = this._spans.find(query)
+                .sort(effectiveSortOrder);
+            
+            // Only apply limit if provided
+            if (limit !== undefined) {
+                query_exec = query_exec.limit(limit);
+            }
+            
+            query_exec.exec((err: any, docs: any[]) => {
+                if (err) reject(err);
+                else resolve(docs);
+            });
         });
         return docs;
     }
