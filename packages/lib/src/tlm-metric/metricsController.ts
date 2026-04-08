@@ -177,17 +177,14 @@ export const checkMetricsConsistency = async (req: Request, res: Response) => {
 
 export const exportMetrics = (req: Request, res: Response) => {
     try {
-        const metricsData = inMemoryDbMetricExporter.rawDataDB;
+        const ndjsonData = inMemoryDbMetricExporter.exportToNDJSON();
 
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
         res.setHeader('Content-Type', 'application/x-ndjson');
         res.setHeader('Content-Disposition', `attachment; filename="metrics-${timestamp}.ndjson"`);
         res.setHeader('Transfer-Encoding', 'chunked');
 
-        // Stream as NDJSON (one JSON object per line)
-        metricsData.forEach((metric: any) => {
-            res.write(JSON.stringify(metric) + '\n');
-        });
+        res.write(ndjsonData);
         res.end();
     } catch (err: any) {
         console.error('Failed to export metrics:', err);

@@ -8,7 +8,7 @@ import { PluginResource } from "../types/index.js";
 import { fileURLToPath } from "url";
 
 export const listPlugins = (req: Request, res: Response) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const plugins = pluginService.getPlugins().map(({ process, ...rest }) => rest);
     res.send({
         pluginsCount: plugins.length,

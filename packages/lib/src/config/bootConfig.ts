@@ -13,6 +13,8 @@ export const bootEnvVariables = {
     OASTLM_BOOT_SERVICE_NAME: process.env.OASTLM_BOOT_SERVICE_NAME || `SERVICE-${randomUUID().slice(0, 8).toUpperCase()}`,
     OASTLM_BOOT_AUTOINSTRUMENTATIONS_NODE_DISABLED: process.env.OASTLM_BOOT_AUTOINSTRUMENTATIONS_NODE_DISABLED == 'true',
     OASTLM_BOOT_AUTOINSTRUMENTATIONS_LOGS_DISABLED: process.env.OASTLM_BOOT_AUTOINSTRUMENTATIONS_LOGS_DISABLED == 'true',
+    // Storage path: empty string = in-memory, else = disk storage at specified path
+    OASTLM_BOOT_STORAGE_PATH: process.env.OASTLM_BOOT_STORAGE_PATH || '',
 };
 // REMEMBER TO UPDATE THE .env.example FILE WITH ANY NEW BOOT VARIABLE ADDED HERE.
 

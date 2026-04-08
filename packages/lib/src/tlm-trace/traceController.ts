@@ -97,7 +97,7 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
     }
 
     const cleanedTraces = jsonContent.map((trace: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         
         const { _id, ...rest } = trace; // Remove _id if it exists
         return rest; // Return the cleaned trace object
     });
@@ -140,7 +140,7 @@ export const importTraces = async (req: Request, res: Response) => {
         }
 
         const cleanedTraces = spans.map((trace: any) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+             
             const { _id, ...rest } = trace; // Remove _id if it exists
             return rest;
         });
@@ -187,7 +187,6 @@ export const getTraceRetentionTime = (req: Request, res: Response) => {
 
 export const exportTraces = async (req: Request, res: Response) => {
     try {
-        // Get ALL traces without practical limit
         const findConfig = {
             query: {},
             sortOrder: { startTime: -1 }
