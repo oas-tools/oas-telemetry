@@ -80,7 +80,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
     }
 
 
-    async find(findConfig: { query: any, messageSearch: string | null, limit: number, sortOrder?: any }): Promise<any[]> {
+    async find(findConfig: { query: any, messageSearch: string | null, limit?: number, sortOrder?: any }): Promise<any[]> {
         const { query, messageSearch, limit, sortOrder } = findConfig;
         const finalQuery = { ...query };
         const effectiveSortOrder = sortOrder || { timestamp: -1 };
@@ -93,10 +93,15 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         }
 
         const docs = await new Promise<any[]>((resolve, reject) => {
-            this._db.find(finalQuery)
-                .sort(effectiveSortOrder)
-                .limit(limit)
-                .exec((err: any, docs: any[]) => {
+            let query_exec = this._db.find(finalQuery)
+                .sort(effectiveSortOrder);
+            
+            // Only apply limit if provided
+            if (limit !== undefined) {
+                query_exec = query_exec.limit(limit);
+            }
+            
+            query_exec.exec((err: any, docs: any[]) => {
                     if (err) reject(err);
                     else resolve(docs);
                 });

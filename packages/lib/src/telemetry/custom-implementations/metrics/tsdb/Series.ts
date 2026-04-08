@@ -4,7 +4,7 @@
  */
 
 import { Chunk } from './Chunk.js';
-import { MetricMetadata, Sample, LabelSet, HistogramValue } from './types.js';
+import { MetricMetadata, LabelSet, HistogramValue } from './types.js';
 
 export class Series {
     private readonly labelSet: LabelSet;
@@ -53,6 +53,7 @@ export class Series {
      * Query slices with options object. Example:
      *   querySlices({ startTime, endTime, includeStartTimes: true })
      *   includeStartTimes defaults to false.
+     *   If both startTime and endTime are undefined, returns all data (no time filtering).
      */
     querySlices(options?: {
         startTime?: number;
@@ -64,8 +65,9 @@ export class Series {
         values: Float64Array | (HistogramValue | null)[];
     } {
         const start = options?.startTime ?? 0;
-        const end = options?.endTime ?? Number.MAX_SAFE_INTEGER;
+        const end = options?.endTime ?? Number.MAX_VALUE;
         const includeStartTimes = options?.includeStartTimes ?? false;
+        console.log(`Querying series: metric=${this.metadata.descriptor.name}, filters=${JSON.stringify(this.labelSet.labels)}, timeRange=[${start}, ${end}], includeStartTimes=${includeStartTimes}`);
 
         let totalLength = 0;
         for (const chunk of this.chunks) {

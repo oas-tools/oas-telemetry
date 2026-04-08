@@ -114,7 +114,7 @@ export class SeriesRegistry {
         endTime?: number
     ): MetricQueryResult | null {
         const scopeId = scopeToId(query.scope);
-
+        console.log(`Querying metric: scope=${scopeId}, metric=${query.descriptor.name}, filters=${JSON.stringify(query.filters)}, timeRange=[${startTime}, ${endTime}]`);
         const indexKey = makeMetricId(scopeId, query.descriptor.name);
         const seriesKeysInMetric = this.metricIdIndex.get(indexKey);
 

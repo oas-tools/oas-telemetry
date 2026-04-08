@@ -25,8 +25,6 @@ function parseImportData(body: any): any[] {
 
 export const getMetricsStats = async (req: Request, res: Response) => {
     try {
-        res.send(inMemoryDbMetricExporter.rawDataDB);
-        return;
         const stats = inMemoryDbMetricExporter.getStats();
         res.send(stats);
     } catch (err) {
@@ -129,7 +127,7 @@ export const findMetrics = async (req: Request, res: Response) => {
         }
 
         // Execute query
-        const response = inMemoryDbMetricExporter.findMetrics({
+        const response = inMemoryDbMetricExporter.find({
             scopeMetrics: scopeMetrics && scopeMetrics.length > 0 ? scopeMetrics : undefined,
             from,
             to,
@@ -157,7 +155,7 @@ export const checkMetricsConsistency = async (req: Request, res: Response) => {
         const rawData = inMemoryDbMetricExporter.rawDataDB;
 
         // Query all data with OTEL format
-        const response = inMemoryDbMetricExporter.findMetrics({
+        const response = inMemoryDbMetricExporter.find({
             format: 'otel'
         });
 

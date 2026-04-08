@@ -5,7 +5,7 @@ import logger from '../../../utils/logger.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
 import { Resource } from '@opentelemetry/resources';
 import { rawToOtel } from '../metrics/tsdb/utils.js';
-import { MetricInfo, SeriesRegistry } from '../metrics/tsdb/SeriesRegistry.js';
+import { SeriesRegistry } from '../metrics/tsdb/SeriesRegistry.js';
 import { FindMetricsRequest } from '../metrics/tsdb/types.js';
 
 export interface ExporterConfig {
@@ -30,7 +30,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     private readonly config: ExporterConfig;
     private cachedResource: Resource | null = null;
     private _debugOnlyRawDataDB: any[] = [];
-    
+
     public get rawDataDB(): any[] {
         return this._debugOnlyRawDataDB;
     }
@@ -118,9 +118,9 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
      * Find metrics by scope+metric queries with filters
      * Supports both raw and otel formats
      */
-    findMetrics(request: FindMetricsRequest): { results: any[] } {
+    find(request: FindMetricsRequest): { results: any[] } {
         const format = request.format || 'raw';
-        
+
         // Get raw results from registry using new unified query method
         const rawResults = this.registry.query(
             request.scopeMetrics,
@@ -136,10 +136,10 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         return { results: rawResults };
     }
 
-        /**
-     * Insert metrics in OpenTelemetry (OTEL) format directly into the registry and debug DB
-     * @param scopeMetrics Array of ScopeMetrics (OTEL format)
-     */
+    /**
+ * Insert metrics in OpenTelemetry (OTEL) format directly into the registry and debug DB
+ * @param scopeMetrics Array of ScopeMetrics (OTEL format)
+ */
     insertOtel(scopeMetrics: ScopeMetrics[]): void {
         // Store in debug DB (for inspection)
         scopeMetrics.forEach(metric => {

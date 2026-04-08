@@ -32,6 +32,7 @@ export const getMetricsRoutes = () => {
     // Query endpoints
     router.post('/find', findMetrics);
     router.get('/stats', getMetricsStats);
+    router.get('/', findMetrics);
     router.post('/', insertMetricsToDb);
 
     return router;

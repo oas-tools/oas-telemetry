@@ -71,7 +71,6 @@ export const findTraces = async (req: Request, res: Response) => {
     }
 
     try {
-        // Use findConfig object - identical to logs
         const findConfig = {
             query: processedQuery,
             limit,
@@ -191,7 +190,6 @@ export const exportTraces = async (req: Request, res: Response) => {
         // Get ALL traces without practical limit
         const findConfig = {
             query: {},
-            limit: 9999999,
             sortOrder: { startTime: -1 }
         };
         const docs = await inMemoryDbSpanExporter.find(findConfig);
