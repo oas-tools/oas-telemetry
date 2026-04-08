@@ -102,6 +102,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             await axios.get(petsUrl).catch((err) => err.response);
 
             const tracesResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            console.log('Traces when inactive:', JSON.stringify(tracesResponse.data));
             expect(tracesResponse.status).toBe(200);
             expect(Array.isArray(tracesResponse.data.spans)).toBe(true);
             expect(tracesResponse.data.spansCount).toBe(0);
@@ -113,6 +114,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
 
             const tracesResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
             expect(tracesResponse.status).toBe(200);
+            console.log('Traces after reset:', JSON.stringify(tracesResponse.data));
             expect(tracesResponse.data.spansCount).toBe(0);
             expect(tracesResponse.data.spans.length).toBe(0);
         });
@@ -123,6 +125,9 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             const initialCount = initialResponse.data.spansCount;
 
             const insertResponse = await axios.post(tracesUrl, { spans: [{ id: "test-trace" }] }).catch((err) => err.response);
+            
+            console.log('Insert response:', JSON.stringify(insertResponse.data));
+
             expect(insertResponse.status).toBe(200);
             expect(insertResponse.data.message).toContain("Inserted");
 
@@ -137,6 +142,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             expect(insertWithResetResponse.data.message).toContain("Inserted");
 
             const afterResetResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            console.log('Traces after reset:', JSON.stringify(afterResetResponse.data));
             expect(afterResetResponse.status).toBe(200);
             expect(afterResetResponse.data.spansCount).toBe(1);
         });

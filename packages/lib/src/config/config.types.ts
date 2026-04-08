@@ -3,6 +3,7 @@ import { IMetricReader } from "@opentelemetry/sdk-metrics";
 import { SpanExporter, SpanProcessor } from "@opentelemetry/sdk-trace-node";
 import { defaultConfig } from "./config.js";
 import { ViewOptions } from "@opentelemetry/sdk-metrics/build/src/view/View.js";
+import { type Instrumentation } from "@opentelemetry/instrumentation";
 
 export type DeepPartial<T> = T extends object ? {
     [P in keyof T]?: DeepPartial<T[P]>;
@@ -42,7 +43,5 @@ export type UserConfig = {
    * User can register its own instrumentations to be used by oas-telemetry. oas-telemetry will assign the providers to these instrumentations.
    * This is useful when the user wants to use instrumentations that are not included by default in oas-telemetry.
    */
-  instrumentations?: {
-    alreadyRegistered: any[];
-  };
+  instrumentations?: Instrumentation[]
 };

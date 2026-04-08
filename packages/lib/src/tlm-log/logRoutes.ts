@@ -25,7 +25,7 @@ export const getLogRoutes = () => {
 
     router.get('/export', exportLogs);
     // Use text middleware for import to handle NDJSON format
-    router.post('/import', text({ type: 'application/x-ndjson' }), importLogs);
+    router.post('/import', text({ type: 'application/x-ndjson', limit: '500mb' }), importLogs);
     router.get('/', findLogs);
     router.post('/', insertLogsToDb);
     router.post('/find', findLogs);

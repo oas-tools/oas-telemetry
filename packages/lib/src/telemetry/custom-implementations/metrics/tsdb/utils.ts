@@ -23,6 +23,27 @@ export function rawToOtel(rawScopeMetrics: MetricQueryResult[]): ScopeMetrics[] 
     const groupedByScope = new Map<string, any>();
 
     for (const result of rawScopeMetrics) {
+        // Validate that result matches expected raw format
+        if (!result.scope) {
+            throw new Error(
+                `Invalid metric format: Missing 'scope' property. ` +
+                `Expected format: {scope: {name, version}, descriptor: {name, ...}, series: [{attributes, startTimes, endTimes, values}]}. ` +
+                `Got: ${JSON.stringify(result).substring(0, 200)}`
+            );
+        }
+        if (!result.descriptor) {
+            throw new Error(
+                `Invalid metric format: Missing 'descriptor' property in metric. ` +
+                `Expected format: {scope: {name, version}, descriptor: {name, ...}, series: [{attributes, startTimes, endTimes, values}]}`
+            );
+        }
+        if (!Array.isArray(result.series)) {
+            throw new Error(
+                `Invalid metric format: 'series' must be an array. ` +
+                `Expected format: {scope: {name, version}, descriptor: {name, ...}, series: [{attributes, startTimes, endTimes, values}]}`
+            );
+        }
+
         const scopeId = result.scope.version 
             ? `${result.scope.name}@${result.scope.version}`
             : `${result.scope.name}@none`;
