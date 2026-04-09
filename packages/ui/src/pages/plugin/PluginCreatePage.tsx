@@ -38,31 +38,31 @@ import _ from "lodash";
 
 let text = "hello world";
 let capital = _.capitalize(text);
-console.log(capital);
+//
 let loaded = false;
 
 const plugin = {
   async load(config) {
-    console.log("Plugin loaded with config:", config);
+    //
     await new Promise((resolve) => setTimeout(resolve, 1000));
     loaded = true;
-    console.log("Plugin is now loaded");
+    //
   },
   unload() {
-    console.log("Plugin unloaded");
+    //
   },
   isConfigured() {
     return loaded;
   },
   newLog(log) {
     // Do not worry this logs will not be captured by the telemetry system
-    console.log("New log received:", log);
+    //
   },
   newTrace(trace) {
-    console.log("New trace received");
+    //
   },
   newMetric(metric) {
-    console.log("New metric received");
+    //
   }
 };
 
@@ -219,7 +219,7 @@ export default function PluginCreatePage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to create plugin"
       setError(msg)
-      console.error("Plugin creation error:", err)
+      //
       toast.error(
         <div>
           <div className="font-semibold">Error creating plugin</div>

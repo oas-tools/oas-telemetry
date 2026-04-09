@@ -92,7 +92,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     try {
     await chatService.deleteConversation(id)
     } catch (error) {
-      console.error("Failed to delete conversation:", error)
+      //
       toast.error("Failed to delete conversation")
       return
     }

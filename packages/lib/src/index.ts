@@ -6,7 +6,7 @@ import { Router } from 'express';
 import { configureRoutes } from './routesManager.js';
 import { UserConfig } from './config/config.types.js';
 import { configureTelemetry } from './telemetry/telemetryConfigurator.js';
-import { isTelemetryConfigured, setTelemetryRouter, getTelemetryRouter, getMeter, getTracer, getLogger } from './telemetry/telemetryRegistry.js';
+import { isTelemetryConfigured, setTelemetryRouter, getTelemetryRouter } from './telemetry/telemetryRegistry.js';
 import { bootEnvVariables } from "./config/bootConfig.js";
 
 /**
@@ -23,7 +23,7 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
         return router;
     }
     const oasTlmConfig = getConfig(oasTlmInputConfig);
-    logger.info("BaseUrl: ", oasTlmConfig.general.baseUrl);
+    logger.info("BaseUrl: ", bootEnvVariables.OASTLM_BOOT_BASE_URL);
     configureTelemetry(oasTlmConfig);
     configureRoutes(router, oasTlmConfig);
     setTelemetryRouter(router);
@@ -31,5 +31,5 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
 }
 
 
-export { oasTelemetry, getMeter, getTracer, getLogger };
+export { oasTelemetry };
 

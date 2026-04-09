@@ -19,6 +19,7 @@ interface Props {
   loading: boolean
   // eslint-disable-next-line no-unused-vars
   onFiltersChange: (query: any, textSearch: string) => void
+  initialTraceId?: string
 }
 
 const TAB_NORMAL = "normal"
@@ -28,13 +29,15 @@ const LogsFiltersCard: React.FC<Props> = ({
   uniqueServices,
   loading,
   onFiltersChange,
+  initialTraceId = "",
+  ...rest
 }) => {
   const [activeTab, setActiveTab] = useState<"normal" | "advanced">("normal")
   const [textSearchInput, setSearchText] = useState("")
   const [severityFilter, setSeverityFilter] = useState<string[]>([])
   const [serviceFilter, setServiceFilter] = useState<string[]>([])
   const [userInputQuery, setUserInputQuery] = useState("")
-  const [traceIdInput, setTraceIdInput] = useState("")
+  const [traceIdInput, setTraceIdInput] = useState(initialTraceId)
   const [expanded, setExpanded] = useState(false)
 
   const handleApply = () => {
@@ -70,6 +73,16 @@ const LogsFiltersCard: React.FC<Props> = ({
     setActiveTab(TAB_NORMAL)
     onFiltersChange({}, "")
   }
+
+
+  // Autofocus and apply filter if initialTraceId is set
+  React.useEffect(() => {
+    if (initialTraceId) {
+      setTraceIdInput(initialTraceId);
+      handleApply();
+    }
+    // eslint-disable-next-line
+  }, [initialTraceId]);
 
   return (
     <CollapsibleCard
@@ -117,80 +130,51 @@ const LogsFiltersCard: React.FC<Props> = ({
                 </Label>
                 <MultiSelect
                   id="service"
-                  options={
-                    uniqueServices.map((service) => ({
-                      label: service,
-                      value: service,
-                    }))
-                  }
+                  options={uniqueServices.map((s) => ({ label: s, value: s }))}
                   value={serviceFilter}
                   onValueChange={setServiceFilter}
                   disabled={loading}
                 />
               </div>
-              <div className="flex-1 min-w-[160px] flex gap-4 flex-col sm:flex-row">
-                <div className="flex-1">
-                  <Label htmlFor="severity" className="text-sm">
-                    Severity Levels
-                  </Label>
-                  <MultiSelect
-                    id="severity"
-                    options={severityOptions}
-                    value={severityFilter}
-                    onValueChange={setSeverityFilter}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor="trace-id" className="text-sm">
-                    Trace ID
-                  </Label>
-                  <Input
-                    id="trace-id"
-                    placeholder="Enter trace id..."
-                    value={traceIdInput}
-                    onChange={(e) => setTraceIdInput(e.target.value)}
-                    className="min-h-[40px]"
-                    disabled={loading}
-                  />
-                </div>
+              <div className="flex-1 min-w-[160px]">
+                <Label htmlFor="severity" className="text-sm">
+                  Severity
+                </Label>
+                <MultiSelect
+                  id="severity"
+                  options={severityOptions}
+                  value={severityFilter}
+                  onValueChange={setSeverityFilter}
+                  disabled={loading}
+                />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <Label htmlFor="traceId" className="text-sm">
+                  Trace ID
+                </Label>
+                <Input
+                  id="traceId"
+                  placeholder="Filter by Trace ID..."
+                  value={traceIdInput}
+                  onChange={(e) => setTraceIdInput(e.target.value)}
+                  className="mt-1"
+                  disabled={loading}
+                />
               </div>
             </div>
           </TabsContent>
           <TabsContent value="advanced" className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="mongo-query" className="text-sm">
-                  Advanced Query (JSON)
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    setUserInputQuery(
-                      JSON.stringify(
-                        {
-                          severityText: "INFO",
-                          "resource.attributes.service.name":
-                            "PET-SERVICE",
-                        },
-                        null,
-                        2,
-                      ),
-                    )
-                  }
-                  disabled={loading}
-                >
-                  <Wand2 className="h-4 w-4" />
-                  Load Example
-                </Button>
-              </div>
+              <Label htmlFor="advanced-query" className="text-sm">
+                Advanced Query (JSON)
+              </Label>
               <Textarea
-                id="mongo-query"
-                placeholder='{"severityText": "ERROR"}'
+                id="advanced-query"
+                placeholder="{ }"
                 value={userInputQuery}
                 onChange={(e) => setUserInputQuery(e.target.value)}
-                className="min-h-[120px] font-mono text-sm"
+                className="mt-1 font-mono"
+                rows={4}
                 disabled={loading}
               />
             </div>
@@ -201,18 +185,18 @@ const LogsFiltersCard: React.FC<Props> = ({
             onClick={handleApply}
             disabled={loading}
             className="w-full sm:w-auto"
+            variant="default"
           >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-            />
-            Apply and Update
+            <Search className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Apply
           </Button>
           <Button
-            variant="outline"
             onClick={handleClear}
-            className="w-full sm:w-auto bg-transparent"
             disabled={loading}
+            className="w-full sm:w-auto"
+            variant="outline"
           >
+            <RefreshCw className="h-4 w-4 mr-2" />
             Clear
           </Button>
         </div>

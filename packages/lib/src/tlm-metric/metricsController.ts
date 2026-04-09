@@ -41,7 +41,7 @@ export const resetMetrics = (req: Request, res: Response) => {
 
 export const insertMetricsToDb = async (req: Request, res: Response) => {
     try {
-        const scopeMetricsData = req.body.scopeMetrics;
+        const scopeMetricsData = (req.body || {}).scopeMetrics;
         const resetData = req.query.reset === 'true';
         const format = (req.body.format || req.query.format || 'raw') as 'raw' | 'otel';
 
@@ -88,7 +88,7 @@ export const statusMetrics = (req: Request, res: Response) => {
 };
 
 export const setMetricRetentionTime = (req: Request, res: Response) => {
-    const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
+    const retentionTimeInSeconds = (req.body || {}).retentionTimeInSeconds;
     if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
         return;
@@ -104,7 +104,7 @@ export const getMetricRetentionTime = (req: Request, res: Response) => {
 };
 
 /**
- * Find metrics by scope+metric queries with filters (POST /metrics/find)
+ * Find metrics by scope+metric queries with filters (POST /metrics/find or GET /metrics)
  * All parameters are optional:
  * - If scopeMetrics is not provided or empty, returns all metrics
  * - If startTime/endTime not provided, returns all available data
@@ -112,7 +112,7 @@ export const getMetricRetentionTime = (req: Request, res: Response) => {
  */
 export const findMetrics = async (req: Request, res: Response) => {
     try {
-        const { scopeMetrics, from, to, format } = req.body;
+        const { scopeMetrics, from, to, format } = req.body || {};
 
         // Validate scopeMetrics structure if provided
         if (scopeMetrics && Array.isArray(scopeMetrics)) {

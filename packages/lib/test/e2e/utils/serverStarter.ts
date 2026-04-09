@@ -14,7 +14,7 @@ export function startServer(config: E2ETestConfig): Promise<ChildProcess> {
                 ...additionalEnv,
                 PORT: port,
                 OASTLM_BOOT_ENV: 'test',
-                OASTLM_CONFIG_GENERAL_BASE_URL: telemetryBaseUrl,
+                OASTLM_BOOT_BASE_URL: telemetryBaseUrl,
             },
             stdio: 'ignore',
         });

@@ -62,7 +62,7 @@ export function PluginExport({ plugins }: PluginExportProps) {
         </div>,
         { duration: 10000 }
       )
-      console.error("Export failed:", error)
+      //
     } finally {
       setLoading(false)
     }

@@ -34,7 +34,7 @@ function getBackendTelemetryBaseUrl() {
         // Development mode: backend on same host but configurable port (default 3000)
         const backendPort = import.meta.env.VITE_OASTLM_BACKEND_PORT || '3000';
         const backendHost = `${window.location.hostname}:${backendPort}`;
-        const baseUrl = import.meta.env.VITE_OASTLM_BASE_URL || '/telemetry';
+        const baseUrl = import.meta.env.VITE_OASTLM_BASE_URL || '/oas-telemetry';
         result = `http://${backendHost}${baseUrl}`;
         console.log("[OASTLM] Development mode - Backend Host:", backendHost);
         console.log("[OASTLM] Development mode - Backend Port from env:", import.meta.env.VITE_OASTLM_BACKEND_PORT);

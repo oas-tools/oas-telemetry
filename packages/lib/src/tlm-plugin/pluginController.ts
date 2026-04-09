@@ -122,7 +122,7 @@ export const registerPlugin = async (req: Request, res: Response) => {
 };
 
 export const activatePlugin = (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const plugin = pluginService.getPlugins().find((p) => p.id === id);
     if (!plugin) {
         res.status(404).send(`Plugin with id "${id}" not found.`);
@@ -133,7 +133,7 @@ export const activatePlugin = (req: Request, res: Response) => {
 };
 
 export const deactivatePlugin = (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const plugin = pluginService.getPlugins().find((p) => p.id === id);
     if (!plugin) {
         res.status(404).send(`Plugin with id "${id}" not found.`);
@@ -144,7 +144,7 @@ export const deactivatePlugin = (req: Request, res: Response) => {
 };
 
 export const deletePlugin = (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const plugin = pluginService.getPlugins().find((p) => p.id === id);
     if (!plugin) {
         res.status(404).send(`Plugin with id "${id}" not found.`);

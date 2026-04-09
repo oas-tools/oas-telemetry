@@ -35,3 +35,27 @@ export function formatTimeString(timestamp: number): string {
     hour12: false,
   });
 }
+
+/**
+ * Format large numbers with K, M, B suffixes
+ * e.g., 1000 -> 1K, 1000000 -> 1M
+ */
+export function formatNumber(value: number): string {
+  if (value === 0) return "0";
+  if (!isFinite(value)) return "";
+  
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  
+  if (abs >= 1e9) {
+    return sign + (abs / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
+  }
+  if (abs >= 1e6) {
+    return sign + (abs / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+  }
+  if (abs >= 1e3) {
+    return sign + (abs / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+  }
+  
+  return value.toFixed(0);
+}

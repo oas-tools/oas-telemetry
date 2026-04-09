@@ -19,6 +19,9 @@ export async function agent(openai: OpenAI, messages: any[], model: string = "gp
             const results: { name: string; response: any }[] = [];
 
             for (const toolCall of message.tool_calls) {
+                // Type guard for tool_calls
+                if (toolCall.type !== 'function' || !toolCall.function) continue;
+                
                 const functionName = toolCall.function.name as keyof typeof availableTools;
                 const functionToCall = availableTools[functionName] as any;
                 const functionArgs = JSON.parse(toolCall.function.arguments);
@@ -35,7 +38,7 @@ export async function agent(openai: OpenAI, messages: any[], model: string = "gp
             const resultMessage = results.map(
                 ({ name, response }, idx) => {
                     const toolCall = message.tool_calls?.[idx];
-                    const params = toolCall ? JSON.parse(toolCall.function.arguments) : {};
+                    const params = toolCall && toolCall.type === 'function' && toolCall.function ? JSON.parse(toolCall.function.arguments) : {};
                     return `Tool "${name}" called with parameters:\n${JSON.stringify(params, null, 2)}\nResult:\n${JSON.stringify(response, null, 2)}`;
                 }
             ).join("\n\n");

@@ -117,3 +117,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  display: none;
+}

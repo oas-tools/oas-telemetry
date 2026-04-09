@@ -31,8 +31,8 @@ export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
         res.send({ message: 'Started generating mock logs' });
     });
     // This route is NOT ignored by the spanExporter
-    router.get('/generate-wait/:seconds?', async (req, res) => {
-        const seconds = parseInt(req.params.seconds ?? "1", 10);
+    router.get('/generate-wait', async (req, res) => {
+        const seconds = parseInt(req.query.seconds as string ?? "1", 10);
         const waitTime = isNaN(seconds) ? 1 : seconds;
         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
         res.send({ waited: waitTime });

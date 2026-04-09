@@ -1,7 +1,7 @@
 import { callWithTimeout } from '@opentelemetry/core';
 import type { Context } from '@opentelemetry/api';
 import type { LogRecordProcessor } from '@opentelemetry/sdk-logs';
-import type { LogRecord } from '@opentelemetry/sdk-logs';
+import type { SdkLogRecord } from '@opentelemetry/sdk-logs';
 
 import logger from '../../../utils/logger.js'; // optional if you want logging
 
@@ -45,7 +45,7 @@ addProcessors(processor: LogRecordProcessor | LogRecordProcessor[]): void {
   /**
    * Called when a log record is emitted.
    */
-  onEmit(logRecord: LogRecord, context?: Context): void {
+  onEmit(logRecord: SdkLogRecord, context?: Context): void {
     for (const processor of this._processors) {
       try {
         processor.onEmit(logRecord, context);

@@ -178,8 +178,8 @@ export class Series {
         const memoryBytes = this.chunks.reduce((sum, chunk) => sum + chunk.getMemoryUsage(), 0);
 
         return {
-            metricName: this.metadata.descriptor.name,
-            labels: this.labelSet.labels,
+            metricName: this.metadata?.descriptor?.name ?? 'unknown',
+            labels: this.labelSet?.labels ?? {},
             chunks: this.chunks.length,
             samples: totalSamples,
             memoryBytes,

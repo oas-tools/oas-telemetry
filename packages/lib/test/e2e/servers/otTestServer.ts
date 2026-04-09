@@ -81,7 +81,6 @@ const spec = {
 
 const oasTlmConfig: UserConfig = {
     general: {
-        baseUrl: "/telemetry",
         spec: JSON.stringify(spec),
     },
     traces: {
@@ -135,6 +134,31 @@ const meter = metrics.getMeter('PetClinic', '1.0.0');
 const logger = logs.getLogger('PetClinic', '1.0.0');
 const tracer = trace.getTracer('PetClinic', '1.0.0');
 
+const autoHistogram = meter.createHistogram('oas-telemetry.auto.histogram.ms', {
+    description: 'Automatic histogram values that change over time',
+    unit: 'ms',
+});
+
+let autoHistogramTick = 0;
+let autoHistogramLastValue = 0;
+const AUTO_HISTOGRAM_INTERVAL_MS = 1000;
+
+const recordAutoHistogramSample = () => {
+    autoHistogramTick += 1;
+    const wave = 80 + Math.sin(autoHistogramTick / 6) * 30;
+    const noise = Math.random() * 20;
+    autoHistogramLastValue = Math.max(5, wave + noise);
+
+    autoHistogram.record(autoHistogramLastValue, {
+        source: 'auto-generator',
+    });
+};
+
+// Seed one value and keep recording periodically.
+recordAutoHistogramSample();
+const autoHistogramTimer = setInterval(recordAutoHistogramSample, AUTO_HISTOGRAM_INTERVAL_MS);
+autoHistogramTimer.unref?.();
+
 // Custom metric: count custom endpoint hits
 const customCounter = meter.createCounter('oas-telemetry.custom.endpoint.hits', {
     description: 'Counts hits to /custom-metric endpoint',
@@ -184,6 +208,15 @@ app.get('/custom-trace-log', (req, res) => {
         span.end();
         res.json({ message: 'Custom trace span and log created' });
     }, 50);
+});
+
+app.get('/custom-histogram-status', (req, res) => {
+    res.json({
+        metric: 'oas-telemetry.auto.histogram.ms',
+        intervalMs: AUTO_HISTOGRAM_INTERVAL_MS,
+        samplesGenerated: autoHistogramTick,
+        lastValueMs: Number(autoHistogramLastValue.toFixed(2)),
+    });
 });
 
 app.use(express.json({ limit: '500mb' }));
