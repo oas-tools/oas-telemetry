@@ -31,8 +31,8 @@ servers:
       port:
         default: "3000"
       basePath:
-        default: telemetry
-        description: Base path for all endpoints. Can be customized, e.g. "myCustomTelemetryPath"
+        default: oas-telemetry
+        description: Base path for all endpoints. Configured via OASTLM_BOOT_BASE_URL environment variable
 
 tags:
   - name: traces
@@ -326,6 +326,44 @@ paths:
                     type: string
                     example: Invalid retention time. Must be a positive number.
 
+  /traces/export:
+    get:
+      tags:
+        - traces
+      summary: Export collected traces
+      description: Export all collected traces in NDJSON format
+      responses:
+        '200':
+          description: Traces exported successfully
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+
+  /traces/import:
+    post:
+      tags:
+        - traces
+      summary: Import traces
+      description: Import traces from NDJSON format
+      requestBody:
+        required: true
+        content:
+          application/x-ndjson:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Traces imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Traces imported successfully
+
   /metrics:
     get:
       summary: Get collected metrics
@@ -548,6 +586,69 @@ paths:
                     type: string
                     example: Invalid retention time. Must be a positive number.
 
+  /metrics/export:
+    get:
+      tags:
+        - metrics
+      summary: Export collected metrics
+      description: Export all collected metrics in NDJSON format
+      responses:
+        '200':
+          description: Metrics exported successfully
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+
+  /metrics/import:
+    post:
+      tags:
+        - metrics
+      summary: Import metrics
+      description: Import metrics from NDJSON format
+      requestBody:
+        required: true
+        content:
+          application/x-ndjson:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Metrics imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Metrics imported successfully
+
+  /metrics/stats:
+    get:
+      tags:
+        - metrics
+      summary: Get metrics statistics
+      description: Get statistics about collected metrics
+      responses:
+        '200':
+          description: Metrics statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalMetrics:
+                    type: number
+                    example: 42
+                  activeMetrics:
+                    type: number
+                    example: 35
+                  retentionTime:
+                    type: number
+                    description: Retention time in seconds
+                    example: 3600
+
   /logs:
     get:
       summary: Get collected logs
@@ -682,6 +783,44 @@ paths:
                   error:
                     type: string
                     example: Invalid regex in query
+
+  /logs/export:
+    get:
+      tags:
+        - logs
+      summary: Export collected logs
+      description: Export all collected logs in NDJSON format
+      responses:
+        '200':
+          description: Logs exported successfully
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+
+  /logs/import:
+    post:
+      tags:
+        - logs
+      summary: Import logs
+      description: Import logs from NDJSON format
+      requestBody:
+        required: true
+        content:
+          application/x-ndjson:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Logs imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logs imported successfully
 
   /utils/spec:
     get:
@@ -842,14 +981,14 @@ paths:
                     type: string
                     example: Started generating mock logs
 
-  /utils/generate-wait/{seconds}:
+  /utils/generate-wait:
     get:
       summary: Wait for the specified seconds
       tags:
         - utils
       parameters:
         - name: seconds
-          in: path
+          in: query
           required: false
           schema:
             type: integer
@@ -866,6 +1005,21 @@ paths:
                   waited:
                     type: number
                     example: 2
+
+  /utils/oas-telemetry-spec:
+    get:
+      summary: Get OAS-Telemetry specification
+      tags:
+        - utils
+      description: Retrieve the OpenAPI specification for OAS-Telemetry
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: OpenAPI specification
 
   /health:
     get:

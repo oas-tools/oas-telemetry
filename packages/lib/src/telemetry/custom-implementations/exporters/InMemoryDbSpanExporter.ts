@@ -10,7 +10,6 @@ import { getStoragePath } from '../utils/storagePath.js';
 
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     private _spans: dataStore<Record<string, any>> | null = null;
-    private _baseUrl = '/telemetry'; // Default base URL, can be overridden by the config
     private _retentionTimeInSeconds: number;
     private _storagePath: string | null = null;
     private _initialized = false;
@@ -36,9 +35,6 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         }
     }
 
-    public set baseUrl(baseUrl: string) {
-        this._baseUrl = baseUrl;
-    }
     public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
         this._retentionTimeInSeconds = retentionTimeInSeconds;
         logger.info(`InMemoryDbSpanExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
@@ -55,21 +51,12 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
             const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
-                .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
-                .filter(span => {
-                    const target = span?.attributes?.http?.target;
-                    // Exclude spans where target includes 'telemetry' but NOT 'telemetry/utils/generate-log' or 'telemetry/utils/generate-wait'
-                    if (target && target.includes(this._baseUrl)) {
-                        return (target.includes("generate"))
-                    }
-                    return true;
-                });
+                .map(span => applyNesting(span)); // to avoid dot notation in keys (neDB does not support dot notation in keys)
 
             cleanSpans.forEach(span => {
                 pluginService.broadcastTrace(span);
             });
 
-            // 
             if (this.isEnabled()) {
                 // Insert spans into the in-memory database
                 if (this._spans) {

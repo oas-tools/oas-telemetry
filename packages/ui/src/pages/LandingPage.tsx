@@ -66,7 +66,7 @@ export default function LandingPage() {
       const stats = await utilService.getHeapStats()
       setHeapStats(stats)
     } catch (error) {
-      console.error("Failed to load heap stats:", error)
+      //
     }
   }
 

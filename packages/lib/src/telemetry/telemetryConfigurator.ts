@@ -9,8 +9,6 @@ import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { bootEnvVariables } from '../config/bootConfig.js';
 import { pluginService } from '../tlm-plugin/pluginService.js';
-
-
 export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
     
     logger.info("🚀 Configuring Telemetry...");
@@ -30,7 +28,7 @@ export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
         traceExporter: inMemoryDbSpanExporter,
         spanProcessors: [mainTraceProcessor, ...oasTlmConfig.traces.extraProcessors || []],
         metricReaders: [mainMetricReader, ...(oasTlmConfig.metrics.extraReaders || [])],
-        logRecordProcessors: [mainLogProcessor as any, ...oasTlmConfig.logs.extraProcessors || []],
+        logRecordProcessors: [mainLogProcessor, ...oasTlmConfig.logs.extraProcessors || []],
     });
     sdk.start();
     logger.info("✅ Node SDK started with telemetry configuration");
@@ -41,10 +39,9 @@ function configurePlugins(oasTlmConfig: OasTlmConfig): void {
     pluginService.enabled = oasTlmConfig.plugins.enabled;
 }
 
-function configureTraces(oasTlmConfig: OasTlmConfig): any {
+function configureTraces(oasTlmConfig: OasTlmConfig) {
     // TRACES CONFIGURATION
     // [OT]Provider -> [OT]SpanProcessor(multiSpan) -> n Processors(eg mainProcessor, extra) -> 1 SpanExporter
-    inMemoryDbSpanExporter.baseUrl = oasTlmConfig.general.baseUrl; // TODO this will be done with filters
     inMemoryDbSpanExporter.retentionTimeInSeconds = oasTlmConfig.traces.memoryExporter.retentionTimeSeconds;
     inMemoryDbSpanExporter.setEnabledValue(oasTlmConfig.traces.memoryExporter.enabled);
     const mainExporter: EnablerMultiSpanExporter = multiSpanExporter
@@ -58,7 +55,7 @@ function configureTraces(oasTlmConfig: OasTlmConfig): any {
     return mainProcessor;
 }
 
-function configureMetrics(oasTlmConfig: OasTlmConfig): any {
+function configureMetrics(oasTlmConfig: OasTlmConfig) {
     // METRICS CONFIGURATION
     inMemoryDbMetricExporter.setEnabledValue(oasTlmConfig.metrics.memoryExporter.enabled);
     inMemoryDbMetricExporter.retentionTimeInSeconds = oasTlmConfig.metrics.memoryExporter.retentionTimeSeconds;

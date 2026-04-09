@@ -1,5 +1,7 @@
 //import oasTelemetry from '@oas-tools/oas-telemetry';
-import {oasTelemetry, getTracer, getMeter, getLogger} from '../../../dist/esm/index.js';
+import { oasTelemetry } from '../../../dist/esm/index.js';
+import { metrics, trace } from '@opentelemetry/api';
+import { logs } from '@opentelemetry/api-logs';
 import express from 'express';
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'test') {
@@ -70,9 +72,9 @@ const spec = {
 
 app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
 
-const logger = getLogger('PetClinic', '1.0.0');
-const meter = getMeter('PetClinic', '1.0.0');
-const tracer = getTracer('PetClinic', '1.0.0');
+const logger = logs.getLogger('PetClinic', '1.0.0');
+const meter = metrics.getMeter('PetClinic', '1.0.0');
+const tracer = trace.getTracer('PetClinic', '1.0.0');
 
 // Custom metric: count custom endpoint hits
 const customCounter = meter.createCounter('oas-telemetry.custom.endpoint.hits', {

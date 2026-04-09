@@ -54,6 +54,8 @@ const uplotCustomStyles = `
 .u-legend .u-marker {
   width: 14px !important;
   height: 14px !important;
-  border-radius: 30px !important;
+  border-radius: 95% !important;
+  border-width: 5px !important;
+
 }
 `;

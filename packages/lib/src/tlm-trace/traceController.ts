@@ -89,7 +89,7 @@ export const findTraces = async (req: Request, res: Response) => {
 };
 
 export const insertTracesToDb = async (req: Request, res: Response) => {
-    const jsonContent = req.body.spans;
+    const jsonContent = (req.body || {}).spans;
     const resetData = req.query.reset === 'true';
     if (!Array.isArray(jsonContent)) {
         res.status(400).send({ error: 'Invalid data format.' });
@@ -170,7 +170,7 @@ export const importTraces = async (req: Request, res: Response) => {
 };
 
 export const setTraceRetentionTime = (req: Request, res: Response) => {
-    const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
+    const retentionTimeInSeconds = (req.body || {}).retentionTimeInSeconds;
     if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
         return;

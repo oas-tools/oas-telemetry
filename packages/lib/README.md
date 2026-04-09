@@ -92,7 +92,6 @@ You can also customize the telemetry configuration by passing options to the mid
 ```js
 export const customTelemetryConfig = {
   general: {
-    baseUrl: "/custom-telemetry",
     specFileName: "oas.json",
     spec: null,
   },
@@ -162,7 +161,7 @@ app.use(oasTelemetry(customTelemetryConfig));
 
 ## Telemetry UI
 
-You can access the telemetry UI at the endpoint `/telemetry` (or `/custom-telemetry` if you set the `baseURL` option). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
+You can access the telemetry UI at the endpoint `/oas-telemetry` (or at a custom path if you set the `OASTLM_BOOT_BASE_URL` environment variable). This UI provides a user-friendly interface to interact with the telemetry data collected by the middleware.
 
 ## Rest API Endpoints Overview
 

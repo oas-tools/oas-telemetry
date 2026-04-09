@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 import { logsService, type LogEntry } from "@/services/logService"
 import LogsFiltersCard from "./LogsFiltersPanel"
@@ -13,6 +14,10 @@ const getLogTimestamp = (log: LogEntry) =>
 
 // Main Component ---------------------------------------------
 export default function LogsPage() {
+  // Read traceId from URL if present
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const traceIdFromUrl = params.get("traceId") || "";
   const [loading, setLoading] = useState(true)
 
   // Logs
@@ -24,6 +29,8 @@ export default function LogsPage() {
   const [queryToSend, setQueryToSend] = useState<any>({})
   const [textSearchToSend, setTextSearchToSend] = useState<string>("")
   const [hasManualSearch, setHasManualSearch] = useState(false)
+  // For initial filter hydration
+  const [initialTraceId, setInitialTraceId] = useState(traceIdFromUrl)
 
   const loadInitialLogs = useCallback(async (query: any = {}, textSearch: string = "", isManual: boolean = false) => {
     setLoading(true)
@@ -54,28 +61,41 @@ export default function LogsPage() {
 
   const loadOlderLogs = useCallback(async () => {
     // If no logs loadNewerLogs will handle it.
-    if (!firstTimestamp || currentLogs.length === 0) return
-    console.log("Enough logs, loading older logs")
+    if (!firstTimestamp) return
+    //
     try {
       const response = await logsService.findOlderLogs(
         { query: queryToSend, textSearch: textSearchToSend, limit: LOGS_PER_FETCH },
         firstTimestamp,
       )
       const logs = response.logs.sort((a, b) => getLogTimestamp(a) - getLogTimestamp(b))
-      const existingIds = new Set(currentLogs.map((l) => l._id))
-      const newLogs = logs.filter((l) => !existingIds.has(l._id))
-      console.log("Fetched older logs: ", newLogs.length)
-      setCurrentLogs((prev) => [...newLogs, ...prev])
-      setFirstTimestamp(newLogs.length > 0 ? getLogTimestamp(newLogs[0]) : firstTimestamp)
+      
+      // Track new logs for later timestamp update
+      let filteredNewLogs: LogEntry[] = []
+      
+      // Use functional setState to access current state and avoid stale closure
+      setCurrentLogs((prev) => {
+        if (prev.length === 0) return prev
+        const existingIds = new Set(prev.map((l) => l._id))
+        filteredNewLogs = logs.filter((l) => !existingIds.has(l._id))
+        return [...filteredNewLogs, ...prev]
+      })
+      
+      //
+      
+      // Update timestamp only if there are new logs
+      if (filteredNewLogs.length > 0) {
+        setFirstTimestamp(getLogTimestamp(filteredNewLogs[0]))
+      }
     } catch {
       toast.error("Failed to load older logs")
     }
-  }, [firstTimestamp, currentLogs, queryToSend, textSearchToSend])
+  }, [firstTimestamp, queryToSend, textSearchToSend])
 
   const loadNewerLogs = useCallback(async () => {
     // If no logs yet, load initial logs instead (but don't show "no logs" toast)
     if (!lastTimestamp) {
-      console.log("[loadNewerLogs] No lastTimestamp, loading initial logs")
+      //
       return loadInitialLogs(queryToSend, textSearchToSend, false)
     }
     
@@ -85,24 +105,35 @@ export default function LogsPage() {
         lastTimestamp,
       )
       const logs = response.logs.sort((a, b) => getLogTimestamp(a) - getLogTimestamp(b))
-      const existingIds = new Set(currentLogs.map((l) => l._id))
-      const newLogs = logs.filter((l) => !existingIds.has(l._id))
+      
+      // Track new logs for later timestamp update
+      let filteredNewLogs: LogEntry[] = []
+      
+      // Use functional setState to access current state and avoid stale closure
       setCurrentLogs((prev) => {
-        const updated = [...prev, ...newLogs]
-        return updated
+        const existingIds = new Set(prev.map((l) => l._id))
+        filteredNewLogs = logs.filter((l) => !existingIds.has(l._id))
+        return [...prev, ...filteredNewLogs]
       })
-      if (newLogs.length > 0) {
-        setLastTimestamp(getLogTimestamp(newLogs[newLogs.length - 1]))
+      
+      // Update timestamp only if there are new logs
+      if (filteredNewLogs.length > 0) {
+        setLastTimestamp(getLogTimestamp(filteredNewLogs[filteredNewLogs.length - 1]))
       }
     } catch {
       toast.error("Failed to load newer logs")
     }
-  }, [lastTimestamp, currentLogs, queryToSend, textSearchToSend, loadInitialLogs])
+  }, [lastTimestamp, queryToSend, textSearchToSend, loadInitialLogs])
 
   // Initial load
   useEffect(() => {
-    loadInitialLogs({}, "", false)
-  }, [loadInitialLogs])
+    // If traceId is in URL, filter by it on first load
+    if (traceIdFromUrl) {
+      loadInitialLogs({ traceId: traceIdFromUrl }, "", false)
+    } else {
+      loadInitialLogs({}, "", false)
+    }
+  }, [loadInitialLogs, traceIdFromUrl])
 
   // Extract and memoize unique services for filters (don't recalculate on every render)
   const uniqueServices = useMemo(() =>
@@ -137,6 +168,7 @@ export default function LogsPage() {
           uniqueServices={uniqueServices}
           loading={loading}
           onFiltersChange={handleFiltersChange}
+          initialTraceId={initialTraceId}
         />
         <LogsList
           logs={currentLogs}

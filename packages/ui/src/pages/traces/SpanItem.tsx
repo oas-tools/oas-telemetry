@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Code2 } from "lucide-react"
+import { LogLinkIcon } from "./LogLinkIcon"
 import { toast } from "sonner"
 import { getMethodColor, getStatusColor } from "@/lib/helpers/trace"
 import type { Span } from "@/services/traceService"
@@ -92,14 +93,17 @@ const SpanItem: React.FC<SpanItemProps> = ({ span }) => {
 
         <span className="flex items-center gap-2 ml-auto">
           {traceId && (
-            <Badge
-              variant="outline"
-              className="px-2 py-0.5 text-[10px] cursor-pointer font-mono"
-              onClick={() => copyToClipboard(traceId)}
-              title="Copy Trace ID"
-            >
-              {traceId.slice(0, 8)}
-            </Badge>
+            <>
+              <Badge
+                variant="outline"
+                className="px-2 py-0.5 text-[10px] cursor-pointer font-mono"
+                onClick={() => copyToClipboard(traceId)}
+                title="Copy Trace ID"
+              >
+                {traceId.slice(0, 8)}
+              </Badge>
+              <LogLinkIcon traceId={traceId} />
+            </>
           )}
           <Button
             variant="ghost"

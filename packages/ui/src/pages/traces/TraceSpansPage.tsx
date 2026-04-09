@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 import { traceService, type Span } from "@/services/traceService"
 import SpansFiltersPanel from "./SpansFiltersPanel"
@@ -13,6 +14,10 @@ const getSpanTimestamp = (span: Span) =>
 
 // Main Component ---------------------------------------------
 export default function TraceSpansPage() {
+  // Read traceId from URL if present
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const traceIdFromUrl = params.get("traceId") || "";
   const [loading, setLoading] = useState(true)
 
   // Spans
@@ -50,8 +55,7 @@ export default function TraceSpansPage() {
   }, [])
 
   const loadOlderSpans = useCallback(async () => {
-    if (!firstTimestamp || currentSpans.length === 0) return
-    console.log("Loading older spans")
+    if (!firstTimestamp) return
     try {
       const query = { ...queryToSend, timestamp: { $lt: firstTimestamp } }
       const response = await traceService.findSpans({
@@ -59,23 +63,28 @@ export default function TraceSpansPage() {
         limit: SPANS_PER_FETCH,
       })
       const spans = response.spans.sort((a, b) => getSpanTimestamp(a) - getSpanTimestamp(b))
-      const existingIds = new Set(currentSpans.map((s) => s._id))
-      const newSpans = spans.filter((s) => !existingIds.has(s._id))
-      console.log("Fetched older spans: ", newSpans.length)
-      setCurrentSpans((prev) => [...newSpans, ...prev])
-      setFirstTimestamp(newSpans.length > 0 ? getSpanTimestamp(newSpans[0]) : firstTimestamp)
+      setCurrentSpans((prev) => {
+        if (prev.length === 0) return prev
+        const existingIds = new Set(prev.map((s) => s._id))
+        const newSpans = spans.filter((s) => !existingIds.has(s._id))
+        return [...newSpans, ...prev]
+      })
+      setFirstTimestamp((prev) => {
+        if (spans.length > 0) {
+          return getSpanTimestamp(spans[0])
+        }
+        return prev
+      })
     } catch {
       toast.error("Failed to load older spans")
     }
-  }, [firstTimestamp, currentSpans, queryToSend])
+  }, [firstTimestamp, queryToSend, hasManualSearch])
 
   const loadNewerSpans = useCallback(async () => {
     // If no spans yet, load initial spans instead (but don't show "no spans" toast)
     if (!lastTimestamp) {
-      console.log("[loadNewerSpans] No lastTimestamp, loading initial spans")
       return loadInitialSpans(queryToSend, false)
     }
-    
     try {
       const query = { ...queryToSend, timestamp: { $gt: lastTimestamp } }
       const response = await traceService.findSpans({
@@ -83,24 +92,28 @@ export default function TraceSpansPage() {
         limit: SPANS_PER_FETCH,
       })
       const spans = response.spans.sort((a, b) => getSpanTimestamp(a) - getSpanTimestamp(b))
-      const existingIds = new Set(currentSpans.map((s) => s._id))
-      const newSpans = spans.filter((s) => !existingIds.has(s._id))
+      let filteredNewSpans: Span[] = []
       setCurrentSpans((prev) => {
-        const updated = [...prev, ...newSpans]
-        return updated
+        const existingIds = new Set(prev.map((s) => s._id))
+        filteredNewSpans = spans.filter((s) => !existingIds.has(s._id))
+        return [...prev, ...filteredNewSpans]
       })
-      if (newSpans.length > 0) {
-        setLastTimestamp(getSpanTimestamp(newSpans[newSpans.length - 1]))
+      if (filteredNewSpans.length > 0) {
+        setLastTimestamp(getSpanTimestamp(filteredNewSpans[filteredNewSpans.length - 1]))
       }
     } catch {
       toast.error("Failed to load newer spans")
     }
-  }, [lastTimestamp, currentSpans, queryToSend, loadInitialSpans])
+  }, [lastTimestamp, queryToSend, loadInitialSpans, hasManualSearch])
 
   // Initial load
   useEffect(() => {
-    loadInitialSpans({}, false)
-  }, [loadInitialSpans])
+    if (traceIdFromUrl) {
+      loadInitialSpans({ "_spanContext.traceId": traceIdFromUrl }, false)
+    } else {
+      loadInitialSpans({}, false)
+    }
+  }, [loadInitialSpans, traceIdFromUrl])
 
   // Extract and memoize unique endpoints for filters (don't recalculate on every render)
   const uniqueEndpoints = useMemo(() => 
@@ -121,10 +134,15 @@ export default function TraceSpansPage() {
 
   // Update queryToSend when filters change (user action = manual search)
   const handleFiltersChange = (query: any) => {
+    const patchedQuery = { ...query }
+    if (patchedQuery.traceId) {
+      patchedQuery["_spanContext.traceId"] = patchedQuery.traceId
+      delete patchedQuery.traceId
+    }
     setCurrentSpans([])
     setFirstTimestamp(null)
     setLastTimestamp(null)
-    loadInitialSpans(query, true)
+    loadInitialSpans(patchedQuery, true)
   }
 
   return (
@@ -135,6 +153,7 @@ export default function TraceSpansPage() {
           uniqueEndpoints={uniqueEndpoints}
           loading={loading}
           onFiltersChange={handleFiltersChange}
+          initialTraceId={traceIdFromUrl}
         />
         <SpansList
           spans={currentSpans}

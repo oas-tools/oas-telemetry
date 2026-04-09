@@ -71,7 +71,7 @@ export const resetLogs = (req: Request, res: Response) => {
 
 
 export const insertLogsToDb = async (req: Request, res: Response) => {
-    const jsonContent = req.body.logs;
+    const jsonContent = (req.body || {}).logs;
     const resetData = req.query.reset === 'true';
     if (!Array.isArray(jsonContent)) {
         res.status(400).send({ error: 'Invalid data format.' });
@@ -166,7 +166,7 @@ export const statusLogs = (req: Request, res: Response) => {
 };
 
 export const setLogRetentionTime = (req: Request, res: Response) => {
-    const retentionTimeInSeconds = req.body.retentionTimeInSeconds;
+    const retentionTimeInSeconds = (req.body || {}).retentionTimeInSeconds;
     if (typeof retentionTimeInSeconds !== 'number' || retentionTimeInSeconds <= 0) {
         res.status(400).send({ error: 'Invalid retention time. Must be a positive number.' });
         return;

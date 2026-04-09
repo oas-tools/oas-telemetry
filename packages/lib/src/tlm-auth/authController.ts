@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.js';
 import { OasTlmConfig } from "../config/config.types.js";
+import { bootEnvVariables } from '../config/bootConfig.js';
 
 function generateAccessToken(secret: string, expiresIn: number) {
     return jwt.sign({ type: "access" }, secret, { expiresIn: Math.floor(expiresIn / 1000) });
@@ -40,7 +41,7 @@ export const getLogin = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Resp
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "lax",
-                path: oasTlmConfig.general.baseUrl + "/auth/refresh"
+                path: bootEnvVariables.OASTLM_BOOT_BASE_URL + "/auth/refresh"
             });
 
             res.status(200).json({ valid: true, message: "Login successful" });
@@ -59,7 +60,7 @@ export const getLogout = (oasTlmConfig: OasTlmConfig) => (req: Request, res: Res
         return;
     }
     res.clearCookie('oas-tlm-access-token', { path: '/' });
-    res.clearCookie('oas-tlm-refresh-token', { path: oasTlmConfig.general.baseUrl + '/auth/refresh' });
+    res.clearCookie('oas-tlm-refresh-token', { path: bootEnvVariables.OASTLM_BOOT_BASE_URL + '/auth/refresh' });
     res.status(200).json({ valid: true, message: "Logged out" });
 };
 

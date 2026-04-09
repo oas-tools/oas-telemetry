@@ -25,7 +25,7 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
             credentials: true
         }));
     }
-    const telemetryBaseUrl = oasTlmConfig.general.baseUrl;
+    const telemetryBaseUrl = bootEnvVariables.OASTLM_BOOT_BASE_URL;
 
     // Sub-router for all telemetry endpoints
     const telemetryRouter = Router();

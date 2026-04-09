@@ -10,48 +10,49 @@ describe("Config Tests", () => {
     it("[Unit][Config][+] should override default config with userConfig", () => {
         const userConfig = {
             general: {
-                baseUrl: "/custom-base-url",
+                specFileName: "custom.json",
             },
         };
         const config = getConfig(userConfig);
-        expect(config.general.baseUrl).toBe("/custom-base-url");
-        expect(config.general.specFileName).toBe(defaultConfig.general.specFileName);
+        // baseUrl is now only configurable via OASTLM_BOOT_BASE_URL environment variable at boot time
+        expect(config.general.specFileName).toBe("custom.json");
     });
 
     it("[Unit][Config][+] should override default and userConfig with envConfig", () => {
         const userConfig = {
             general: {
-                baseUrl: "/custom-base-url",
+                specFileName: "user.json",
             },
         };
         const envConfig = {
             general: {
-                baseUrl: "/env-base-url",
+                specFileName: "env.json",
             },
         };
         const config = getConfig(userConfig, defaultConfig, envConfig);
-        expect(config.general.baseUrl).toBe("/env-base-url");
+        // envConfig overrides userConfig
+        expect(config.general.specFileName).toBe("env.json");
     });
 
     it("[Unit][Config][+] should parse environment variables correctly", () => {
-        process.env.OASTLM_CONFIG_GENERAL_BASE_URL = "/env-url";
+        process.env.OASTLM_CONFIG_GENERAL_SPEC_FILE_NAME = "env-spec.json";
         const envConfig = {
             general: {
-                baseUrl: process.env.OASTLM_CONFIG_GENERAL_BASE_URL,
+                specFileName: process.env.OASTLM_CONFIG_GENERAL_SPEC_FILE_NAME,
             },
         };
         const config = getConfig(undefined, defaultConfig, envConfig);
-        expect(config.general.baseUrl).toBe("/env-url");
-        delete process.env.OASTLM_CONFIG_GENERAL_BASE_URL;
+        expect(config.general.specFileName).toBe("env-spec.json");
+        delete process.env.OASTLM_CONFIG_GENERAL_SPEC_FILE_NAME;
     });
 
     it("[Unit][Config][+] should handle undefined environment variables gracefully", () => {
         const envConfig = {
             general: {
-                baseUrl: undefined,
+                specFileName: undefined,
             },
         };
         const config = getConfig(undefined, defaultConfig, envConfig);
-        expect(config.general.baseUrl).toBe(defaultConfig.general.baseUrl);
+        expect(config.general.specFileName).toBe(defaultConfig.general.specFileName);
     });
 });

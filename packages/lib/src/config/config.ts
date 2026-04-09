@@ -13,7 +13,6 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
 
     return {
         general: {
-            baseUrl: getParsedEnvVar("OASTLM_CONFIG_GENERAL_BASE_URL"),
             specFileName: getParsedEnvVar("OASTLM_CONFIG_GENERAL_SPEC_FILE_NAME"),
             // spec Not settable via env
         },
@@ -65,7 +64,6 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
 // This means certain settings may affect application startup behavior outside of this configuration system.
 export const defaultConfig = {
     general: {
-        baseUrl: "/telemetry",
         specFileName: null as string | null, // e.g. "oas.json" or null if not provided
         spec: null as string | null, // e.g. JSON.stringify(oasSpec) or null if not provided,
         uiPath: "/oas-telemetry-ui", // path to the UI, e.g. "/oas-telemetry-ui" WARN: This must match the UI package's App.tsx "oas-telemetry-ui" path

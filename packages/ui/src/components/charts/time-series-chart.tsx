@@ -127,7 +127,7 @@ export function TimeSeriesChart({
                         if (min !== undefined && max !== undefined) {
                             const minX = u.posToVal(min, "x");
                             const maxX = u.posToVal(max, "x");
-                            console.log(`selecting range: ${new Date(minX).toISOString()} ${new Date(maxX).toISOString()}`)
+                            //
                             onRangeSelect(minX, maxX);
                         }
                     },
@@ -143,7 +143,7 @@ export function TimeSeriesChart({
         );
         uplotRef.current = plot;
         setPlotSize({ width: plot.over.clientWidth, height: plot.over.clientHeight });
-        console.log("Created uPlot chart");
+        //
         return () => {
             plot.destroy();
             uplotRef.current = null;
@@ -155,22 +155,20 @@ export function TimeSeriesChart({
     useEffect(() => {
         if (!uplotRef.current) return;
         uplotRef.current.setData(data as any, true);
-        //TODO REMOVE THIS
-        console.log("Updated uPlot data for metric:", seriesConfig.map(s => s.label).join(", "));
     }, [data]);
 
-    // Animate x-axis if animateXAxis is true
+    // Animate x-axis: always show [currentTime - windowSize, currentTime] like uPlot streaming demo
     useEffect(() => {
         let rafId: number | null = null;
         let running = true;
+        function animate() {
+            if (!running || !timeRange || !uplotRef.current) return;
+            const now = Date.now();
+            const windowSize = timeRange.to - timeRange.from;
+            uplotRef.current.setScale("x", { min: now - windowSize, max: now });
+            rafId = requestAnimationFrame(animate);
+        }
         if (animateXAxis && timeRange && uplotRef.current) {
-            const animate = () => {
-                if (!running) return;
-                const now = Date.now();
-                const windowSize = timeRange.to - timeRange.from;
-                uplotRef.current!.setScale("x", { min: now - windowSize, max: now });
-                rafId = requestAnimationFrame(animate);
-            };
             animate();
         }
         return () => {

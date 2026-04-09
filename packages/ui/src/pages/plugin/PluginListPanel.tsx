@@ -320,7 +320,7 @@ export function PluginList({ plugins, onRefresh, loading = false }: PluginListPr
                                 getPluginService().deletePlugin(plugin.id);
                                 navigate("/plugins/create", { state: { plugin } });
                               } catch (error) {
-                                console.error("Error deleting plugin:", error);
+                                //
                               }
                             }
                           }}

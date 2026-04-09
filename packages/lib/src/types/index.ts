@@ -1,6 +1,6 @@
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
-import { LogRecord } from '@opentelemetry/sdk-logs';
+import { SdkLogRecord } from '@opentelemetry/sdk-logs';
 import { ChildProcess } from 'child_process';
 
 
@@ -27,5 +27,5 @@ export interface PluginImpl {
     unload?(): (Promise<boolean> | boolean);
     newTrace?: (span: ReadableSpan[]) => void;
     newMetric?: (metric: ResourceMetrics) => void;
-    newLog?: (log: LogRecord) => void;
+    newLog?: (log: SdkLogRecord) => void;
 };

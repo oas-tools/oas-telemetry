@@ -5,8 +5,8 @@ import { TimeSeriesChart } from "@/components/charts/time-series-chart";
 import { useUPlotStyles } from "@/hooks/use-uplot-styles";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { metricsService } from "@/services/metricsService";
-import { DashboardRangeSelectPanel, type DashboardOption } from "./DashboardRangeSelectPanel";
 import MetricsCollectionPanel from "./MetricsCollectionPanel";
+import { DashboardRangeSelectPanel, type DashboardOption } from "./DashboardRangeSelectPanel";
 
 
 const RELATIVE_OPTIONS: DashboardOption[] = [
@@ -43,8 +43,22 @@ export default function MetricsPage() {
     const isRelative = relativeOption != null;
 
     // Persistent cache for metric configs and data
-    const metricsCacheRef = useRef<Record<string, { seriesConfig: any[]; chartData: any[]; id: string; scopeName: string; scopeVersion: string; metricName: string }>>({});
-    const [metricsCacheVersion, setMetricsCacheVersion] = useState(0); // force rerender when cache changes
+    const metricsCacheRef = useRef<Record<string, { 
+        seriesConfig: any[]
+        chartData: any[]
+        id: string
+        scopeName: string
+        scopeVersion: string
+        metricName: string
+        descriptorType?: string
+        histogramData?: {
+            label: string;
+            endTimes: number[];
+            values: number[];
+            unit: string;
+        } | null
+    }>>({});
+    // const [metricsCacheVersion, setMetricsCacheVersion] = useState(0); // force rerender when cache changes
 
     // Auto-refresh logic
     useAutoRefresh(isRelative, relativeOption?.value ?? null, setRange, autoRefreshOption.value);
@@ -95,13 +109,66 @@ export default function MetricsPage() {
                     // X axis: convert nanoseconds -> milliseconds
                     const rawTimestamps = series[0]?.endTimes || [];
                     const timestamps = rawTimestamps.map((ns: number) => ns / 1_000_000);
-                    const chartData = [timestamps, ...series.map((s: any) => s.values)];
-                    const seriesConfig = series.map((s: any, i: number) => ({
-                        id: `series${i}`,
-                        label: s.attributes && Object.keys(s.attributes).length > 0
-                            ? Object.entries(s.attributes).map(([k, v]) => `${k.split(".").pop() || k}=${v}`).join(", ")
-                            : metricName,
-                    }));
+                    // For HISTOGRAM, map values to a single number (e.g., count)
+                    let chartData;
+                    if (metric.descriptor.type === "HISTOGRAM") {
+                        // Efficiently build one series per bucket, plus min and max, in a single pass
+                        // Assume only one histogram series per metric (OpenTelemetry default)
+                        const s = series[0];
+                        if (s && Array.isArray(s.values) && s.values.length > 0) {
+                            const bucketCount = s.values[0]?.buckets?.counts?.length || 0;
+                            const bucketSeries: (number | null)[][] = Array.from({ length: bucketCount }, () => []);
+                            const minSeries: (number | null)[] = [];
+                            const maxSeries: (number | null)[] = [];
+                            for (let i = 0; i < s.values.length; i++) {
+                                const v = s.values[i];
+                                if (v && v.buckets && Array.isArray(v.buckets.counts)) {
+                                    for (let b = 0; b < bucketCount; b++) {
+                                        bucketSeries[b].push(v.buckets.counts[b] ?? null);
+                                    }
+                                } else {
+                                    for (let b = 0; b < bucketCount; b++) bucketSeries[b].push(null);
+                                }
+                                minSeries.push(v?.min ?? null);
+                                maxSeries.push(v?.max ?? null);
+                            }
+                            chartData = [
+                                timestamps,
+                                ...bucketSeries,
+                                minSeries,
+                                maxSeries,
+                            ];
+                        } else {
+                            chartData = [timestamps];
+                        }
+                    } else {
+                        chartData = [timestamps, ...series.map((s: any) => s.values)];
+                    }
+                    let seriesConfig;
+                    if (metric.descriptor.type === "HISTOGRAM") {
+                        // One series per bucket, plus min and max
+                        const s = series[0];
+                        if (s && Array.isArray(s.values) && s.values.length > 0) {
+                            const boundaries = s.values[0]?.buckets?.boundaries || [];
+                            seriesConfig = [
+                                ...boundaries.map((b: number, i: number) => ({
+                                    id: `bucket_${i}`,
+                                    label: `Bucket ${b}`,
+                                })),
+                                { id: "min", label: "Min", color: "#2e7d32" },
+                                { id: "max", label: "Max", color: "#c62828" },
+                            ];
+                        } else {
+                            seriesConfig = [];
+                        }
+                    } else {
+                        seriesConfig = series.map((s: any, i: number) => ({
+                            id: `series${i}`,
+                            label: s.attributes && Object.keys(s.attributes).length > 0
+                                ? Object.entries(s.attributes).map(([k, v]) => `${k.split(".").pop() || k}=${v}`).join(", ")
+                                : metricName,
+                        }));
+                    }
                     if (
                         prevCache[id] &&
                         isSeriesConfigEqual(prevCache[id].seriesConfig, seriesConfig)
@@ -113,13 +180,30 @@ export default function MetricsPage() {
                         };
                     } else {
                         // New or changed config
+                        const descriptorType = metric.descriptor.type;
+                        const descriptorUnit = metric.descriptor.unit || "ms";
+                        
+                        // For histograms, use first series data
+                        let histogramData = null;
+                        if (descriptorType === "HISTOGRAM" && series.length > 0) {
+                            const firstSeries = series[0];
+                            histogramData = {
+                                label: metricName,
+                                endTimes: firstSeries.endTimes,
+                                values: firstSeries.values,
+                                unit: descriptorUnit,
+                            };
+                        }
+                        
                         newCache[id] = {
                             id,
                             scopeName,
                             scopeVersion,
                             metricName,
+                            descriptorType,
                             chartData,
                             seriesConfig,
+                            histogramData,
                         };
                     }
                     newExpanded.push(id);
@@ -127,7 +211,7 @@ export default function MetricsPage() {
                 // Remove any IDs not present in new data
                 metricsCacheRef.current = newCache;
                 setExpandedPanels(newExpanded);
-                setMetricsCacheVersion(v => v + 1); // force rerender
+                // force rerender if needed
             } finally {
                 if (active && requestId === latestRequestIdRef.current) {
                     setLoading(false);
@@ -139,12 +223,15 @@ export default function MetricsPage() {
     }, [range, relativeOption, isRelative, fetchMetricsData]);
 
     // Changing the range always triggers fetch via useEffect
+    // Si relOption está presente, es un rango relativo (quick select), si no, es custom/drag
     const handleChangeRange = useCallback(
         (newFrom: number, newTo: number, relOption?: { label: string; value: number }) => {
             setRange({ from: newFrom, to: newTo });
             if (relOption) {
                 setRelativeOption(relOption);
+                // No tocar autorefresh, el usuario puede querer mantenerlo
             } else {
+                // Custom range: desactivar relativo y autorefresh
                 setRelativeOption(null);
                 setAutoRefreshOption(AUTOREFRESH_OPTIONS[0]); // Off
             }
@@ -159,7 +246,6 @@ export default function MetricsPage() {
     }, []);
 
     const handleMetricsReset = useCallback(() => {
-        setMetricsCacheVersion(v => v + 1);
         // Refetch with current range
         setRange(r => ({ ...r }));
     }, []);
@@ -175,25 +261,20 @@ export default function MetricsPage() {
                 <DashboardRangeSelectPanel
                     from={range.from}
                     to={range.to}
-                    onChangeRange={handleChangeRange}
-                    onManualRefresh={() => {
-                        let startMs = range.from;
-                        let endMs = range.to;
-                        if (isRelative && relativeOption?.value != null) {
-                            const now = Date.now();
-                            startMs = now - relativeOption.value;
-                            endMs = now;
-                            setRange({ from: startMs, to: endMs });
-                        } else {
-                            setRange(r => ({ ...r })); // force update
-                        }
-                    }}
                     relativeValue={relativeOption}
-                    autoRefresh={autoRefreshOption}
-                    setAutoRefresh={setAutoRefreshOption}
                     relativeOptions={RELATIVE_OPTIONS}
-                    autoRefreshOptions={AUTOREFRESH_OPTIONS}
+                    onSelectRelative={(opt) => {
+                        const now = Date.now();
+                        setRange({ from: now - opt.value, to: now });
+                        setRelativeOption(opt);
+                    }}
+                    onSelectAbsolute={(from, to) => {
+                        setRange({ from, to });
+                        setRelativeOption(null);
+                        setAutoRefreshOption(AUTOREFRESH_OPTIONS[0]); // Off
+                    }}
                 />
+
 
                 {loading && metricsList.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">Loading metrics...</div>
@@ -207,6 +288,7 @@ export default function MetricsPage() {
                             isOpen={expandedPanels.includes(metric.id)}
                             onToggle={() => handlePanelToggle(metric.id)}
                         >
+                            {/* Always use TimeSeriesChart. For HISTOGRAM, transform data first. */}
                             <TimeSeriesChart
                                 data={metric.chartData}
                                 seriesConfig={metric.seriesConfig}

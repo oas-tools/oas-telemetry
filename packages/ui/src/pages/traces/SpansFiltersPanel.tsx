@@ -17,6 +17,7 @@ interface Props {
   loading: boolean
   // eslint-disable-next-line no-unused-vars
   onFiltersChange: (query: any) => void
+  initialTraceId?: string
 }
 
 const TAB_NORMAL = "normal"
@@ -26,7 +27,9 @@ const SpansFiltersPanel: React.FC<Props> = ({
   uniqueEndpoints,
   loading,
   onFiltersChange,
+  initialTraceId = "",
 }) => {
+    const [traceIdInput, setTraceIdInput] = useState(initialTraceId)
   const [activeTab, setActiveTab] = useState<"normal" | "advanced">("normal")
   const [endpointFilter, setEndpointFilter] = useState<string[]>([])
   const [methodFilter, setMethodFilter] = useState<string[]>([])
@@ -92,6 +95,9 @@ const SpansFiltersPanel: React.FC<Props> = ({
           return
         }
       }
+      if (traceIdInput.trim().length > 0) {
+        query = { ...query, traceId: traceIdInput.trim() }
+      }
     }
     onFiltersChange(query)
   }
@@ -101,9 +107,18 @@ const SpansFiltersPanel: React.FC<Props> = ({
     setMethodFilter([])
     setStatusInput("")
     setUserInputQuery("")
+    setTraceIdInput("")
     setActiveTab(TAB_NORMAL)
     onFiltersChange({})
   }
+  // Autofocus and apply filter if initialTraceId is set
+  useEffect(() => {
+    if (initialTraceId) {
+      setTraceIdInput(initialTraceId)
+      handleApply()
+    }
+    // eslint-disable-next-line
+  }, [initialTraceId])
 
   return (
     <CollapsibleCard
@@ -148,7 +163,20 @@ const SpansFiltersPanel: React.FC<Props> = ({
                   disabled={loading || loadingEndpoints}
                 />
               </div>
-              <div className="flex-1 min-w-[160px] flex gap-4 flex-col sm:flex-row">
+                <div className="flex-1 min-w-[160px] flex gap-4 flex-col sm:flex-row">
+                                <div className="flex-1 min-w-[160px]">
+                                  <Label htmlFor="traceId" className="text-sm">
+                                    Trace ID
+                                  </Label>
+                                  <Input
+                                    id="traceId"
+                                    placeholder="Filter by Trace ID..."
+                                    value={traceIdInput}
+                                    onChange={(e) => setTraceIdInput(e.target.value)}
+                                    className="mt-1"
+                                    disabled={loading}
+                                  />
+                                </div>
                 <div className="flex-1">
                   <Label htmlFor="method" className="text-sm">
                     HTTP Method

@@ -22,7 +22,7 @@ export async function listConversations(req: Request, res: Response) {
 
 export async function getConversationHistory(req: Request, res: Response) {
     try {
-        const { conversationId } = req.params;
+        const conversationId = req.params.conversationId as string;
         const conversation = getAiService().getConversation(conversationId);
         if (!conversation) {
             res.status(404).json({ error: 'Not found' });
@@ -36,7 +36,7 @@ export async function getConversationHistory(req: Request, res: Response) {
 
 export async function deleteConversation(req: Request, res: Response) {
     try {
-        const { conversationId } = req.params;
+        const conversationId = req.params.conversationId as string;
         const deleted = getAiService().deleteConversation(conversationId);
         if (!deleted) {
             res.status(404).json({ error: 'Not found' });
@@ -50,7 +50,7 @@ export async function deleteConversation(req: Request, res: Response) {
 
 export async function sendMessage(req: Request, res: Response) {
     try {
-        const { conversationId } = req.params;
+        const conversationId = req.params.conversationId as string;
         const { content } = req.body;
         if (!content) {
             res.status(400).json({ error: 'Missing content' });

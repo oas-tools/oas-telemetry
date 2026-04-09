@@ -25,8 +25,7 @@ export const getUIRoutes = () => {
     // For development, the UI is served separately.
     router.use(express.static(staticFilesPath));
 
-    router.get('*', (_req, res) => {
-        // Serve the index.html file for all routes
+    router.use((_req, res) => {
         res.sendFile(path.join(staticFilesPath, 'index.html'));
     });
 

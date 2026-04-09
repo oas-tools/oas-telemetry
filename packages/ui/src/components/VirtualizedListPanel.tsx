@@ -28,14 +28,19 @@ export default function VirtualizedListPanel<T extends { _id: string }>({
   panelName,
 }: VirtualizedListPanelProps<T>) {
   const virtuosoRef = useRef<any>(null)
-  const isItemsBelowMinimum = useRef(true)
   const [firstItemIndex, setFirstItemIndex] = useState(100_000_000)
   const prevItemsRef = useRef<T[]>([])
   const [expanded, setExpanded] = useState(true)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const loadNewerItemsRef = useRef(loadNewerItems)
+  const isLoadingRef = useRef(false)
+
+  // Keep ref updated with latest loadNewerItems function
+  useEffect(() => {
+    loadNewerItemsRef.current = loadNewerItems
+  }, [loadNewerItems])
 
   useEffect(() => {
-    isItemsBelowMinimum.current = items.length <= ROWS_COUNT_THRESHOLD
-
     const prevItems = prevItemsRef.current
     let addedAtTop = 0
 
@@ -46,38 +51,39 @@ export default function VirtualizedListPanel<T extends { _id: string }>({
     ) {
       addedAtTop = items.length - prevItems.length
       setFirstItemIndex((prev) => prev - addedAtTop)
-      console.log(
-        `[${panelName}] ADDED AT TOP: prevItems.length=${prevItems.length} + addedAtTop=${addedAtTop} = items.length=${items.length}`,
-      )
     }
     prevItemsRef.current = items
   }, [items, panelName])
-
-  // Poll for new items every X seconds while below threshold
+  
+  // Poll for new items if:
+  // 1. Items < threshold (always poll) OR
+  // 2. Items >= threshold AND user is at bottom (like a chat)
   useEffect(() => {
-    if (items.length <= ROWS_COUNT_THRESHOLD) {
-      console.log(`[${panelName}] Starting poll - count <= threshold`)
+    const shouldPoll = items.length <= ROWS_COUNT_THRESHOLD || isAtBottom
+    
+    if (shouldPoll) {
       const interval = setInterval(() => {
-        console.log(`[${panelName}] Poll triggered`)
-        loadNewerItems()
+        if (!isLoadingRef.current) {
+          isLoadingRef.current = true
+          loadNewerItemsRef.current().finally(() => {
+            isLoadingRef.current = false
+          })
+        }
       }, POLL_INTERVAL)
 
       return () => clearInterval(interval)
     }
-  }, [items.length, loadNewerItems, panelName])
+  }, [items.length, isAtBottom, panelName])
 
   const handleStartReached = async () => {
-    console.log(`[${panelName}] Top reached`)
-    if (isItemsBelowMinimum.current) {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-    }
     await loadOlderItems()
   }
 
   const handleEndReached = async () => {
-    console.log(`[${panelName}] Bottom reached`)
-    if (isItemsBelowMinimum.current) {
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+    // Polling is active if: items < threshold OR user is at bottom
+    // Skip if polling is already handling it
+    if (items.length <= ROWS_COUNT_THRESHOLD || isAtBottom) {
+      return
     }
     await loadNewerItems()
   }
@@ -105,6 +111,7 @@ export default function VirtualizedListPanel<T extends { _id: string }>({
           itemContent={(_, item) => itemContent(_, item)}
           startReached={handleStartReached}
           endReached={handleEndReached}
+          atBottomStateChange={setIsAtBottom}
         />
       )}
     </CollapsibleCard>

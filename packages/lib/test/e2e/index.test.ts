@@ -23,17 +23,17 @@ const esmConfig: E2ETestConfig = {
 defineTracesApiTests(cjsConfig);
 defineTracesApiTests(esmConfig);
 
-// defineLogsApiTests(cjsConfig);
-// defineLogsApiTests(esmConfig);
+defineLogsApiTests(cjsConfig);
+defineLogsApiTests(esmConfig);
 
-// defineMetricsApiTests(cjsConfig);
-// defineMetricsApiTests(esmConfig);
+defineMetricsApiTests(cjsConfig);
+defineMetricsApiTests(esmConfig);
 
-// definePluginsApiTests(cjsConfig);
-// definePluginsApiTests(esmConfig);
+definePluginsApiTests(cjsConfig);
+definePluginsApiTests(esmConfig);
 
-// defineAuthApiTests(cjsConfig);
-// defineAuthApiTests(esmConfig);
+defineAuthApiTests(cjsConfig);
+defineAuthApiTests(esmConfig);
 
 export interface E2ETestConfig {
   label: string;
