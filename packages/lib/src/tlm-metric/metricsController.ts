@@ -1,27 +1,7 @@
 import { Request, Response } from 'express';
 import { inMemoryDbMetricExporter } from '../telemetry/telemetryRegistry.js';
-
-/**
- * Parse NDJSON import data
- * Each line must be a valid JSON object
- * @param body - Request body (raw string)
- * @returns Array of metric objects
- */
-function parseImportData(body: any): any[] {
-    if (typeof body !== 'string') {
-        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
-    }
-
-    const lines = body.split('\n').filter((line: string) => line.trim());
-    return lines.map((line: string, index: number) => {
-        try {
-            return JSON.parse(line);
-        } catch {
-            console.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
-            throw new Error(`Invalid JSON on line ${index + 1}`);
-        }
-    });
-}
+import { importMetricsToMemory, sanitizeMetricRecords } from './metricsService.js';
+import { gzipSync } from 'zlib';
 
 export const getMetricsStats = async (req: Request, res: Response) => {
     try {
@@ -50,20 +30,19 @@ export const insertMetricsToDb = async (req: Request, res: Response) => {
             return;
         }
 
+        const cleanedScopeMetrics = sanitizeMetricRecords(scopeMetricsData);
+
         let message = '';
+        importMetricsToMemory(cleanedScopeMetrics, { reset: resetData, format });
+
         if (resetData) {
-            inMemoryDbMetricExporter.reset();
             message += 'Metrics Database reset. ';
         }
 
-        // Store samples
-        if(format === 'otel') inMemoryDbMetricExporter.insertOtel(scopeMetricsData);
-        else inMemoryDbMetricExporter.insertRaw(scopeMetricsData);
-
-        message += `Inserted ${scopeMetricsData.length} scopeMetrics (format: ${format}).`;
+        message += `Inserted ${cleanedScopeMetrics.length} scopeMetrics (format: ${format}).`;
         res.send({ 
             message, 
-            scopeMetricsCount: scopeMetricsData.length,
+            scopeMetricsCount: cleanedScopeMetrics.length,
             format 
         });
     } catch (err: any) {
@@ -145,47 +124,36 @@ export const findMetrics = async (req: Request, res: Response) => {
     }
 };
 
-/**
- * Check data consistency between rawDataDB and queried data
- * Compares raw exports with findMetrics(format=otel) without filters
- */
-export const checkMetricsConsistency = async (req: Request, res: Response) => {
-    try {
-        // Get raw exported data
-        const rawData = inMemoryDbMetricExporter.rawDataDB;
-
-        // Query all data with OTEL format
-        const response = inMemoryDbMetricExporter.find({
-            format: 'otel'
-        });
-
-        const queriedData = response.results;
-
-        // Compare counts
-        const statusCheck = rawData.length === queriedData.length;
-
-        res.json({
-            statusCheck,
-            raw: rawData,
-            queried: queriedData
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to check metrics consistency' });
-    }
-};
-
 export const exportMetrics = (req: Request, res: Response) => {
     try {
-        const ndjsonData = inMemoryDbMetricExporter.exportToNDJSON();
+        const response = inMemoryDbMetricExporter.find({
+            format: 'raw'
+        });
+
+        const responseBody = {
+            format: 'raw',
+            scopeMetricsCount: response.results.length,
+            scopeMetrics: response.results,
+        };
+        const payload = JSON.stringify(responseBody);
+        const payloadSize = Buffer.byteLength(payload, 'utf-8');
+        const acceptsGzip = String(req.headers['accept-encoding'] || '').includes('gzip');
 
         const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
-        res.setHeader('Content-Type', 'application/x-ndjson');
-        res.setHeader('Content-Disposition', `attachment; filename="metrics-${timestamp}.ndjson"`);
-        res.setHeader('Transfer-Encoding', 'chunked');
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="metrics-${timestamp}.json"`);
+        res.setHeader('Vary', 'Accept-Encoding');
 
-        res.write(ndjsonData);
-        res.end();
+        if (acceptsGzip && payloadSize > 64 * 1024) {
+            const compressed = gzipSync(payload);
+            res.setHeader('Content-Encoding', 'gzip');
+            res.setHeader('Content-Length', compressed.length.toString());
+            res.end(compressed);
+            return;
+        }
+
+        res.setHeader('Content-Length', payloadSize.toString());
+        res.end(payload);
     } catch (err: any) {
         console.error('Failed to export metrics:', err);
         res.status(500).send({ error: 'Failed to export metrics', details: err.message });
@@ -194,51 +162,26 @@ export const exportMetrics = (req: Request, res: Response) => {
 
 export const importMetrics = async (req: Request, res: Response) => {
     const resetData = req.query.reset === 'true';
-    const format = (req.query.format || 'raw') as 'raw' | 'otel';
+    const body = req.body || {};
+    const format = (body.format || req.query.format || 'raw') as 'raw' | 'otel';
+    const importedScopeMetrics = Array.isArray(body) ? body : body.scopeMetrics;
 
     try {
-        const ndjsonContent = req.body;
-        
-        // Check if this is an exported NDJSON with headers (from our export function)
-        const firstLine = ndjsonContent.split('\n')[0];
-        let isExportedFormat = false;
-        try {
-            const firstObj = JSON.parse(firstLine);
-            isExportedFormat = firstObj.type === 'header';
-        } catch {
-            // Not a valid JSON line, continue with normal parsing
+        if (!Array.isArray(importedScopeMetrics)) {
+            res.status(400).send({ error: 'Invalid data format. Expected an array in request body or body.scopeMetrics.' });
+            return;
         }
+
+        const cleanedMetrics = sanitizeMetricRecords(importedScopeMetrics);
+        importMetricsToMemory(cleanedMetrics, { reset: resetData, format });
 
         let message = '';
         if (resetData) {
-            inMemoryDbMetricExporter.reset();
             message += 'Metrics Database reset. ';
         }
 
-        // If it's an exported format with headers/metadata, use direct NDJSON import
-        if (isExportedFormat) {
-            inMemoryDbMetricExporter.importFromNDJSON(ndjsonContent);
-            message += `Imported metrics from exported NDJSON format.`;
-            res.send({ message, format: 'exported-ndjson' });
-        } else {
-            // Otherwise parse as raw metrics (queryresults or OTEL format)
-            const metricsArray = parseImportData(ndjsonContent);
-
-            if (metricsArray.length === 0) {
-                res.status(400).send({ error: 'No valid metrics found in import data' });
-                return;
-            }
-
-            // Use the same insert logic as insertMetricsToDb, respecting raw vs otel format
-            if (format === 'otel') {
-                inMemoryDbMetricExporter.insertOtel(metricsArray);
-            } else {
-                inMemoryDbMetricExporter.insertRaw(metricsArray);
-            }
-
-            message += `Imported ${metricsArray.length} metrics (format: ${format}).`;
-            res.send({ message, ImportedMetricsCount: metricsArray.length, format });
-        }
+        message += `Imported ${cleanedMetrics.length} metrics (format: ${format}).`;
+        res.send({ message, ImportedMetricsCount: cleanedMetrics.length, format });
     } catch (err: any) {
         console.error('Import failed:', err);
         res.status(400).send({ error: 'Failed to import metrics', details: err.message });

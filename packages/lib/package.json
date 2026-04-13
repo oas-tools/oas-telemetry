@@ -1,6 +1,6 @@
 {
   "name": "@oas-tools/oas-telemetry",
-  "version": "0.8.0-alpha.0",
+  "version": "0.8.0-alpha.1",
   "description": "Automatically collects and stores telemetry data in memory using OpenTelemetry. Just import the Express middleware to access it through the built-in REST API or web UI—no extra setup required.",
   "author": "Manuel Otero",
   "contributors": [
@@ -71,8 +71,7 @@
     "jsonwebtoken": "^9.0.3",
     "lodash.merge": "^4.6.2",
     "minisearch": "^7.2.0",
-    "openai": "^6.34.0",
-    "uuid": "^13.0.0"
+    "openai": "^6.34.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

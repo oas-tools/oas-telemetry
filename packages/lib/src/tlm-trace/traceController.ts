@@ -1,51 +1,30 @@
 import { Request, Response } from 'express';
-import { InMemoryDbSpanExporter } from '../telemetry/custom-implementations/exporters/InMemoryDbSpanExporter.js';
 import { inMemoryDbSpanExporter } from '../telemetry/telemetryRegistry.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
+import { importTracesToMemory, sanitizeTraceRecords } from './traceService.js';
+import { gzipSync } from 'zlib';
 
-/**
- * Parse import data from NDJSON or JSON format
- * @param contentType - Content-Type header
- * @param body - Request body (string for NDJSON, object for JSON)
- * @returns Array of span objects
- */
-function parseImportData(body: any): any[] {
-    if (typeof body !== 'string') {
-        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
-    }
-
-    const lines = body.split('\n').filter((line: string) => line.trim());
-    return lines.map((line: string, index: number) => {
-        try {
-            return JSON.parse(line);
-        } catch {
-            console.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
-            throw new Error(`Invalid JSON on line ${index + 1}`);
-        }
-    });
-}
-
-export const startTraces = (req: Request, res: Response) => {
+export const startTraces = (_req: Request, res: Response) => {
     inMemoryDbSpanExporter.enable();
     res.send('Traces started');
 };
 
-export const stopTraces = (req: Request, res: Response) => {
+export const stopTraces = (_req: Request, res: Response) => {
     inMemoryDbSpanExporter.disable();
     res.send('Traces stopped');
 };
 
-export const statusTraces = (req: Request, res: Response) => {
+export const statusTraces = (_req: Request, res: Response) => {
     const isRunning = inMemoryDbSpanExporter.isEnabled() || false;
     res.send({ active: isRunning });
 };
 
-export const resetTraces = (req: Request, res: Response) => {
+export const resetTraces = (_req: Request, res: Response) => {
     inMemoryDbSpanExporter.reset();
     res.send('Traces reset');
 };
 
-export const listTraces = async (req: Request, res: Response) => {
+export const listTraces = async (_req: Request, res: Response) => {
     try {
         const spans = inMemoryDbSpanExporter.getFinishedSpans();
         res.send({ spansCount: spans.length, spans: spans });
@@ -96,28 +75,15 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
         return;
     }
 
-    const cleanedTraces = jsonContent.map((trace: any) => {
-         
-        const { _id, ...rest } = trace; // Remove _id if it exists
-        return rest; // Return the cleaned trace object
-    });
+    const cleanedTraces = sanitizeTraceRecords(jsonContent);
 
     try {
         let message = '';
+        await importTracesToMemory(cleanedTraces, { reset: resetData });
+
         if (resetData) {
-            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).reset();
             message += 'Traces Database reset. ';
         }
-
-        await new Promise((resolve, reject) => {
-            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).insert(cleanedTraces, (err: any, newDocs: any[]) => {
-                if (err) {
-                    console.error('Error inserting traces:', err);
-                    return reject(err);
-                }
-                resolve(newDocs);
-            });
-        });
 
         message += `Inserted ${cleanedTraces.length} traces.`;
         res.send({ message, InsertedTracesCount: cleanedTraces.length });
@@ -129,37 +95,23 @@ export const insertTracesToDb = async (req: Request, res: Response) => {
 
 export const importTraces = async (req: Request, res: Response) => {
     const resetData = req.query.reset === 'true';
+    const body = req.body || {};
+    const importedSpans = Array.isArray(body) ? body : body.spans;
 
     try {
-        // Parse NDJSON format
-        const spans = parseImportData(req.body);
-
-        if (spans.length === 0) {
-            res.status(400).send({ error: 'No valid traces found in import data' });
+        if (!Array.isArray(importedSpans)) {
+            res.status(400).send({ error: 'Invalid data format. Expected an array in request body or body.spans.' });
             return;
         }
 
-        const cleanedTraces = spans.map((trace: any) => {
-             
-            const { _id, ...rest } = trace; // Remove _id if it exists
-            return rest;
-        });
+        const cleanedTraces = sanitizeTraceRecords(importedSpans);
 
         let message = '';
+        await importTracesToMemory(cleanedTraces, { reset: resetData });
+
         if (resetData) {
-            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).reset();
             message += 'Traces Database reset. ';
         }
-
-        await new Promise((resolve, reject) => {
-            (inMemoryDbSpanExporter as InMemoryDbSpanExporter).insert(cleanedTraces, (err: any, newDocs: any[]) => {
-                if (err) {
-                    console.error('Error importing traces:', err);
-                    return reject(err);
-                }
-                resolve(newDocs);
-            });
-        });
 
         message += `Imported ${cleanedTraces.length} traces.`;
         res.send({ message, ImportedTracesCount: cleanedTraces.length });
@@ -180,7 +132,7 @@ export const setTraceRetentionTime = (req: Request, res: Response) => {
     res.send({ message: `Retention time set to ${retentionTimeInSeconds} seconds.` });
 };
 
-export const getTraceRetentionTime = (req: Request, res: Response) => {
+export const getTraceRetentionTime = (_req: Request, res: Response) => {
     const retentionTimeInSeconds = inMemoryDbSpanExporter.retentionTimeInSeconds || 0;
     res.send({ retentionTimeInSeconds: retentionTimeInSeconds });
 };
@@ -193,16 +145,26 @@ export const exportTraces = async (req: Request, res: Response) => {
         };
         const docs = await inMemoryDbSpanExporter.find(findConfig);
 
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
-        res.setHeader('Content-Type', 'application/x-ndjson');
-        res.setHeader('Content-Disposition', `attachment; filename="traces-${timestamp}.ndjson"`);
-        res.setHeader('Transfer-Encoding', 'chunked');
+        const responseBody = { spansCount: docs.length, spans: docs };
+        const payload = JSON.stringify(responseBody);
+        const payloadSize = Buffer.byteLength(payload, 'utf-8');
+        const acceptsGzip = String(req.headers['accept-encoding'] || '').includes('gzip');
 
-        // Stream as NDJSON (one JSON object per line)
-        docs.forEach(doc => {
-            res.write(JSON.stringify(doc) + '\n');
-        });
-        res.end();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="traces-${timestamp}.json"`);
+        res.setHeader('Vary', 'Accept-Encoding');
+
+        if (acceptsGzip && payloadSize > 64 * 1024) {
+            const compressed = gzipSync(payload);
+            res.setHeader('Content-Encoding', 'gzip');
+            res.setHeader('Content-Length', compressed.length.toString());
+            res.end(compressed);
+            return;
+        }
+
+        res.setHeader('Content-Length', payloadSize.toString());
+        res.end(payload);
     } catch (err: any) {
         console.error('Failed to export traces:', err);
         res.status(500).send({ error: 'Failed to export traces', details: err.message });

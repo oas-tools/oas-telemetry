@@ -44,6 +44,7 @@ export function TimeSeriesChart({
         if (!chartRef.current) return;
         if (uplotRef.current) return; // Already created
         const plugin = tooltipPlugin(seriesConfig, setTooltipData);
+        const timeGapRefiner = createTimeGapRefiner(1.6);
 
         const options: uPlot.Options = {
             width: chartRef.current.clientWidth,
@@ -102,11 +103,12 @@ export function TimeSeriesChart({
                         label: cfg.label,
                         stroke: color,
                         width: 2,
-                        spanGaps: true,
+                        spanGaps: false,
+                        gaps: timeGapRefiner,
                         paths: uPlot.paths.linear!(),
                         points: {
                             size: 8,
-                            width: 2,
+                            width: 5,
                         },
                     };
                 }),
@@ -209,6 +211,65 @@ export function TimeSeriesChart({
             <ChartTooltip data={tooltipData} plotWidth={plotWidth} plotHeight={plotHeight} />
         </div>
     );
+}
+
+function createTimeGapRefiner(gapMultiplier = 1.5) {
+    return (u: uPlot, seriesIdx: number, idx0: number, idx1: number, nullGaps: [number, number][]) => {
+        const xData = u.data[0] as number[];
+        const yData = u.data[seriesIdx] as Array<number | null | undefined>;
+
+        if (!Array.isArray(xData) || !Array.isArray(yData) || idx1 - idx0 < 2) {
+            return nullGaps;
+        }
+
+        const deltas: number[] = [];
+        let prevValidIdx: number | null = null;
+
+        for (let i = idx0; i <= idx1; i++) {
+            const y = yData[i];
+            if (typeof y !== "number" || !Number.isFinite(y)) continue;
+
+            if (prevValidIdx != null) {
+                const delta = xData[i] - xData[prevValidIdx];
+                if (delta > 0) deltas.push(delta);
+            }
+            prevValidIdx = i;
+        }
+
+        if (deltas.length === 0) return nullGaps;
+
+        const sorted = deltas.slice().sort((a, b) => a - b);
+        const medianDelta = sorted[Math.floor(sorted.length / 2)];
+        const threshold = medianDelta * gapMultiplier;
+        if (!Number.isFinite(threshold) || threshold <= 0) return nullGaps;
+
+        const extraGaps: [number, number][] = [];
+        prevValidIdx = null;
+
+        for (let i = idx0; i <= idx1; i++) {
+            const y = yData[i];
+            if (typeof y !== "number" || !Number.isFinite(y)) continue;
+
+            if (prevValidIdx != null) {
+                const delta = xData[i] - xData[prevValidIdx];
+                if (delta > threshold) {
+                    uPlot.addGap(
+                        extraGaps,
+                        Math.round(u.valToPos(xData[prevValidIdx], "x", true)),
+                        Math.round(u.valToPos(xData[i], "x", true))
+                    );
+                }
+            }
+
+            prevValidIdx = i;
+        }
+
+        if (extraGaps.length === 0) return nullGaps;
+
+        const merged = [...nullGaps, ...extraGaps];
+        merged.sort((a, b) => a[0] - b[0]);
+        return merged;
+    };
 }
 
 

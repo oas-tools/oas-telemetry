@@ -5,19 +5,16 @@ import logger from '../../../utils/logger.js';
 import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
-import { getStoragePath } from '../utils/storagePath.js';
 
 
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     private _spans: dataStore<Record<string, any>> | null = null;
     private _retentionTimeInSeconds: number;
-    private _storagePath: string | null = null;
     private _initialized = false;
 
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        this._storagePath = getStoragePath('traces');
         this._startCleanupJob();
     };
 
@@ -25,14 +22,9 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         if (this._initialized) return;
         this._initialized = true;
         
-        this._spans = new dataStore(this._storagePath ? { filename: this._storagePath, timestampData: true, autoload: true } : { timestampData: true });
+        this._spans = new dataStore({ timestampData: true });
         this._spans.ensureIndex({ fieldName: 'createdAt' });
-        
-        if (this._storagePath) {
-            logger.info(`[SpanExporter] Disk storage enabled at: ${this._storagePath}`);
-        } else {
-            logger.info(`[SpanExporter] Using in-memory storage`);
-        }
+        logger.info(`[SpanExporter] In-memory storage created`);
     }
 
     public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
@@ -86,7 +78,6 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
 
     reset() {
         this._ensureInitialized();
-        // Remove all spans from database but keep persistence enabled
         this._spans!.remove({}, { multi: true }, (err) => {
             if (err) {
                 logger.error(`[SpanExporter] Error during reset: ${err.message}`);

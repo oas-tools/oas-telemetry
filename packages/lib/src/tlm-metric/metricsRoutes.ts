@@ -1,4 +1,4 @@
-import { Router, text } from 'express';
+import { Router } from 'express';
 import {
     resetMetrics,
     insertMetricsToDb,
@@ -26,8 +26,7 @@ export const getMetricsRoutes = () => {
     
     // Export/Import
     router.get('/export', exportMetrics);
-    // Use text middleware for import to handle NDJSON format
-    router.post('/import', text({ type: 'application/x-ndjson', limit: '500mb' }), importMetrics);
+    router.post('/import', importMetrics);
 
     // Query endpoints
     router.post('/find', findMetrics);

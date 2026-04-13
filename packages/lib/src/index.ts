@@ -30,6 +30,4 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
     return router;
 }
 
-
 export { oasTelemetry };
-
