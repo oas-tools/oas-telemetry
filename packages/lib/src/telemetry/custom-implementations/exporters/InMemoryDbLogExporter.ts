@@ -26,15 +26,19 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         if (this._initialized) return;
         this._initialized = true;
         
-        this._db = new Datastore({ timestampData: true });
-        this._db.ensureIndex({ fieldName: 'createdAt' });
+        this._db = new Datastore();
+        this._db.ensureIndex({ fieldName: 'timestamp' });
         this._miniSearch = new MiniSearch({
             fields: ['body'],
             storeFields: ['_id'],
             idField: '_id',
         });
 
-        logger.info(`[LogExporter] In-memory storage created`);
+        logger.info(`[InMemoryDbLogExporter] In-memory storage created`);
+    }
+
+    public initializeStorage(): void {
+        this._ensureInitialized();
     }
     /*
     * SUPER WARNING:
@@ -76,9 +80,9 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         // Remove all logs from the in-memory database.
         this._db!.remove({}, { multi: true }, (err) => {
             if (err) {
-                logger.error(`[LogExporter] Error during reset: ${err.message}`);
+                logger.error(`[InMemoryDbLogExporter] Error during reset: ${err.message}`);
             } else {
-                logger.info(`[LogExporter] Reset - all logs cleared`);
+                logger.info(`[InMemoryDbLogExporter] Reset - all logs cleared`);
             }
         });
         // Clear mini search index
@@ -108,7 +112,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         if (messageSearch) {
             const searchResults = this._miniSearch!.search(messageSearch, { prefix: true, fuzzy: 0.2 });
             const ids: string[] = searchResults.map((result: any) => result._id as string);
-            logger.debug(`MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
+            logger.debug(`[InMemoryDbLogExporter] MiniSearch found ${ids.length} results for search term "${messageSearch}"`, { depth: 3 });
             finalQuery._id = { $in: ids };
         }
 
@@ -134,7 +138,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
             if (result.code === ExportResultCode.SUCCESS) {
                 this._db!.find({}, (err: any, docs: any[]) => {
                     if (err) {
-                        logger.debug(err);
+                        logger.debug('[InMemoryDbLogExporter] Error fetching inserted logs', err);
                         callback(err, []);
                         return;
                     }
@@ -177,7 +181,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
 
     public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        logger.info(`InMemoryDbLogExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
+        logger.info(`[InMemoryDbLogExporter] Retention time set to ${this._retentionTimeInSeconds} seconds`);
     }
 
     public get retentionTimeInSeconds(): number {
@@ -212,9 +216,9 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
                 { multi: true },
                 (err, numRemoved) => {
                     if (err) {
-                        logger.error('Error in TTL cleanup:', err);
+                        logger.error('[InMemoryDbLogExporter] Error in TTL cleanup:', err);
                     } else if (numRemoved > 0) {
-                        logger.debug(`TTL cleanup: removed ${numRemoved} expired logs`);
+                        logger.debug(`[InMemoryDbLogExporter] TTL cleanup removed ${numRemoved} expired logs`);
                     }
                 }
             );

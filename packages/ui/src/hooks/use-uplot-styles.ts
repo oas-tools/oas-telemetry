@@ -42,7 +42,7 @@ const uplotCustomStyles = `
 }
 
 .u-under {
- background: #00ffbf15 !important;
+ background: #6bd70011 !important;
  border: 1px solid #00ffbf40;
 }
 

@@ -34,7 +34,11 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     private _ensureInitialized(): void {
         if (this._initialized) return;
         this._initialized = true;
-        logger.info(`[MetricExporter] In-memory storage created`);
+        logger.info(`[InMemoryDbMetricExporter] In-memory storage created`);
+    }
+
+    public initializeStorage(): void {
+        this._ensureInitialized();
     }
 
     public get rawDataDB(): any[] {
@@ -73,10 +77,10 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
 
             setTimeout(() => resultCallback({ code: ExportResultCode.SUCCESS }), 0);
         } catch (error: any) {
-            logger.error('Error exporting metrics\n' + error.message + '\n' + error.stack);
+            logger.error('[InMemoryDbMetricExporter] Error exporting metrics\n' + error.message + '\n' + error.stack);
             return resultCallback({
                 code: ExportResultCode.FAILED,
-                error: new Error('Error exporting metrics\n' + error.message + '\n' + error.stack),
+                error: new Error('[InMemoryDbMetricExporter] Error exporting metrics\n' + error.message + '\n' + error.stack),
             });
         }
     }
@@ -91,7 +95,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     reset() {
         this._ensureInitialized();
         this.registry.reset();
-        logger.info(`[MetricExporter] Reset - all metrics cleared`);
+        logger.info(`[InMemoryDbMetricExporter] Reset - all metrics cleared`);
     }
 
     forceFlush() {
@@ -104,7 +108,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
 
     public set retentionTimeInSeconds(value: number) {
         this.config.retentionTimeInSeconds = value;
-        logger.info(`Retention time set to ${value} seconds`);
+        logger.info(`[InMemoryDbMetricExporter] Retention time set to ${value} seconds`);
     }
 
     public get retentionTimeInSeconds(): number {
@@ -122,7 +126,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
             const result = this.registry.evictOldData(retentionTimeNs);
 
             if (result.evictedChunks > 0 || result.evictedSeries > 0) {
-                logger.debug(`Cleanup: evicted ${result.evictedChunks} chunks, ${result.evictedSeries} series`);
+                logger.debug(`[InMemoryDbMetricExporter] Cleanup evicted ${result.evictedChunks} chunks, ${result.evictedSeries} series`);
             }
         }, 5000);
     }

@@ -20,8 +20,12 @@ import { importMetricsToMemory } from '../tlm-metric/metricsService.js';
 
 export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
     
-    logger.info("🚀 Configuring Telemetry...");
+    logger.info("[TelemetryConfigurator] Configuring telemetry...");
     configureStorage(oasTlmConfig);
+
+    inMemoryDbSpanExporter.initializeStorage();
+    inMemoryDbLogExporter.initializeStorage();
+    inMemoryDbMetricExporter.initializeStorage();
      
     if (oasTlmConfig.instrumentations) {
         instrumentations.push(...oasTlmConfig.instrumentations);
@@ -41,7 +45,7 @@ export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
         logRecordProcessors: [mainLogProcessor, ...oasTlmConfig.logs.extraProcessors || []],
     });
     sdk.start();
-    logger.info("✅ Node SDK started with telemetry configuration");
+    logger.info("[TelemetryConfigurator] Node SDK started with telemetry configuration");
 
     if (oasTlmConfig.storage.path && oasTlmConfig.storage.loadFromStart) {
         scheduleStartupImports(oasTlmConfig.storage.path);
@@ -72,7 +76,7 @@ function configureTraces(oasTlmConfig: OasTlmConfig) {
     mainExporter.clearExporters();
     let mainProcessor: SpanProcessor = new TraceBatchSpanProcessor(mainExporter);
     if (bootEnvVariables.OASTLM_BOOT_ENV !== 'production') {
-        logger.info('Not in production, using SimpleSpanProcessor for traces');
+        logger.info('[TelemetryConfigurator] Not in production, using SimpleSpanProcessor for traces');
         mainProcessor = new TraceSimpleSpanProcessor(mainExporter);
     }
     mainExporter.addExporters(inMemoryDbSpanExporter); // Main exporter have at least the in-memory exporter used by the traces controller
@@ -115,7 +119,7 @@ function configureLogs(oasTlmConfig: OasTlmConfig) {
     mainExporter.clearExporters();
     let mainProcessor: LogRecordProcessor = new LogBatchLogRecordProcessor(mainExporter);
     if (bootEnvVariables.OASTLM_BOOT_ENV !== 'production') {
-        logger.info('Not in production, using SimpleLogRecordProcessor for logs');
+        logger.info('[TelemetryConfigurator] Not in production, using SimpleLogRecordProcessor for logs');
         mainProcessor = new LogSimpleLogRecordProcessor(mainExporter);
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
@@ -171,15 +175,12 @@ async function runTimedImport(
     onBatch: (records: any[]) => Promise<void>
 ): Promise<void> {
     const startedAt = Date.now();
-    logger.info(`[${label}] Startup import started. Path: ${storagePath}`);
-
     try {
         const result = await importer.import(onBatch);
-        logger.info(`[${label}] Startup import completed. Files: ${result.segmentFilesRead}, imported records: ${result.importedRecords}, failed frames: ${result.failedFrames}`);
-    } catch (error: any) {
-        logger.error(`[${label}] Startup import failed: ${error?.message || error}`);
-    } finally {
         const elapsedMs = Date.now() - startedAt;
-        logger.info(`[${label}] Startup import finished in ${elapsedMs}ms`);
+        logger.info(`[${label}] Startup import finished in ${elapsedMs}ms. Files: ${result.segmentFilesRead}, imported records: ${result.importedRecords}, failed frames: ${result.failedFrames}`);
+    } catch (error: any) {
+        const elapsedMs = Date.now() - startedAt;
+        logger.error(`[${label}] Startup import finished in ${elapsedMs}ms with error: ${error?.message || error}`);
     }
 }
