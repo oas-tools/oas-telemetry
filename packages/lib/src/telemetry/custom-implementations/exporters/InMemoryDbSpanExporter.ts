@@ -21,15 +21,18 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     private _ensureInitialized(): void {
         if (this._initialized) return;
         this._initialized = true;
-        
-        this._spans = new dataStore({ timestampData: true });
-        this._spans.ensureIndex({ fieldName: 'createdAt' });
-        logger.info(`[SpanExporter] In-memory storage created`);
+        this._spans = new dataStore();
+        this._spans.ensureIndex({ fieldName: 'timestamp' });
+        logger.info(`[InMemoryDbSpanExporter] In-memory storage created`);
+    }
+
+    public initializeStorage(): void {
+        this._ensureInitialized();
     }
 
     public set retentionTimeInSeconds(retentionTimeInSeconds: number) {
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        logger.info(`InMemoryDbSpanExporter retention time set to ${this._retentionTimeInSeconds} seconds`);
+        logger.info(`[InMemoryDbSpanExporter] Retention time set to ${this._retentionTimeInSeconds} seconds`);
     }
 
     public get retentionTimeInSeconds(): number {
@@ -38,13 +41,13 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
 
     export(readableSpans: ReadableSpan[], resultCallback: (arg0: { code: ExportResultCode; error?: Error; }) => void) {
         this._ensureInitialized();
-        logger.debug('InMemoryDbSpanExporter.export called with spans: ', readableSpans.length);
+        logger.debug(`[InMemoryDbSpanExporter] Export called with spans: ${readableSpans.length}`);
         try {
             // Prepare spans to be inserted into the in-memory database (remove circular references and convert to nested objects)
             const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
-                .map(span => applyNesting(span)); // to avoid dot notation in keys (neDB does not support dot notation in keys)
-
+                .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
+                .map(span => addTimestampFromStartTime(span)); // Add a top-level timestamp field for easier querying/sorting
             cleanSpans.forEach(span => {
                 pluginService.broadcastTrace(span);
             });
@@ -54,7 +57,7 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
                 if (this._spans) {
                     this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
                         if (err) {
-                            logger.error(err);
+                            logger.error('[InMemoryDbSpanExporter] Error inserting spans', err);
                             return;
                         }
                     });
@@ -63,10 +66,10 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             return resultCallback({ code: ExportResultCode.SUCCESS });
 
         } catch (error: any) {
-            logger.error('Error exporting spans\n' + error.message + '\n' + error.stack);
+            logger.error('[InMemoryDbSpanExporter] Error exporting spans\n' + error.message + '\n' + error.stack);
             return resultCallback({
                 code: ExportResultCode.FAILED,
-                error: new Error('Error exporting spans\n' + error.message + '\n' + error.stack),
+                error: new Error('[InMemoryDbSpanExporter] Error exporting spans\n' + error.message + '\n' + error.stack),
             })
         }
     };
@@ -80,9 +83,9 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         this._ensureInitialized();
         this._spans!.remove({}, { multi: true }, (err) => {
             if (err) {
-                logger.error(`[SpanExporter] Error during reset: ${err.message}`);
+                logger.error(`[InMemoryDbSpanExporter] Error during reset: ${err.message}`);
             } else {
-                logger.info(`[SpanExporter] Reset - all spans cleared`);
+                logger.info(`[InMemoryDbSpanExporter] Reset - all spans cleared`);
             }
         });
     }
@@ -141,13 +144,13 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
 
             this._spans.remove(
-                { createdAt: { $lt: expirationDate } },
+                { timestamp: { $lt: expirationDate } },
                 { multi: true },
                 (err, numRemoved) => {
                     if (err) {
-                        logger.error('Error in TTL cleanup:', err);
+                        logger.error('[InMemoryDbSpanExporter] Error in TTL cleanup:', err);
                     } else if (numRemoved > 0) {
-                        logger.debug(`TTL cleanup: removed ${numRemoved} expired spans`);
+                        logger.debug(`[InMemoryDbSpanExporter] TTL cleanup removed ${numRemoved} expired spans`);
                     }
                 }
             );
@@ -156,3 +159,10 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
 
 }
 
+function addTimestampFromStartTime(span: any): any {
+    if (span.startTime) {
+        const [seconds, nanoseconds] = span.startTime;
+        span.timestamp = seconds * 1_000 + Math.floor(nanoseconds / 1_000_000);
+    }
+    return span;
+}
