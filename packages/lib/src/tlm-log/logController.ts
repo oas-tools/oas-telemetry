@@ -2,29 +2,8 @@ import { Request, Response } from 'express';
 import { inMemoryDbLogExporter } from '../telemetry/telemetryRegistry.js';
 import logger from '../utils/logger.js';
 import { convertRegexRecursively } from '../utils/regexUtils.js';
-import { logs } from '@opentelemetry/api-logs';
-
-/**
- * Parse NDJSON import data
- * Each line must be a valid JSON object
- * @param body - Request body (raw string)
- * @returns Array of log objects
- */
-function parseImportData(body: any): any[] {
-    if (typeof body !== 'string') {
-        throw new Error('Import must be NDJSON format (plain text with one JSON object per line)');
-    }
-
-    const lines = body.split('\n').filter((line: string) => line.trim());
-    return lines.map((line: string, index: number) => {
-        try {
-            return JSON.parse(line);
-        } catch (e) {
-            logger.error(`Failed to parse NDJSON line ${index + 1}: ${line}`);
-            throw new Error(`Invalid JSON on line ${index + 1}`);
-        }
-    });
-}
+import { importLogsToMemory, sanitizeLogRecords } from './logService.js';
+import { gzipSync } from 'zlib';
 
 export const findLogs = async (req: Request, res: Response) => {
     const body = req.body || {};
@@ -78,28 +57,15 @@ export const insertLogsToDb = async (req: Request, res: Response) => {
         return;
     }
 
-    const cleanedLogs = jsonContent.map((log: any) => {
-         
-        const { _id, ...rest } = log; // Remove _id if it exists
-        return rest; // Return the cleaned log object
-    });
+    const cleanedLogs = sanitizeLogRecords(jsonContent);
 
     try {
         let message = '';
+        await importLogsToMemory(cleanedLogs, { reset: resetData });
+
         if (resetData) {
-            inMemoryDbLogExporter.reset();
             message += 'Logs Database reset. ';
         }
-
-        await new Promise((resolve, reject) => {
-            inMemoryDbLogExporter.insert(cleanedLogs, (err: any, newDocs: any[]) => {
-                if (err) {
-                    logger.error('Error inserting logs:', err);
-                    return reject(err);
-                }
-                resolve(newDocs);
-            });
-        });
 
         message += `Inserted ${cleanedLogs.length} logs.`;
         res.send({ message, InsertedLogsCount: cleanedLogs.length });
@@ -111,36 +77,23 @@ export const insertLogsToDb = async (req: Request, res: Response) => {
 
 export const importLogs = async (req: Request, res: Response) => {
     const resetData = req.query.reset === 'true';
+    const body = req.body || {};
+    const importedLogs = Array.isArray(body) ? body : body.logs;
 
     try {
-        // Parse NDJSON format
-        const logs = parseImportData(req.body);
-
-        if (logs.length === 0) {
-            res.status(400).send({ error: 'No valid logs found in import data' });
+        if (!Array.isArray(importedLogs)) {
+            res.status(400).send({ error: 'Invalid data format. Expected an array in request body or body.logs.' });
             return;
         }
 
-        const cleanedLogs = logs.map((log: any) => {
-            const { _id, ...rest } = log; // Remove _id if it exists
-            return rest;
-        });
+        const cleanedLogs = sanitizeLogRecords(importedLogs);
 
         let message = '';
+        await importLogsToMemory(cleanedLogs, { reset: resetData });
+
         if (resetData) {
-            inMemoryDbLogExporter.reset();
             message += 'Logs Database reset. ';
         }
-
-        await new Promise((resolve, reject) => {
-            inMemoryDbLogExporter.insert(cleanedLogs, (err: any, newDocs: any[]) => {
-                if (err) {
-                    logger.error('Error importing logs:', err);
-                    return reject(err);
-                }
-                resolve(newDocs);
-            });
-        });
 
         message += `Imported ${cleanedLogs.length} logs.`;
         res.send({ message, ImportedLogsCount: cleanedLogs.length });
@@ -183,7 +136,6 @@ export const getLogRetentionTime = (req: Request, res: Response) => {
 
 export const exportLogs = async (req: Request, res: Response) => {
     try {
-        // Get ALL logs without practical limit
         const findConfig = {
             query: {},
             messageSearch: null,
@@ -191,16 +143,26 @@ export const exportLogs = async (req: Request, res: Response) => {
         };
         const docs = await inMemoryDbLogExporter.find(findConfig);
 
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
-        res.setHeader('Content-Type', 'application/x-ndjson');
-        res.setHeader('Content-Disposition', `attachment; filename="logs-${timestamp}.ndjson"`);
-        res.setHeader('Transfer-Encoding', 'chunked');
+        const responseBody = { logsCount: docs.length, logs: docs };
+        const payload = JSON.stringify(responseBody);
+        const payloadSize = Buffer.byteLength(payload, 'utf-8');
+        const acceptsGzip = String(req.headers['accept-encoding'] || '').includes('gzip');
 
-        // Stream as NDJSON (one JSON object per line)
-        docs.forEach(doc => {
-            res.write(JSON.stringify(doc) + '\n');
-        });
-        res.end();
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[-T:]/g, '');
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="logs-${timestamp}.json"`);
+        res.setHeader('Vary', 'Accept-Encoding');
+
+        if (acceptsGzip && payloadSize > 64 * 1024) {
+            const compressed = gzipSync(payload);
+            res.setHeader('Content-Encoding', 'gzip');
+            res.setHeader('Content-Length', compressed.length.toString());
+            res.end(compressed);
+            return;
+        }
+
+        res.setHeader('Content-Length', payloadSize.toString());
+        res.end(payload);
     } catch (err: any) {
         logger.error('Failed to export logs:', err);
         res.status(500).send({ error: 'Failed to export logs', details: err.message });

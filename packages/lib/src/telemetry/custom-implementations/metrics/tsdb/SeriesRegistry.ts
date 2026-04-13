@@ -24,6 +24,7 @@ scopeMetrics: {
 
 // Import fs at top level for disk operations
 import fs from 'fs';
+import logger from '../../../../utils/logger.js';
 
 export class SeriesRegistry {
 
@@ -253,7 +254,7 @@ export class SeriesRegistry {
     }
 
     /**
-     * Serialize registry to NDJSON format (newline-delimited JSON)
+     * Serialize registry to line-delimited JSON format (newline-delimited JSON)
      * Each line is a complete record: metadata, scope, metric, or data point
      * Format:
      *   {"type":"header","version":1,"timestamp":"...","stats":{...}}
@@ -261,9 +262,9 @@ export class SeriesRegistry {
      *   {"type":"metric","id":"...","data":{...}}
      *   {"type":"series","id":"...","labelSet":{...},"chunks":[...]}
      */
-    serializeToNDJSON(): string {
+    serializeToLineDelimitedJson(): string {
         const lines: string[] = [];
-        
+
         // Header
         lines.push(JSON.stringify({
             type: 'header',
@@ -294,7 +295,7 @@ export class SeriesRegistry {
         const serializedSeriesHeaders = new Set<string>();
         for (const [seriesId, series] of this.series.entries()) {
             const seriesPrivate = series as any;
-            
+
             // Emit series header once per series
             if (!serializedSeriesHeaders.has(seriesId)) {
                 lines.push(JSON.stringify({
@@ -305,13 +306,13 @@ export class SeriesRegistry {
                 }));
                 serializedSeriesHeaders.add(seriesId);
             }
-            
+
             (seriesPrivate.chunks || []).forEach((chunk: any, chunkIndex: number) => {
                 const slicedStartTimes = chunk.startTimes.slice(0, chunk.cursor);
                 const slicedEndTimes = chunk.endTimes.slice(0, chunk.cursor);
                 const slicedValues = chunk.values.slice(0, chunk.cursor);
                 const slicedHistograms = chunk.histograms.slice(0, chunk.cursor);
-                
+
                 lines.push(JSON.stringify({
                     type: 'chunk',
                     seriesId: seriesId,
@@ -341,34 +342,34 @@ export class SeriesRegistry {
     }
 
     /**
-     * Deserialize from NDJSON format - restore from chunk lines
+     * Deserialize from line-delimited JSON format - restore from chunk lines
      */
-    deserializeFromNDJSON(ndjsonData: string): void {
+    deserializeFromLineDelimitedJson(lineDelimitedJsonData: string): void {
         try {
-            const lines = ndjsonData.trim().split('\n');
-            
+            const lines = lineDelimitedJsonData.trim().split('\n');
+
             for (const line of lines) {
                 if (!line.trim()) continue;
-                
+
                 const record = JSON.parse(line);
-                
+
                 switch (record.type) {
                     case 'header':
                         // Just metadata
                         break;
-                        
+
                     case 'scope':
                         this.scopes.set(record.id, record.data as InstrumentationScope);
                         break;
-                        
+
                     case 'metric':
                         this.metricMetadataMap.set(record.id, record.data as MetricMetadata);
                         break;
-                        
+
                     case 'index':
                         this.metricIdIndex.set(record.id, new Set(record.seriesIds as string[]));
                         break;
-                        
+
                     case 'series': {
                         // Create series stub - will be populated by subsequent chunk lines
                         const metadata = this.metricMetadataMap.get(
@@ -385,7 +386,7 @@ export class SeriesRegistry {
                         }
                         break;
                     }
-                        
+
                     case 'chunk': {
                         // Restore chunk to series
                         const series = this.series.get(record.seriesId);
@@ -400,7 +401,7 @@ export class SeriesRegistry {
                             chunkPrivate.minEndTime = record.minEndTime;
                             chunkPrivate.maxEndTime = record.maxEndTime;
                             chunkPrivate.isHistogram = record.isHistogram;
-                            
+
                             const seriesPrivate = series as any;
                             seriesPrivate.chunks.push(chunk);
                         }
@@ -409,36 +410,39 @@ export class SeriesRegistry {
                 }
             }
         } catch {
-            // Silently fail if any parsing fails
+            logger.error(`Failed to deserialize metrics from line-delimited JSON`);
         }
     }
 
     /**
-     * Save registry to disk as NDJSON (one chunk per line)
+     * Save registry to disk as line-delimited JSON (one chunk per line)
      */
     saveToDisk(filePath: string): void {
         try {
-            const ndjsonData = this.serializeToNDJSON();
-            fs.writeFileSync(filePath, ndjsonData);
+            const lineDelimitedJsonData = this.serializeToLineDelimitedJson();
+            fs.writeFileSync(filePath, lineDelimitedJsonData);
         } catch {
-            // Silently fail - don't interrupt operations
+            logger.error(`Failed to save metrics to disk at ${filePath}`);
         }
     }
 
     /**
-     * Load registry from disk (NDJSON format)
+     * Load registry from disk (line-delimited JSON format)
      */
     loadFromDisk(filePath: string): void {
         try {
             if (!fs.existsSync(filePath)) {
                 return;
             }
-            const ndjsonData = fs.readFileSync(filePath, 'utf-8');
-            this.deserializeFromNDJSON(ndjsonData);
+            const lineDelimitedJsonData = fs.readFileSync(filePath, 'utf-8');
+            this.deserializeFromLineDelimitedJson(lineDelimitedJsonData);
         } catch {
-            // Silently fail during boot
+            logger.error(`Failed to load metrics from disk at ${filePath}`);
+            // Fallback to memory.
+            this.reset();
         }
     }
+
 }
 
 // Utility: Create deterministic ID from attributes

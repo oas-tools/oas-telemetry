@@ -1,4 +1,4 @@
-import { Router, text } from 'express';
+import { Router } from 'express';
 import {
     startLogs,
     stopLogs,
@@ -24,8 +24,7 @@ export const getLogRoutes = () => {
     router.get('/retention-time', getLogRetentionTime);
 
     router.get('/export', exportLogs);
-    // Use text middleware for import to handle NDJSON format
-    router.post('/import', text({ type: 'application/x-ndjson', limit: '500mb' }), importLogs);
+    router.post('/import', importLogs);
     router.get('/', findLogs);
     router.post('/', insertLogsToDb);
     router.post('/find', findLogs);

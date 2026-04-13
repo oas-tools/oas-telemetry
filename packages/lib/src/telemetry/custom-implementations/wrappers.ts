@@ -1,4 +1,4 @@
-import { ExportResult } from "@opentelemetry/core";
+import { ExportResult, ExportResultCode } from "@opentelemetry/core";
 import { LogRecordExporter, ReadableLogRecord } from "@opentelemetry/sdk-logs";
 import { AggregationOption, AggregationTemporality, CollectionResult, IMetricReader, InstrumentType, MetricProducer } from "@opentelemetry/sdk-metrics";
 import { CollectionOptions, ForceFlushOptions, ShutdownOptions } from "@opentelemetry/sdk-metrics/build/src/types.js";
@@ -116,14 +116,53 @@ abstract class EnablerMultiExporter<T> extends Enabler {
     }
   }
 
+  clearExporters(): void {
+    this._exporters = [];
+  }
+
 }
 
 export class EnablerMultiSpanExporter extends EnablerMultiExporter<SpanExporter> {
   export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
     logger.debug(`EnablerMultiSpanExporter.export called with ${spans.length} spans, exporters: ${this._exporters?.length ?? 0}, enabled: ${this.isEnabled()}`);
-    if (this.isEnabled() && this._exporters) {
-      this._exporters.forEach((exporter) => exporter.export(spans, resultCallback));
+    if (!this.isEnabled() || !this._exporters || this._exporters.length === 0) {
+      resultCallback({ code: ExportResultCode.SUCCESS });
+      return;
     }
+
+    let pending = this._exporters.length;
+    let failed = false;
+    let firstError: Error | undefined;
+
+    this._exporters.forEach((exporter) => {
+      try {
+        exporter.export(spans, (result: ExportResult) => {
+          if (result.code === ExportResultCode.FAILED) {
+            failed = true;
+            if (result.error && !firstError) {
+              firstError = result.error;
+            }
+          }
+
+          pending -= 1;
+          if (pending === 0) {
+            resultCallback(failed
+              ? { code: ExportResultCode.FAILED, error: firstError }
+              : { code: ExportResultCode.SUCCESS });
+          }
+        });
+      } catch (error: any) {
+        failed = true;
+        if (!firstError) {
+          firstError = error instanceof Error ? error : new Error(String(error));
+        }
+
+        pending -= 1;
+        if (pending === 0) {
+          resultCallback({ code: ExportResultCode.FAILED, error: firstError });
+        }
+      }
+    });
   }
 
   async shutdown(): Promise<void> {
@@ -136,9 +175,44 @@ export class EnablerMultiSpanExporter extends EnablerMultiExporter<SpanExporter>
 
 export class EnablerMultiLogExporter extends EnablerMultiExporter<LogRecordExporter> {
   export(logs: ReadableLogRecord[], resultCallback: (result: ExportResult) => void): void {
-    if (this.isEnabled() && this._exporters) {
-      this._exporters.forEach((exporter) => exporter.export(logs, resultCallback));
+    if (!this.isEnabled() || !this._exporters || this._exporters.length === 0) {
+      resultCallback({ code: ExportResultCode.SUCCESS });
+      return;
     }
+
+    let pending = this._exporters.length;
+    let failed = false;
+    let firstError: Error | undefined;
+
+    this._exporters.forEach((exporter) => {
+      try {
+        exporter.export(logs, (result: ExportResult) => {
+          if (result.code === ExportResultCode.FAILED) {
+            failed = true;
+            if (result.error && !firstError) {
+              firstError = result.error;
+            }
+          }
+
+          pending -= 1;
+          if (pending === 0) {
+            resultCallback(failed
+              ? { code: ExportResultCode.FAILED, error: firstError }
+              : { code: ExportResultCode.SUCCESS });
+          }
+        });
+      } catch (error: any) {
+        failed = true;
+        if (!firstError) {
+          firstError = error instanceof Error ? error : new Error(String(error));
+        }
+
+        pending -= 1;
+        if (pending === 0) {
+          resultCallback({ code: ExportResultCode.FAILED, error: firstError });
+        }
+      }
+    });
   }
 
   async shutdown(): Promise<void> {

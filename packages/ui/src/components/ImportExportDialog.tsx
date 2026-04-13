@@ -42,8 +42,8 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
   const [dragActive, setDragActive] = useState(false)
 
   const validateFile = (file: File): boolean => {
-    if (!file.name.endsWith(".ndjson")) {
-      toast.error("File must be .ndjson format")
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      toast.error("File must be .json format")
       return false
     }
     return true
@@ -122,14 +122,14 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {/* Export Tab */}
           <TabsContent value="export" className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-4">Download all {resourceType} as NDJSON file</p>
+              <p className="text-sm text-muted-foreground mb-4">Download all {resourceType} as JSON file</p>
               <Button
                 onClick={onDownload}
                 className="w-full"
                 disabled={!onDownload}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Download {resourceType}.ndjson
+                Download {resourceType}.json
               </Button>
             </div>
           </TabsContent>
@@ -137,13 +137,13 @@ const ImportExportDialog: React.FC<ImportExportDialogProps> = ({
           {/* Import Tab */}
           <TabsContent value="import" className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-4">Select NDJSON file (one JSON object per line)</p>
+              <p className="text-sm text-muted-foreground mb-4">Select JSON file</p>
 
               {/* Drop Zone */}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".ndjson,.txt"
+                accept=".json,application/json"
                 onChange={handleFileInputChange}
                 disabled={importing}
                 className="hidden"

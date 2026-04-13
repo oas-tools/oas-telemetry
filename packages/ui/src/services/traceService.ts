@@ -90,15 +90,14 @@ class TracesService {
     }
 
     async import(file: File, options: { reset: boolean }): Promise<void> {
-        const text = await file.text();
-        const baseUrl = backend.defaults.baseURL;
-        const importUrl = `${baseUrl}/traces/import?reset=${options.reset}`;
-        const response = await fetch(importUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-ndjson' },
-            body: text,
-        });
-        if (!response.ok) throw new Error(`Import failed: ${response.statusText}`);
+        const parsed = JSON.parse(await file.text());
+        const spans = Array.isArray(parsed) ? parsed : parsed?.spans;
+
+        if (!Array.isArray(spans)) {
+            throw new Error('Invalid JSON format. Expected an array or an object with a spans array.');
+        }
+
+        await backend.post(`/traces/import?reset=${options.reset}`, { spans });
     }
 }
 

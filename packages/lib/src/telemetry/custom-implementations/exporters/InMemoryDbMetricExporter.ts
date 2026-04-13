@@ -7,8 +7,6 @@ import { Resource } from '@opentelemetry/resources';
 import { rawToOtel } from '../metrics/tsdb/utils.js';
 import { SeriesRegistry } from '../metrics/tsdb/SeriesRegistry.js';
 import { FindMetricsRequest } from '../metrics/tsdb/types.js';
-import { getStoragePath } from '../utils/storagePath.js';
-import fs from 'fs';
 
 export interface ExporterConfig {
     retentionTimeInSeconds?: number;
@@ -31,9 +29,13 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     private readonly registry: SeriesRegistry;
     private readonly config: ExporterConfig;
     private cachedResource: Resource | null = null;
-    private _storageFilePath: string | null = null;
-    private _autoSaveInterval: NodeJS.Timeout | null = null;
-    private _storageLogged = false;  // Track if we've logged storage info
+    private _initialized = false;
+
+    private _ensureInitialized(): void {
+        if (this._initialized) return;
+        this._initialized = true;
+        logger.info(`[MetricExporter] In-memory storage created`);
+    }
 
     public get rawDataDB(): any[] {
         // For debug/inspection only - metrics are stored in registry chunks
@@ -45,61 +47,12 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         super();
         this.config = { ...InMemoryDbMetricExporter.DEFAULT_CONFIG, ...config };
         this.registry = new SeriesRegistry(this.config.chunkSize!, this.config.maxChunks!);
-        
-        // Load persisted metrics if disk storage is enabled
-        this._storageFilePath = getStoragePath('metrics');
-        if (this._storageFilePath) {
-            this._loadMetricsFromDisk();
-            this._startAutoSave();
-        }
-        
+
         this._startCleanupJob();
     }
 
-    private _loadMetricsFromDisk(): void {
-        if (!this._storageFilePath) return;
-        
-        try {
-            if (fs.existsSync(this._storageFilePath)) {
-                const ndjsonData = fs.readFileSync(this._storageFilePath, 'utf-8');
-                this.registry.deserializeFromNDJSON(ndjsonData);
-            }
-        } catch {
-            // Silently fail during boot
-        }
-    }
-
-    private _startAutoSave(): void {
-        if (!this._storageFilePath) return;
-        
-        // Save every 30 seconds
-        this._autoSaveInterval = setInterval(() => {
-            this._saveMetricsToDisk();
-        }, 30000);
-    }
-
-    private _saveMetricsToDisk(): void {
-        if (!this._storageFilePath) return;
-        
-        try {
-            const ndjsonData = this.registry.serializeToNDJSON();
-            fs.writeFileSync(this._storageFilePath, ndjsonData);
-        } catch {
-            // Silently fail to avoid logging issues
-        }
-    }
-
     export(resourceMetrics: ResourceMetrics, resultCallback: any) {
-        // Log storage info on first export (when logger is ready)
-        if (!this._storageLogged) {
-            this._storageLogged = true;
-            if (this._storageFilePath) {
-                logger.info(`[MetricExporter] Disk storage enabled at: ${this._storageFilePath} (auto-save every 30s)`);
-            } else {
-                logger.info(`[MetricExporter] Using in-memory storage`);
-            }
-        }
-
+        this._ensureInitialized();
         try {
             // Cache resource (unique per exporter instance)
             if (!this.cachedResource) {
@@ -130,31 +83,15 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
 
     shutdown() {
         this._enabled = false;
-        
-        // Stop auto-save and save one final time
-        if (this._autoSaveInterval) {
-            clearInterval(this._autoSaveInterval);
-            this._autoSaveInterval = null;
-        }
-        if (this._storageFilePath) {
-            this._saveMetricsToDisk();
-            logger.info(`[MetricExporter] Metrics saved to disk at shutdown`);
-        }
-        
+
         this.registry.reset();
         return this.forceFlush();
     }
 
     reset() {
-        // Clear metrics but save empty state to disk
+        this._ensureInitialized();
         this.registry.reset();
-        
-        if (this._storageFilePath) {
-            this._saveMetricsToDisk();
-            logger.info(`[MetricExporter] Reset - all metrics cleared and saved to disk`);
-        } else {
-            logger.info(`[MetricExporter] Reset - all metrics cleared`);
-        }
+        logger.info(`[MetricExporter] Reset - all metrics cleared`);
     }
 
     forceFlush() {
@@ -175,6 +112,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     }
 
     getStats() {
+        this._ensureInitialized();
         return this.registry.getStats();
     }
 
@@ -194,6 +132,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
      * Supports both raw and otel formats
      */
     find(request: FindMetricsRequest): { results: any[] } {
+        this._ensureInitialized();
         const format = request.format || 'raw';
 
         // Get raw results from registry using new unified query method
@@ -212,17 +151,17 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
     }
 
     /**
-     * Export all metrics to NDJSON format (one chunk per line)
+     * Export all metrics as line-delimited JSON (one chunk per line)
      */
-    exportToNDJSON(): string {
-        return this.registry.serializeToNDJSON();
+    exportToLineDelimitedJson(): string {
+        return this.registry.serializeToLineDelimitedJson();
     }
 
     /**
-     * Import metrics from NDJSON format
+     * Import metrics from line-delimited JSON format
      */
-    importFromNDJSON(ndjsonData: string): void {
-        this.registry.deserializeFromNDJSON(ndjsonData);
+    importFromLineDelimitedJson(lineDelimitedJsonData: string): void {
+        this.registry.deserializeFromLineDelimitedJson(lineDelimitedJsonData);
     }
 
     /**
@@ -230,6 +169,7 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
  * @param scopeMetrics Array of ScopeMetrics (OTEL format)
  */
     insertOtel(scopeMetrics: ScopeMetrics[]): void {
+        this._ensureInitialized();
         // Store only in registry (chunks) - no duplication
         if (this.isEnabled()) {
             this.registry.storeScopeMetrics(scopeMetrics);

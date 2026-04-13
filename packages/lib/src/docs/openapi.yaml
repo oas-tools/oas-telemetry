@@ -331,12 +331,12 @@ paths:
       tags:
         - traces
       summary: Export collected traces
-      description: Export all collected traces in NDJSON format
+      description: Export all collected traces in line-delimited JSON format
       responses:
         '200':
           description: Traces exported successfully
           content:
-            application/x-ndjson:
+            application/json:
               schema:
                 type: string
 
@@ -345,11 +345,11 @@ paths:
       tags:
         - traces
       summary: Import traces
-      description: Import traces from NDJSON format
+      description: Import traces from line-delimited JSON format
       requestBody:
         required: true
         content:
-          application/x-ndjson:
+          application/json:
             schema:
               type: string
       responses:
@@ -591,12 +591,12 @@ paths:
       tags:
         - metrics
       summary: Export collected metrics
-      description: Export all collected metrics in NDJSON format
+      description: Export all collected metrics in line-delimited JSON format
       responses:
         '200':
           description: Metrics exported successfully
           content:
-            application/x-ndjson:
+            application/json:
               schema:
                 type: string
 
@@ -605,11 +605,11 @@ paths:
       tags:
         - metrics
       summary: Import metrics
-      description: Import metrics from NDJSON format
+      description: Import metrics from line-delimited JSON format
       requestBody:
         required: true
         content:
-          application/x-ndjson:
+          application/json:
             schema:
               type: string
       responses:
@@ -789,12 +789,12 @@ paths:
       tags:
         - logs
       summary: Export collected logs
-      description: Export all collected logs in NDJSON format
+      description: Export all collected logs in line-delimited JSON format
       responses:
         '200':
           description: Logs exported successfully
           content:
-            application/x-ndjson:
+            application/json:
               schema:
                 type: string
 
@@ -803,11 +803,11 @@ paths:
       tags:
         - logs
       summary: Import logs
-      description: Import logs from NDJSON format
+      description: Import logs from line-delimited JSON format
       requestBody:
         required: true
         content:
-          application/x-ndjson:
+          application/json:
             schema:
               type: string
       responses:

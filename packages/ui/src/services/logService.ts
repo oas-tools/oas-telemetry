@@ -123,15 +123,14 @@ class LogsService {
   }
 
   async import(file: File, options: { reset: boolean }): Promise<void> {
-    const text = await file.text();
-    const baseUrl = backend.defaults.baseURL;
-    const importUrl = `${baseUrl}/logs/import?reset=${options.reset}`;
-    const response = await fetch(importUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-ndjson' },
-      body: text,
-    });
-    if (!response.ok) throw new Error(`Import failed: ${response.statusText}`);
+    const parsed = JSON.parse(await file.text());
+    const logs = Array.isArray(parsed) ? parsed : parsed?.logs;
+
+    if (!Array.isArray(logs)) {
+      throw new Error('Invalid JSON format. Expected an array or an object with a logs array.');
+    }
+
+    await backend.post(`/logs/import?reset=${options.reset}`, { logs });
   }
 }
 

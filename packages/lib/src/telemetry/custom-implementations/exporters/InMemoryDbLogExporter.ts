@@ -7,21 +7,18 @@ import { applyNesting, removeCircularRefs } from '../utils/circular.js';
 import { Enabler } from '../wrappers.js';
 import logger from '../../../utils/logger.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
-import { getStoragePath } from '../utils/storagePath.js';
 
 export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter {
 
     private _db: Datastore | null = null;
     private _miniSearch: MiniSearch | null = null;
     private _retentionTimeInSeconds: number;
-    private _storagePath: string | null = null;
     private _initialized = false;
 
 
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
         this._retentionTimeInSeconds = retentionTimeInSeconds;
-        this._storagePath = getStoragePath('logs');
         this._startCleanupJob();
     }
 
@@ -29,19 +26,15 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         if (this._initialized) return;
         this._initialized = true;
         
-        this._db = new Datastore(this._storagePath ? { filename: this._storagePath, timestampData: true, autoload: true } : { timestampData: true });
+        this._db = new Datastore({ timestampData: true });
         this._db.ensureIndex({ fieldName: 'createdAt' });
         this._miniSearch = new MiniSearch({
             fields: ['body'],
             storeFields: ['_id'],
             idField: '_id',
         });
-        
-        if (this._storagePath) {
-            logger.info(`[LogExporter] Disk storage enabled at: ${this._storagePath}`);
-        } else {
-            logger.info(`[LogExporter] Using in-memory storage`);
-        }
+
+        logger.info(`[LogExporter] In-memory storage created`);
     }
     /*
     * SUPER WARNING:
@@ -80,7 +73,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
 
     reset(): void {
         this._ensureInitialized();
-        // Remove all logs from database but keep persistence enabled
+        // Remove all logs from the in-memory database.
         this._db!.remove({}, { multi: true }, (err) => {
             if (err) {
                 logger.error(`[LogExporter] Error during reset: ${err.message}`);

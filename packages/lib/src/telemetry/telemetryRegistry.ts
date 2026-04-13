@@ -7,11 +7,6 @@ import { DynamicMultiLogRecordProcessor } from "./custom-implementations/process
 import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { bootEnvVariables } from "../config/bootConfig.js";
-import logger from '../utils/logger.js';
-import { metrics, trace } from '@opentelemetry/api';
-import { logs } from '@opentelemetry/api-logs';
-import { Meter, Tracer } from "@opentelemetry/api";
-import { Logger } from "@opentelemetry/api-logs";
 import { type Instrumentation } from "@opentelemetry/instrumentation";
 
 // GLOBAL REGISTRY of telemetry components, used by SDKs and controllers.
@@ -48,7 +43,7 @@ export const inMemoryDbLogExporter = new InMemoryDbLogExporter();
 
 export const multiLogExporter = new EnablerMultiLogExporter();
 
-export const dynamicMultiLogProcessor = new DynamicMultiLogRecordProcessor()
+export const dynamicMultiLogProcessor = new DynamicMultiLogRecordProcessor();
 
 // For custom log instrumentation, and lib logging
 export const originalConsoleMethods = {
