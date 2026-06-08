@@ -16,10 +16,6 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
             specFileName: getParsedEnvVar("OASTLM_CONFIG_GENERAL_SPEC_FILE_NAME"),
             // spec Not settable via env
         },
-        storage: {
-            path: getParsedEnvVar("OASTLM_CONFIG_STORAGE_PATH"),
-            loadFromStart: getParsedEnvVar("OASTLM_CONFIG_STORAGE_LOAD_FROM_START", (v) => v === "true"),
-        },
         auth: {
             enabled: getParsedEnvVar("OASTLM_CONFIG_AUTH_ENABLED", (v) => v === "true"),
             password: getParsedEnvVar("OASTLM_CONFIG_AUTH_PASSWORD"),
@@ -71,10 +67,6 @@ export const defaultConfig = {
         specFileName: null as string | null, // e.g. "oas.json" or null if not provided
         spec: null as string | null, // e.g. JSON.stringify(oasSpec) or null if not provided,
         uiPath: "/oas-telemetry-ui", // path to the UI, e.g. "/oas-telemetry-ui" WARN: This must match the UI package's App.tsx "oas-telemetry-ui" path
-    },
-    storage: {
-        path: null as string | null, // Optional disk persistence directory.
-        loadFromStart: true, // If true, import persisted telemetry into memory at startup.
     },
     auth: {
         enabled: false,
