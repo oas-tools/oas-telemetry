@@ -50,7 +50,7 @@ export function DashboardRangeSelectPanel({
             setAbsFrom(toInputValue(from));
             setAbsTo(toInputValue(to));
         }
-    }, [popoverOpen, from, to]);
+    }, [popoverOpen]);
 
     return (
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
@@ -70,7 +70,10 @@ export function DashboardRangeSelectPanel({
                                     variant={relativeValue?.value === opt.value ? "default" : "ghost"}
                                     size="sm"
                                     className="justify-start text-xs"
-                                    onClick={() => onSelectRelative(opt)}
+                                    onClick={() => {
+                                        onSelectRelative(opt);
+                                        setPopoverOpen(false);
+                                    }}
                                 >
                                     {opt.label}
                                 </Button>
@@ -120,6 +123,7 @@ export function DashboardRangeSelectPanel({
                                     }
                                     if (!isNaN(f) && !isNaN(t) && f < t) {
                                         onSelectAbsolute(f, t);
+                                        setPopoverOpen(false);
                                     }
                                 }}
                             >

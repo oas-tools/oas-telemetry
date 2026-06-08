@@ -136,7 +136,13 @@ const SpansFiltersPanel: React.FC<Props> = ({
         </>
       }
     >
-      <div className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleApply()
+        }}
+        className="space-y-4"
+      >
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "normal" | "advanced")}
@@ -254,7 +260,7 @@ const SpansFiltersPanel: React.FC<Props> = ({
         </Tabs>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
-            onClick={handleApply}
+            type="submit"
             disabled={loading}
             className="w-full sm:w-auto"
           >
@@ -264,6 +270,7 @@ const SpansFiltersPanel: React.FC<Props> = ({
             Apply and Update
           </Button>
           <Button
+            type="button"
             variant="outline"
             onClick={handleClear}
             className="w-full sm:w-auto bg-transparent"
@@ -272,7 +279,7 @@ const SpansFiltersPanel: React.FC<Props> = ({
             Clear
           </Button>
         </div>
-      </div>
+      </form>
     </CollapsibleCard>
   )
 }

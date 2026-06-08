@@ -24,16 +24,18 @@ export function getColorFromPalette(index: number): string {
 }
 
 /**
- * Format timestamp to time string
+ * Format timestamp to time string (HH:MM:SS)
  */
 export function formatTimeString(timestamp: number): string {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  const h = date.getHours();
+  const m = date.getMinutes();
+  const s = date.getSeconds();
+  return (
+    (h < 10 ? "0" : "") + h + ":" +
+    (m < 10 ? "0" : "") + m + ":" +
+    (s < 10 ? "0" : "") + s
+  );
 }
 
 /**
@@ -43,10 +45,10 @@ export function formatTimeString(timestamp: number): string {
 export function formatNumber(value: number): string {
   if (value === 0) return "0";
   if (!isFinite(value)) return "";
-  
+
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
-  
+
   if (abs >= 1e9) {
     return sign + (abs / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
   }
@@ -56,6 +58,6 @@ export function formatNumber(value: number): string {
   if (abs >= 1e3) {
     return sign + (abs / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
   }
-  
+
   return value.toFixed(0);
 }

@@ -183,7 +183,7 @@ export function PluginImport({ onPluginsImported }: PluginImportProps) {
       onPluginsImported?.()
 
       setTimeout(() => {
-        setOpen(false)
+        handleOpenChange(false)
       }, 2000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed")
@@ -312,7 +312,7 @@ export function PluginImport({ onPluginsImported }: PluginImportProps) {
               </ScrollArea>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+                <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
                   Cancel
                 </Button>
                 <Button onClick={handleImport} disabled={loading}>
