@@ -34,10 +34,18 @@ export interface FindSpansCriteria {
 class TracesService {
     async fetchTraces() {
         try {
-            const response = await backend.get(`/traces`);
+            const response = await backend.get(`/spans/exporters/in-memory-exporter/data`);
             return response.data;
         } catch (error) {
-            //
+            return null;
+        }
+    }
+
+    async fetchTraceById(traceId: string) {
+        try {
+            const response = await backend.get(`/traces/${traceId}`);
+            return response.data;
+        } catch (error) {
             return null;
         }
     }
@@ -51,41 +59,41 @@ class TracesService {
             patchedQuery["attributes.http.method"] = { $exists: true };
         }
 
-        const res = await backend.post("/traces/find", { query: patchedQuery, limit, sort });
+        const res = await backend.post("/spans/exporters/in-memory-exporter/data/find", { query: patchedQuery, limit, sort });
         const spans = res.data.spans || [];
         return { spans: spans.reverse() }; // Reverse to have Oldest at top, Newest at bottom
     }
 
     async getStatus(): Promise<TraceStatus> {
-        const res = await backend.get("/traces/status");
+        const res = await backend.get("/spans/exporters/in-memory-exporter/status");
         return { active: !!res.data.active };
     }
 
     async startCollection(): Promise<void> {
-        await backend.post("/traces/start");
+        await backend.post("/spans/exporters/in-memory-exporter/start");
     }
 
     async stopCollection(): Promise<void> {
-        await backend.post("/traces/stop");
+        await backend.post("/spans/exporters/in-memory-exporter/stop");
     }
 
     async resetTraces(): Promise<void> {
-        await backend.post("/traces/reset");
+        await backend.post("/spans/exporters/in-memory-exporter/reset");
     }
 
     async setRetentionTime(retentionTimeInSeconds: number): Promise<{ message: string }> {
-        const res = await backend.post("/traces/retention-time", { retentionTimeInSeconds });
+        const res = await backend.post("/spans/exporters/in-memory-exporter/retention-time", { retentionTimeInSeconds });
         return { message: res.data.message };
     }
 
     async getRetentionTime(): Promise<number> {
-        const res = await backend.get("/traces/retention-time");
+        const res = await backend.get("/spans/exporters/in-memory-exporter/retention-time");
         return res.data.retentionTimeInSeconds || 0;
     }
 
     download(): void {
         const baseUrl = backend.defaults.baseURL;
-        const downloadUrl = `${baseUrl}/traces/export`;
+        const downloadUrl = `${baseUrl}/spans/exporters/in-memory-exporter/export`;
         window.open(downloadUrl, '_blank');
     }
 
@@ -97,7 +105,7 @@ class TracesService {
             throw new Error('Invalid JSON format. Expected an array or an object with a spans array.');
         }
 
-        await backend.post(`/traces/import?reset=${options.reset}`, { spans });
+        await backend.post(`/spans/exporters/in-memory-exporter/import?reset=${options.reset}`, { spans });
     }
 }
 

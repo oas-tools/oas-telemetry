@@ -11,16 +11,18 @@ export function defineTracesApiTests(config: E2ETestConfig) {
     const { label, port, telemetryPath } = config;
     const baseUrl = `http://localhost:${port}`;
     const telemetryUrl = `${baseUrl}${telemetryPath}`;
+    const spansUrl = `${telemetryUrl}/spans`;
     const tracesUrl = `${telemetryUrl}/traces`;
-    const tracesStatusUrl = `${tracesUrl}/status`;
-    const tracesStartUrl = `${tracesUrl}/start`;
-    const tracesStopUrl = `${tracesUrl}/stop`;
-    const tracesResetUrl = `${tracesUrl}/reset`;
-    const findTracesUrl = `${tracesUrl}/find`;
+    const tracesStatusUrl = `${spansUrl}/exporters/in-memory-exporter/status`;
+    const tracesStartUrl = `${spansUrl}/exporters/in-memory-exporter/start`;
+    const tracesStopUrl = `${spansUrl}/exporters/in-memory-exporter/stop`;
+    const tracesResetUrl = `${spansUrl}/exporters/in-memory-exporter/reset`;
+    const findTracesUrl = `${spansUrl}/exporters/in-memory-exporter/data/find`;
     const petsUrl = `${baseUrl}/api/v1/pets`;
-    const tracesRetentionTimeUrl = `${tracesUrl}/retention-time`;
+    const tracesRetentionTimeUrl = `${spansUrl}/exporters/in-memory-exporter/retention-time`;
+    const spansDataUrl = `${spansUrl}/exporters/in-memory-exporter/data`;
 
-    describe(`Traces API Tests - ${label}`, () => {
+    describe(`Traces/Spans API Tests - ${label}`, () => {
         let serverProcess: ChildProcess | undefined;
 
         beforeAll(async () => {
@@ -89,7 +91,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
         it('[e2e][Traces:List][+] should store new traces when tracing is active', async () => {
             await axios.get(petsUrl).catch((err) => err.response);
 
-            const tracesResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const tracesResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             expect(tracesResponse.status).toBe(200);
             expect(Array.isArray(tracesResponse.data.spans)).toBe(true);
             expect(tracesResponse.data.spansCount).toBeGreaterThan(0);
@@ -101,7 +103,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
 
             await axios.get(petsUrl).catch((err) => err.response);
 
-            const tracesResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const tracesResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             console.log('Traces when inactive:', JSON.stringify(tracesResponse.data));
             expect(tracesResponse.status).toBe(200);
             expect(Array.isArray(tracesResponse.data.spans)).toBe(true);
@@ -112,7 +114,7 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             const resetResponse = await axios.post(tracesResetUrl).catch((err) => err.response);
             expect(resetResponse.status).toBe(200);
 
-            const tracesResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const tracesResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             expect(tracesResponse.status).toBe(200);
             console.log('Traces after reset:', JSON.stringify(tracesResponse.data));
             expect(tracesResponse.data.spansCount).toBe(0);
@@ -120,35 +122,35 @@ export function defineTracesApiTests(config: E2ETestConfig) {
         });
 
         it('[e2e][Traces:Insert][+] should insert traces without deleting existing data', async () => {
-            const initialResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const initialResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             expect(initialResponse.status).toBe(200);
             const initialCount = initialResponse.data.spansCount;
 
-            const insertResponse = await axios.post(tracesUrl, { spans: [{ id: "test-trace" }] }).catch((err) => err.response);
+            const insertResponse = await axios.post(spansDataUrl, { spans: [{ id: "test-trace" }] }).catch((err) => err.response);
             
             console.log('Insert response:', JSON.stringify(insertResponse.data));
 
             expect(insertResponse.status).toBe(200);
             expect(insertResponse.data.message).toContain("Inserted");
 
-            const afterInsertResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const afterInsertResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             expect(afterInsertResponse.status).toBe(200);
             expect(afterInsertResponse.data.spansCount).toBe(initialCount + 1);
         });
 
         it('[e2e][Traces:Insert][+] should insert traces and reset existing data', async () => {
-            const insertWithResetResponse = await axios.post(`${tracesUrl}?reset=true`, { spans: [{ id: "test-trace-reset" }] }).catch((err) => err.response);
+            const insertWithResetResponse = await axios.post(`${spansDataUrl}?reset=true`, { spans: [{ id: "test-trace-reset" }] }).catch((err) => err.response);
             expect(insertWithResetResponse.status).toBe(200);
             expect(insertWithResetResponse.data.message).toContain("Inserted");
 
-            const afterResetResponse = await axios.get<TracesResponse>(tracesUrl).catch((err) => err.response);
+            const afterResetResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
             console.log('Traces after reset:', JSON.stringify(afterResetResponse.data));
             expect(afterResetResponse.status).toBe(200);
             expect(afterResetResponse.data.spansCount).toBe(1);
         });
 
         it('[e2e][Traces:Insert][-] should not insert traces and return 400 for invalid data', async () => {
-            const response = await axios.post(tracesUrl, { spans: "invalid-data" }).catch((err) => err.response);
+            const response = await axios.post(spansDataUrl, { spans: "invalid-data" }).catch((err) => err.response);
             expect(response.status).toBe(400);
         });
 
@@ -198,6 +200,16 @@ export function defineTracesApiTests(config: E2ETestConfig) {
             const response = await axios.post(tracesRetentionTimeUrl, { retentionTimeInSeconds: -1 }).catch((err) => err.response);
             expect(response.status).toBe(400);
             expect(response.data.error).toBe('Invalid retention time. Must be a positive number.');
+        });
+
+        it('[e2e][Traces:GetTraceById][+] should return spans filtered by traceId', async () => {
+            const mockTraceId = "test-trace-id-123456";
+            await axios.post(spansDataUrl, { spans: [{ id: "span-1", traceId: mockTraceId }, { id: "span-2", traceId: "other-trace-id" }] }).catch((err) => err.response);
+
+            const response = await axios.get<TracesResponse>(`${tracesUrl}/${mockTraceId}`).catch((err) => err.response);
+            expect(response.status).toBe(200);
+            expect(response.data.spansCount).toBe(1);
+            expect(response.data.spans[0].traceId).toBe(mockTraceId);
         });
     });
 }

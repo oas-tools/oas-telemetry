@@ -173,33 +173,50 @@ You can access the telemetry UI at the endpoint `/oas-telemetry` (or at a custom
 
 ### Metrics Endpoints
 
-- `GET /metrics`: List all metrics.
-- `POST /metrics`: Insert metrics into the database.
-- `POST /metrics/find`: Search metrics.
-- `POST /metrics/start`: Start metrics data collection.
-- `POST /metrics/stop`: Stop metrics data collection.
-- `GET /metrics/status`: Get metrics status.
-- `POST /metrics/reset`: Reset metrics data.
+- `GET /metrics/exporters/in-memory-exporter/data`: List all metrics.
+- `POST /metrics/exporters/in-memory-exporter/data`: Insert metrics into the database.
+- `DELETE /metrics/exporters/in-memory-exporter/data`: Reset metrics data.
+- `POST /metrics/exporters/in-memory-exporter/data/find`: Search metrics.
+- `POST /metrics/exporters/in-memory-exporter/start`: Start metrics data collection.
+- `POST /metrics/exporters/in-memory-exporter/stop`: Stop metrics data collection.
+- `GET /metrics/exporters/in-memory-exporter/status`: Get metrics status.
+- `POST /metrics/exporters/in-memory-exporter/reset`: Reset metrics data.
+- `GET /metrics/exporters/in-memory-exporter/retention-time`: Get metrics retention time.
+- `POST /metrics/exporters/in-memory-exporter/retention-time`: Set metrics retention time.
+- `GET /metrics/exporters/in-memory-exporter/export`: Export metrics data.
+- `POST /metrics/exporters/in-memory-exporter/import`: Import metrics data.
+- `GET /metrics/stats`: Get metrics statistics.
 
 ### Logs Endpoints
 
-- `GET /logs`: List all logs.
-- `POST /logs`: Insert logs into the database.
-- `POST /logs/find`: Search logs.
-- `POST /logs/start`: Start logs data collection.
-- `POST /logs/stop`: Stop logs data collection.
-- `GET /logs/status`: Get logs status.
-- `POST /logs/reset`: Reset logs data.
+- `GET /logs/exporters/in-memory-exporter/data`: List all logs.
+- `POST /logs/exporters/in-memory-exporter/data`: Insert logs into the database.
+- `DELETE /logs/exporters/in-memory-exporter/data`: Reset logs data.
+- `POST /logs/exporters/in-memory-exporter/data/find`: Search logs.
+- `POST /logs/exporters/in-memory-exporter/start`: Start logs data collection.
+- `POST /logs/exporters/in-memory-exporter/stop`: Stop logs data collection.
+- `GET /logs/exporters/in-memory-exporter/status`: Get logs status.
+- `POST /logs/exporters/in-memory-exporter/reset`: Reset logs data.
+- `GET /logs/exporters/in-memory-exporter/retention-time`: Get logs retention time.
+- `POST /logs/exporters/in-memory-exporter/retention-time`: Set logs retention time.
+- `GET /logs/exporters/in-memory-exporter/export`: Export logs data.
+- `POST /logs/exporters/in-memory-exporter/import`: Import logs data.
 
-### Traces Endpoints
+### Traces/Spans Endpoints
 
-- `GET /traces`: List all traces.
-- `POST /traces`: Insert traces into the database.
-- `POST /traces/find`: Search traces.
-- `POST /traces/start`: Start traces data collection.
-- `POST /traces/stop`: Stop traces data collection.
-- `GET /traces/status`: Get traces status.
-- `POST /traces/reset`: Reset traces data.
+- `GET /spans/exporters/in-memory-exporter/data`: List all spans.
+- `POST /spans/exporters/in-memory-exporter/data`: Insert spans into the database.
+- `DELETE /spans/exporters/in-memory-exporter/data`: Reset spans data.
+- `POST /spans/exporters/in-memory-exporter/data/find`: Search spans.
+- `POST /spans/exporters/in-memory-exporter/start`: Start spans data collection.
+- `POST /spans/exporters/in-memory-exporter/stop`: Stop spans data collection.
+- `GET /spans/exporters/in-memory-exporter/status`: Get spans status.
+- `POST /spans/exporters/in-memory-exporter/reset`: Reset spans data.
+- `GET /spans/exporters/in-memory-exporter/retention-time`: Get spans retention time.
+- `POST /spans/exporters/in-memory-exporter/retention-time`: Set spans retention time.
+- `GET /spans/exporters/in-memory-exporter/export`: Export spans data.
+- `POST /spans/exporters/in-memory-exporter/import`: Import spans data.
+- `GET /traces/:traceId`: Get spans filtered by trace ID.
 
 ### AI Endpoints
 
@@ -237,13 +254,13 @@ This flexibility makes it easy to incorporate a wide variety of plugins in your 
 
 ## Accessing Telemetry Data
 
-Using OAS Telemetry, you can access telemetry data through the UI (WIP), the `/telemetry/traces` endpoint, or the `/telemetry/traces/find` endpoint with a POST request using a MongoDB search syntax.
+Using OAS Telemetry, you can access telemetry data through the UI (WIP), the `/telemetry/spans/exporters/in-memory-exporter/data` endpoint, or the `/telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with a POST request using a MongoDB search syntax.
 
 Note: if authentication is enabled, you must provide the correct credentials to access the telemetry data.
 
 ### Search Example
 
-To perform a simple search, send a POST request to the `/telemetry/traces/find` endpoint with the following JSON payload:
+To perform a simple search, send a POST request to the `/telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with the following JSON payload:
 
 ```json
 {
@@ -302,7 +319,7 @@ To run these examples, follow these steps:
     ```sh
     node index.js
     ```
-6. Go to `/telemetry` (currently UI, is a placeholder except for the AI chat, we are migrating to a component based UI, but you can use the API like GET: `/telemetry/logs` `/telemetry/traces` `/telemetry/traces`)
+6. Go to `/telemetry` (currently UI, is a placeholder except for the AI chat, we are migrating to a component based UI, but you can use the API like GET: `/telemetry/logs/exporters/in-memory-exporter/data` `/telemetry/spans/exporters/in-memory-exporter/data` `/telemetry/traces/:traceId`)
 
 Your project folder should now contain the necessary files to run the example with **OAS Telemetry** integrated.
 

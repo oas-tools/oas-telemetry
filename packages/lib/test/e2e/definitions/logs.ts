@@ -12,13 +12,14 @@ export function defineLogsApiTests(config: E2ETestConfig) {
     const baseUrl = `http://localhost:${port}`;
     const telemetryUrl = `${baseUrl}${telemetryPath}`;
     const logsUrl = `${telemetryUrl}/logs`;
-    const logsStatusUrl = `${logsUrl}/status`;
-    const logsStartUrl = `${logsUrl}/start`;
-    const logsStopUrl = `${logsUrl}/stop`;
-    const logsResetUrl = `${logsUrl}/reset`;
+    const logsStatusUrl = `${logsUrl}/exporters/in-memory-exporter/status`;
+    const logsStartUrl = `${logsUrl}/exporters/in-memory-exporter/start`;
+    const logsStopUrl = `${logsUrl}/exporters/in-memory-exporter/stop`;
+    const logsResetUrl = `${logsUrl}/exporters/in-memory-exporter/reset`;
     const generateLogUrl = `${telemetryUrl}/utils/generate-log`;
-    const findLogsUrl = `${logsUrl}/find`;
-    const logsRetentionTimeUrl = `${logsUrl}/retention-time`;
+    const findLogsUrl = `${logsUrl}/exporters/in-memory-exporter/data/find`;
+    const logsRetentionTimeUrl = `${logsUrl}/exporters/in-memory-exporter/retention-time`;
+    const logsDataUrl = `${logsUrl}/exporters/in-memory-exporter/data`;
 
     describe(`Logs API Tests - ${label}`, () => {
         let serverProcess: ChildProcess | undefined;
@@ -129,7 +130,7 @@ export function defineLogsApiTests(config: E2ETestConfig) {
             expect(initialResponse.status).toBe(200);
             const initialCount = initialResponse.data.logs.length;
 
-            const insertResponse = await axios.post(logsUrl, { logs: [{ id: "test-log" }] }).catch((err) => err.response);
+            const insertResponse = await axios.post(logsDataUrl, { logs: [{ id: "test-log" }] }).catch((err) => err.response);
             expect(insertResponse.status).toBe(200);
             expect(insertResponse.data.message).toContain("Inserted");
 

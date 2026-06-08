@@ -23,12 +23,13 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
     const baseUrl = `http://localhost:${port}`;
     const telemetryUrl = `${baseUrl}${telemetryPath}`;
     const metricsUrl = `${telemetryUrl}/metrics`;
-    const metricsFindUrl = `${metricsUrl}/find`;
-    const metricsStatusUrl = `${metricsUrl}/status`;
-    const metricsStartUrl = `${metricsUrl}/start`;
-    const metricsStopUrl = `${metricsUrl}/stop`;
-    const metricsResetUrl = `${metricsUrl}/reset`;
-    const metricsRetentionTimeUrl = `${metricsUrl}/retention-time`;
+    const metricsFindUrl = `${metricsUrl}/exporters/in-memory-exporter/data/find`;
+    const metricsStatusUrl = `${metricsUrl}/exporters/in-memory-exporter/status`;
+    const metricsStartUrl = `${metricsUrl}/exporters/in-memory-exporter/start`;
+    const metricsStopUrl = `${metricsUrl}/exporters/in-memory-exporter/stop`;
+    const metricsResetUrl = `${metricsUrl}/exporters/in-memory-exporter/reset`;
+    const metricsRetentionTimeUrl = `${metricsUrl}/exporters/in-memory-exporter/retention-time`;
+    const metricsDataUrl = `${metricsUrl}/exporters/in-memory-exporter/data`;
 
     describe(`Metrics API Tests - ${label}`, () => {
         let serverProcess: ChildProcess | undefined;
@@ -99,7 +100,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
 
         it('[e2e][Metrics:List][+][!] should store new metrics when metrics is active', async () => {
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(0);
             }, { timeout: 3000, interval: 100 });
@@ -113,7 +114,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
             expect(resetResponse.status).toBe(200);
 
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBe(0);
             }, { timeout: 3000, interval: 100 });
@@ -124,7 +125,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
             expect(resetResponse.status).toBe(200);
 
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(0);
             }, { timeout: 3000, interval: 100 });
@@ -132,14 +133,14 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
             const resetResponse2 = await axios.post(metricsResetUrl).catch((err) => err.response);
             expect(resetResponse2.status).toBe(200);
 
-            const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+            const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
             expect(metricsResponse.status).toBe(200);
             expect(metricsResponse.data.scopeMetricsCount).toBeLessThan(50);
             expect(metricsResponse.data.scopeMetrics.length).toBeLessThan(50);
         });
 
         it('[e2e][Metrics:Insert][+][!] should insert metrics without deleting existing data', async () => {
-            const initialResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+            const initialResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
             expect(initialResponse.status).toBe(200);
             const initialCount = initialResponse.data.scopeMetricsCount;
 
@@ -157,11 +158,11 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
                     }]
                 }]
             }];
-            const insertResponse = await axios.post(metricsUrl, { scopeMetrics: metricsToInsert, format: 'otel' }).catch((err) => err.response);
+             const insertResponse = await axios.post(metricsDataUrl, { scopeMetrics: metricsToInsert, format: 'otel' }).catch((err) => err.response);
             expect(insertResponse.status).toBe(200);
             expect(insertResponse.data.message).toContain("Inserted");
 
-            const afterInsertResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+            const afterInsertResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
             expect(afterInsertResponse.status).toBe(200);
             expect(afterInsertResponse.data.scopeMetricsCount).toBeGreaterThanOrEqual(initialCount + 1);
         });
@@ -176,7 +177,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
                     dataPoints: [{ attributes: {}, startTime: [0, 0], endTime: [0, 0], value: 1 }]
                 }]
             }];
-            const insert1Response = await axios.post(metricsUrl, { scopeMetrics: metrics1, format: 'otel' }).catch((err) => err.response);
+            const insert1Response = await axios.post(metricsDataUrl, { scopeMetrics: metrics1, format: 'otel' }).catch((err) => err.response);
             expect(insert1Response.status).toBe(200);
 
             // Insert second batch with reset
@@ -188,17 +189,17 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
                     dataPoints: [{ attributes: {}, startTime: [0, 0], endTime: [0, 0], value: 2 }]
                 }]
             }];
-            const insertWithResetResponse = await axios.post(`${metricsUrl}?reset=true`, { scopeMetrics: metrics2, format: 'otel' }).catch((err) => err.response);
+            const insertWithResetResponse = await axios.post(`${metricsDataUrl}?reset=true`, { scopeMetrics: metrics2, format: 'otel' }).catch((err) => err.response);
             expect(insertWithResetResponse.status).toBe(200);
             expect(insertWithResetResponse.data.message).toContain("Inserted");
 
-            const afterResetResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+            const afterResetResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
             expect(afterResetResponse.status).toBe(200);
             expect(afterResetResponse.data.scopeMetricsCount).toBeGreaterThan(0);
         });
 
         it('[e2e][Metrics:Insert][-] should not insert metrics and return 400 for invalid data', async () => {
-            const response = await axios.post(metricsUrl, { scopeMetrics: "invalid-data" }).catch((err) => err.response);
+            const response = await axios.post(metricsDataUrl, { scopeMetrics: "invalid-data" }).catch((err) => err.response);
             expect(response.status).toBe(400);
         });
 
@@ -223,7 +224,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
         it('[e2e][Metrics:MetricKeys][+] should filter metrics by metricKeys parameter', async () => {
             // First, ensure we have some metrics by waiting
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(0);
             }, { timeout: 3000, interval: 100 });
@@ -260,7 +261,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
 
         it('[e2e][Metrics:MetricKeys][+] should return all metrics when metricKeys is empty', async () => {
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(0);
             }, { timeout: 3000, interval: 100 });
@@ -276,7 +277,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
 
         it('[e2e][Metrics:TimeFilter][+] should filter samples by time range', async () => {
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(0);
             }, { timeout: 3000, interval: 100 });
@@ -319,7 +320,7 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
 
         it('[e2e][Metrics:MetricKeys][+] should return only requested metric even with multiple available', async () => {
             await retry(async () => {
-                const metricsResponse = await axios.get<MetricsResponse>(metricsUrl).catch((err) => err.response);
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
                 expect(metricsResponse.status).toBe(200);
                 expect(metricsResponse.data.scopeMetricsCount).toBeGreaterThan(1);
             }, { timeout: 3000, interval: 100 });

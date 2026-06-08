@@ -2,6 +2,7 @@ import { Router, json } from "express";
 import logger from "./utils/logger.js";
 import cors from 'cors';
 import { getTraceRoutes } from "./tlm-trace/traceRoutes.js";
+import { getSpansRoutes } from "./tlm-trace/spansRoutes.js";
 import { getMetricsRoutes } from "./tlm-metric/metricsRoutes.js";
 import { getLogRoutes } from "./tlm-log/logRoutes.js";
 import cookieParser from 'cookie-parser';
@@ -58,6 +59,7 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
     telemetryRouter.use('/auth', getAuthRoutes(oasTlmConfig));
     telemetryRouter.use(getAuthMiddleware(oasTlmConfig));
 
+    telemetryRouter.use("/spans", getSpansRoutes());
     telemetryRouter.use("/traces", getTraceRoutes());
     telemetryRouter.use("/metrics", getMetricsRoutes());
     telemetryRouter.use("/logs", getLogRoutes());

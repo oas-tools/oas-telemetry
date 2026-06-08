@@ -77,7 +77,7 @@ class MetricsService {
       to: criteria.to,
       format: criteria.format || "raw"
     };
-    const res = await backend.post("/metrics/find", body);
+    const res = await backend.post("/metrics/exporters/in-memory-exporter/data/find", body);
     return res.data;
   }
 
@@ -92,35 +92,35 @@ class MetricsService {
   }
 
   async startCollection(): Promise<void> {
-    await backend.post("/metrics/start");
+    await backend.post("/metrics/exporters/in-memory-exporter/start");
   }
 
   async stopCollection(): Promise<void> {
-    await backend.post("/metrics/stop");
+    await backend.post("/metrics/exporters/in-memory-exporter/stop");
   }
 
   async getStatus() {
-    const res = await backend.get("/metrics/status");
+    const res = await backend.get("/metrics/exporters/in-memory-exporter/status");
     return { active: !!res.data.active };
   }
 
   async resetMetrics(): Promise<void> {
-    await backend.post("/metrics/reset");
+    await backend.post("/metrics/exporters/in-memory-exporter/reset");
   }
 
   async setRetentionTime(retentionTimeInSeconds: number) {
-    const res = await backend.post("/metrics/retention-time", { retentionTimeInSeconds });
+    const res = await backend.post("/metrics/exporters/in-memory-exporter/retention-time", { retentionTimeInSeconds });
     return { message: res.data.message };
   }
 
   async getRetentionTime(): Promise<number> {
-    const res = await backend.get("/metrics/retention-time");
+    const res = await backend.get("/metrics/exporters/in-memory-exporter/retention-time");
     return res.data.retentionTimeInSeconds || 0;
   }
 
   download(): void {
     const baseUrl = backend.defaults.baseURL;
-    const downloadUrl = `${baseUrl}/metrics/export`;
+    const downloadUrl = `${baseUrl}/metrics/exporters/in-memory-exporter/export`;
     window.open(downloadUrl, '_blank');
   }
 
@@ -133,7 +133,7 @@ class MetricsService {
       throw new Error('Invalid JSON format. Expected an array or an object with a scopeMetrics array.');
     }
 
-    await backend.post(`/metrics/import?reset=${options.reset}`, { scopeMetrics, format });
+    await backend.post(`/metrics/exporters/in-memory-exporter/import?reset=${options.reset}`, { scopeMetrics, format });
   }
 }
 

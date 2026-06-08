@@ -16,23 +16,24 @@ import {
 export const getMetricsRoutes = () => {
     const router = Router();
 
-    // Metrics Control
-    router.post('/start', startMetrics);
-    router.post('/stop', stopMetrics);
-    router.get('/status', statusMetrics);
-    router.post('/reset', resetMetrics);
-    router.post('/retention-time', setMetricRetentionTime);
-    router.get('/retention-time', getMetricRetentionTime);
-    
-    // Export/Import
-    router.get('/export', exportMetrics);
-    router.post('/import', importMetrics);
+    // Exporter Control & Data Actions
+    router.post('/exporters/in-memory-exporter/start', startMetrics);
+    router.post('/exporters/in-memory-exporter/stop', stopMetrics);
+    router.get('/exporters/in-memory-exporter/status', statusMetrics);
+    router.post('/exporters/in-memory-exporter/reset', resetMetrics);
 
-    // Query endpoints
-    router.post('/find', findMetrics);
+    router.get('/exporters/in-memory-exporter/data', findMetrics);
+    router.post('/exporters/in-memory-exporter/data', insertMetricsToDb);
+    router.delete('/exporters/in-memory-exporter/data', resetMetrics);
+
+    router.get('/exporters/in-memory-exporter/retention-time', getMetricRetentionTime);
+    router.post('/exporters/in-memory-exporter/retention-time', setMetricRetentionTime);
+
+    router.get('/exporters/in-memory-exporter/export', exportMetrics);
+    router.post('/exporters/in-memory-exporter/import', importMetrics);
+
+    router.post('/exporters/in-memory-exporter/data/find', findMetrics);
     router.get('/stats', getMetricsStats);
-    router.get('/', findMetrics);
-    router.post('/', insertMetricsToDb);
 
     return router;
 };

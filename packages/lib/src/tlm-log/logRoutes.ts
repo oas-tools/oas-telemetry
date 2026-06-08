@@ -15,19 +15,23 @@ import {
 export const getLogRoutes = () => {
     const router = Router();
 
-    // Logs Control
-    router.post('/start', startLogs);
-    router.post('/stop', stopLogs);
-    router.get('/status', statusLogs);
-    router.post('/reset', resetLogs);
-    router.post('/retention-time', setLogRetentionTime);
-    router.get('/retention-time', getLogRetentionTime);
+    // Exporter Control & Data Actions
+    router.post('/exporters/in-memory-exporter/start', startLogs);
+    router.post('/exporters/in-memory-exporter/stop', stopLogs);
+    router.get('/exporters/in-memory-exporter/status', statusLogs);
+    router.post('/exporters/in-memory-exporter/reset', resetLogs);
 
-    router.get('/export', exportLogs);
-    router.post('/import', importLogs);
-    router.get('/', findLogs);
-    router.post('/', insertLogsToDb);
-    router.post('/find', findLogs);
+    router.get('/exporters/in-memory-exporter/data', findLogs);
+    router.post('/exporters/in-memory-exporter/data', insertLogsToDb);
+    router.delete('/exporters/in-memory-exporter/data', resetLogs);
+
+    router.get('/exporters/in-memory-exporter/retention-time', getLogRetentionTime);
+    router.post('/exporters/in-memory-exporter/retention-time', setLogRetentionTime);
+
+    router.get('/exporters/in-memory-exporter/export', exportLogs);
+    router.post('/exporters/in-memory-exporter/import', importLogs);
+
+    router.post('/exporters/in-memory-exporter/data/find', findLogs);
 
     return router;
 };
