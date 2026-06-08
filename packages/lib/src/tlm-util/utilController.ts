@@ -19,7 +19,8 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
             res.setHeader('Content-Type', 'application/json');
             res.send(json);
         } catch (e) {
-            console.error(`ERROR loading spec file ${oasTlmConfig.general.specFileName}: ${e}`);
+          console.error(`ERROR loading spec file ${oasTlmConfig.general.specFileName}: ${e}`);
+          res.status(404).send();
         }
     } else if (oasTlmConfig.general.spec) {
         let spec: null | string = null;
@@ -33,13 +34,13 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
             }
         }
         if (!spec) {
-            res.status(404);
+            res.status(404).send();
         } else {
             res.setHeader('Content-Type', 'application/json');
             res.send(spec);
         }
     } else {
-        res.status(404);
+        res.status(404).send();
     }
 }
 
