@@ -100,7 +100,13 @@ const LogsFiltersCard: React.FC<Props> = ({
         </>
       }
     >
-      <div className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleApply()
+        }}
+        className="space-y-4"
+      >
         <div>
           <Label htmlFor="search" className="text-sm">
             Text Search
@@ -182,7 +188,7 @@ const LogsFiltersCard: React.FC<Props> = ({
         </Tabs>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
-            onClick={handleApply}
+            type="submit"
             disabled={loading}
             className="w-full sm:w-auto"
             variant="default"
@@ -191,6 +197,7 @@ const LogsFiltersCard: React.FC<Props> = ({
             Apply
           </Button>
           <Button
+            type="button"
             onClick={handleClear}
             disabled={loading}
             className="w-full sm:w-auto"
@@ -200,7 +207,7 @@ const LogsFiltersCard: React.FC<Props> = ({
             Clear
           </Button>
         </div>
-      </div>
+      </form>
     </CollapsibleCard>
   )
 }

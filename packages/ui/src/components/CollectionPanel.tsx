@@ -183,7 +183,13 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
                         </div>
                     </div>
                     <Separator />
-                    <div className="flex flex-col md:flex-row items-start md:items-end gap-2">
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            handleSetRetentionTime()
+                        }}
+                        className="flex flex-col md:flex-row items-start md:items-end gap-2"
+                    >
                         <div className="flex-1 w-full">
                             <Label htmlFor="retention-time" className="text-sm">
                                 Retention Time (seconds)
@@ -199,14 +205,14 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
                             />
                         </div>
                         <Button
-                            onClick={handleSetRetentionTime}
+                            type="submit"
                             className="w-full sm:w-auto"
                             disabled={loading}
                         >
                             <Clock className="h-4 w-4 mr-2" />
                             Set
                         </Button>
-                    </div>
+                    </form>
                 </div>
             </CollapsibleCard>
 

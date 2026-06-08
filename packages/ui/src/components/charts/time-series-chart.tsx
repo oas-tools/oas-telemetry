@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useMemo, useState, use } from "react";
+import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { getColorFromPalette, formatTimeString } from "./utils";
@@ -44,7 +44,7 @@ export function TimeSeriesChart({
         if (!chartRef.current) return;
         if (uplotRef.current) return; // Already created
         const plugin = tooltipPlugin(seriesConfig, setTooltipData);
-        const timeGapRefiner = createTimeGapRefiner(1.6);
+        const timeGapRefiner = createCachedTimeGapRefiner(1.6);
 
         const options: uPlot.Options = {
             width: chartRef.current.clientWidth,
@@ -71,6 +71,8 @@ export function TimeSeriesChart({
             scales: {
                 x: {
                     time: false,
+                    min: timeRange?.from,
+                    max: timeRange?.to,
                 }
             },
             axes: [
@@ -107,8 +109,8 @@ export function TimeSeriesChart({
                         gaps: timeGapRefiner,
                         paths: uPlot.paths.linear!(),
                         points: {
-                            size: 8,
-                            width: 5,
+                          size: 8,
+                          width: 5,
                         },
                     };
                 }),
@@ -156,18 +158,42 @@ export function TimeSeriesChart({
     // Update data when it changes, no need to recreate chart
     useEffect(() => {
         if (!uplotRef.current) return;
-        uplotRef.current.setData(data as any, true);
-    }, [data]);
+        const resetScales = !timeRange;
+        uplotRef.current.setData(data as any, resetScales);
+        if (timeRange && !animateXAxis) {
+            uplotRef.current.setScale("x", { min: timeRange.from, max: timeRange.to });
+        }
+    }, [data, timeRange, animateXAxis]);
+
+    // Clear visual selection and update scale whenever timeRange changes, prevents visual selection bug
+    useEffect(() => {
+        if (uplotRef.current) {
+            uplotRef.current.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+            if (timeRange && !animateXAxis) {
+                uplotRef.current.setScale("x", { min: timeRange.from, max: timeRange.to });
+            }
+        }
+    }, [timeRange, animateXAxis]);
 
     // Animate x-axis: always show [currentTime - windowSize, currentTime] like uPlot streaming demo
+    // Optimized: skips setScale when the delta since last frame is too small to produce a
+    // visible pixel change, avoiding redundant full redraws.
     useEffect(() => {
         let rafId: number | null = null;
         let running = true;
+        let lastMax = 0;
         function animate() {
             if (!running || !timeRange || !uplotRef.current) return;
             const now = Date.now();
+            // Skip if less than ~1px of movement
+            // At 60fps we get ~16ms per frame; for a 60s window that's ~0.27px per ms
+            // Minimum visible delta: windowSize / chartWidth (1 data-pixel)
             const windowSize = timeRange.to - timeRange.from;
-            uplotRef.current.setScale("x", { min: now - windowSize, max: now });
+            const minDelta = windowSize / (uplotRef.current.over.clientWidth || 800);
+            if (now - lastMax >= minDelta) {
+                lastMax = now;
+                uplotRef.current.setScale("x", { min: now - windowSize, max: now });
+            }
             rafId = requestAnimationFrame(animate);
         }
         if (animateXAxis && timeRange && uplotRef.current) {
@@ -213,7 +239,16 @@ export function TimeSeriesChart({
     );
 }
 
-function createTimeGapRefiner(gapMultiplier = 1.5) {
+/**
+ * Cached version of the time-gap refiner.
+ * The gap threshold (median delta) only depends on the data, not the current
+ * scale/viewport, so we cache it keyed by dataLen+idx range to avoid
+ * re-sorting on every animation frame.
+ */
+function createCachedTimeGapRefiner(gapMultiplier = 1.5) {
+    let cachedThreshold: number | null = null;
+    let cachedKey = "";
+
     return (u: uPlot, seriesIdx: number, idx0: number, idx1: number, nullGaps: [number, number][]) => {
         const xData = u.data[0] as number[];
         const yData = u.data[seriesIdx] as Array<number | null | undefined>;
@@ -222,29 +257,41 @@ function createTimeGapRefiner(gapMultiplier = 1.5) {
             return nullGaps;
         }
 
-        const deltas: number[] = [];
-        let prevValidIdx: number | null = null;
+        // Cache key: data length + series index + index range
+        const key = `${xData.length}:${seriesIdx}:${idx0}:${idx1}`;
+        let threshold: number;
 
-        for (let i = idx0; i <= idx1; i++) {
-            const y = yData[i];
-            if (typeof y !== "number" || !Number.isFinite(y)) continue;
+        if (key === cachedKey && cachedThreshold !== null) {
+            threshold = cachedThreshold;
+        } else {
+            // Compute median delta — only when data changes
+            const deltas: number[] = [];
+            let prevValidIdx: number | null = null;
 
-            if (prevValidIdx != null) {
-                const delta = xData[i] - xData[prevValidIdx];
-                if (delta > 0) deltas.push(delta);
+            for (let i = idx0; i <= idx1; i++) {
+                const y = yData[i];
+                if (typeof y !== "number" || !Number.isFinite(y)) continue;
+
+                if (prevValidIdx != null) {
+                    const delta = xData[i] - xData[prevValidIdx];
+                    if (delta > 0) deltas.push(delta);
+                }
+                prevValidIdx = i;
             }
-            prevValidIdx = i;
+
+            if (deltas.length === 0) return nullGaps;
+
+            deltas.sort((a, b) => a - b);
+            const medianDelta = deltas[Math.floor(deltas.length / 2)];
+            threshold = medianDelta * gapMultiplier;
+            if (!Number.isFinite(threshold) || threshold <= 0) return nullGaps;
+
+            cachedThreshold = threshold;
+            cachedKey = key;
         }
 
-        if (deltas.length === 0) return nullGaps;
-
-        const sorted = deltas.slice().sort((a, b) => a - b);
-        const medianDelta = sorted[Math.floor(sorted.length / 2)];
-        const threshold = medianDelta * gapMultiplier;
-        if (!Number.isFinite(threshold) || threshold <= 0) return nullGaps;
-
         const extraGaps: [number, number][] = [];
-        prevValidIdx = null;
+        let prevValidIdx: number | null = null;
 
         for (let i = idx0; i <= idx1; i++) {
             const y = yData[i];
@@ -282,21 +329,32 @@ function tooltipPlugin(
     let bTop = 0;
 
 
+    let boundsDirty = true;
+
     function syncBounds() {
-        if (!overPlot) return;
+        if (!overPlot || !boundsDirty) return;
         const bbox = overPlot.getBoundingClientRect();
         bLeft = bbox.left;
         bTop = bbox.top;
+        boundsDirty = false;
+    }
+
+    function markBoundsDirty() {
+        boundsDirty = true;
     }
 
     return {
         hooks: {
             init: (u) => {
                 overPlot = u.over;
+                boundsDirty = true;
                 syncBounds();
                 overPlot.addEventListener("mouseleave", () => onTooltipUpdate(null));
+                // Mark bounds dirty on scroll/resize instead of recalculating every cursor move
+                window.addEventListener("scroll", markBoundsDirty, { passive: true });
+                window.addEventListener("resize", markBoundsDirty, { passive: true });
             },
-            setSize: () => syncBounds(),
+            setSize: () => { boundsDirty = true; },
             setCursor: (u) => {
                 const { left, top, idx } = u.cursor;
 
@@ -305,7 +363,7 @@ function tooltipPlugin(
                     return;
                 }
 
-                // Update bounds on every cursor move to handle scroll
+                // Only recalculate bounds when marked dirty (scroll/resize)
                 syncBounds();
 
                 // Use cursor.idxs which contains the resolved index per series (after dataIdx)

@@ -7,6 +7,14 @@ import CollapsibleCard from "@/components/CollapsibleCard";
 import { metricsService } from "@/services/metricsService";
 import MetricsCollectionPanel from "./MetricsCollectionPanel";
 import { DashboardRangeSelectPanel, type DashboardOption } from "./DashboardRangeSelectPanel";
+import { RefreshCw } from "lucide-react";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 
 const RELATIVE_OPTIONS: DashboardOption[] = [
@@ -43,7 +51,7 @@ export default function MetricsPage() {
     const isRelative = relativeOption != null;
 
     // Persistent cache for metric configs and data
-    const metricsCacheRef = useRef<Record<string, { 
+    const metricsCacheRef = useRef<Record<string, {
         seriesConfig: any[]
         chartData: any[]
         id: string
@@ -182,7 +190,7 @@ export default function MetricsPage() {
                         // New or changed config
                         const descriptorType = metric.descriptor.type;
                         const descriptorUnit = metric.descriptor.unit || "ms";
-                        
+
                         // For histograms, use first series data
                         let histogramData = null;
                         if (descriptorType === "HISTOGRAM" && series.length > 0) {
@@ -194,7 +202,7 @@ export default function MetricsPage() {
                                 unit: descriptorUnit,
                             };
                         }
-                        
+
                         newCache[id] = {
                             id,
                             scopeName,
@@ -257,23 +265,48 @@ export default function MetricsPage() {
         <div className="min-h-screen bg-background">
             <main className="container mx-auto px-4 py-4 md:py-8 space-y-6">
                 <MetricsCollectionPanel onMetricsReset={handleMetricsReset} />
+                <div className="flex flex-wrap gap-2 items-center">
+                    <DashboardRangeSelectPanel
+                        from={range.from}
+                        to={range.to}
+                        relativeValue={relativeOption}
+                        relativeOptions={RELATIVE_OPTIONS}
+                        onSelectRelative={(opt) => {
+                            const now = Date.now();
+                            setRange({ from: now - opt.value, to: now });
+                            setRelativeOption(opt);
+                            if (relativeOption === null) {
+                                setAutoRefreshOption(defaultAutoRefresh);
+                            }
+                        }}
+                        onSelectAbsolute={(from, to) => {
+                            setRange({ from, to });
+                            setRelativeOption(null);
+                            setAutoRefreshOption(AUTOREFRESH_OPTIONS[0]); // Off
+                        }}
+                    />
 
-                <DashboardRangeSelectPanel
-                    from={range.from}
-                    to={range.to}
-                    relativeValue={relativeOption}
-                    relativeOptions={RELATIVE_OPTIONS}
-                    onSelectRelative={(opt) => {
-                        const now = Date.now();
-                        setRange({ from: now - opt.value, to: now });
-                        setRelativeOption(opt);
-                    }}
-                    onSelectAbsolute={(from, to) => {
-                        setRange({ from, to });
-                        setRelativeOption(null);
-                        setAutoRefreshOption(AUTOREFRESH_OPTIONS[0]); // Off
-                    }}
-                />
+                    <Select
+                        value={autoRefreshOption.value.toString()}
+                        onValueChange={(val) => {
+                            const opt = AUTOREFRESH_OPTIONS.find(o => o.value.toString() === val);
+                            if (opt) setAutoRefreshOption(opt);
+                        }}
+                        disabled={!isRelative}
+                    >
+                        <SelectTrigger className="h-9" size="default">
+                            <RefreshCw className={`${autoRefreshOption.value > 0 ? "animate-spin" : ""}`} style={{ animationDuration: '6s' }} />
+                            <SelectValue placeholder="Auto refresh" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {AUTOREFRESH_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value.toString()}>
+                                    {opt.label === "Off" ? "Off" : `Auto refresh: ${opt.label}`}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
 
 
                 {loading && metricsList.length === 0 ? (
