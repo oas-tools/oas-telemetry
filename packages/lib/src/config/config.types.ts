@@ -16,7 +16,6 @@ export type OasTlmConfig = typeof defaultConfig;
 
 export type UserConfig = {
   general?: Partial<OasTlmConfig["general"]>;
-  storage?: Partial<OasTlmConfig["storage"]>;
   auth?: Partial<OasTlmConfig["auth"]>;
   ai?: {
     // OpenAI API key cant be passed as user config, to avoid exposing it in the client-side code.

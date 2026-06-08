@@ -9,28 +9,20 @@ import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { bootEnvVariables } from '../config/bootConfig.js';
 import { pluginService } from '../tlm-plugin/pluginService.js';
-import { DiskTraceExporter } from './custom-implementations/exporters/DiskTraceExporter.js';
-import { DiskLogExporter } from './custom-implementations/exporters/DiskLogExporter.js';
-import { DiskMetricExporter } from './custom-implementations/exporters/DiskMetricExporter.js';
 import { MultiMetricExporter } from './custom-implementations/exporters/MultiMetricExporter.js';
-import { DiskImporter } from './persistence/DiskImporter.js';
-import { importTracesToMemory } from '../tlm-trace/traceService.js';
-import { importLogsToMemory } from '../tlm-log/logService.js';
-import { importMetricsToMemory } from '../tlm-metric/metricsService.js';
 
 export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
-    
+
     logger.info("[TelemetryConfigurator] Configuring telemetry...");
-    configureStorage(oasTlmConfig);
 
     inMemoryDbSpanExporter.initializeStorage();
     inMemoryDbLogExporter.initializeStorage();
     inMemoryDbMetricExporter.initializeStorage();
-     
+
     if (oasTlmConfig.instrumentations) {
         instrumentations.push(...oasTlmConfig.instrumentations);
     }
-    
+
     configurePlugins(oasTlmConfig);
     const mainTraceProcessor = configureTraces(oasTlmConfig);
     const mainMetricReader = configureMetrics(oasTlmConfig);
@@ -47,20 +39,7 @@ export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
     sdk.start();
     logger.info("[TelemetryConfigurator] Node SDK started with telemetry configuration");
 
-    if (oasTlmConfig.storage.path && oasTlmConfig.storage.loadFromStart) {
-        scheduleStartupImports(oasTlmConfig.storage.path);
-    } else if (oasTlmConfig.storage.path && !oasTlmConfig.storage.loadFromStart) {
-        logger.info(`[DiskImporter] Startup import skipped by storage.loadFromStart=false. Path: ${oasTlmConfig.storage.path}`);
-    }
-
     return true;
-}
-
-function configureStorage(oasTlmConfig: OasTlmConfig): void {
-    const path = oasTlmConfig.storage.path;
-    oasTlmConfig.storage.path = typeof path === 'string' && path.trim().length > 0
-        ? path.trim()
-        : null;
 }
 
 function configurePlugins(oasTlmConfig: OasTlmConfig): void {
@@ -81,11 +60,6 @@ function configureTraces(oasTlmConfig: OasTlmConfig) {
     }
     mainExporter.addExporters(inMemoryDbSpanExporter); // Main exporter have at least the in-memory exporter used by the traces controller
 
-    if (oasTlmConfig.storage.path) {
-        mainExporter.addExporters(new DiskTraceExporter({ directoryPath: oasTlmConfig.storage.path }));
-        logger.info(`[TraceDiskExporter] Enabled at: ${oasTlmConfig.storage.path}`);
-    }
-
     mainExporter.addExporters(oasTlmConfig.traces.extraExporters);
     return mainProcessor;
 }
@@ -95,11 +69,6 @@ function configureMetrics(oasTlmConfig: OasTlmConfig) {
     inMemoryDbMetricExporter.setEnabledValue(oasTlmConfig.metrics.memoryExporter.enabled);
     inMemoryDbMetricExporter.retentionTimeInSeconds = oasTlmConfig.metrics.memoryExporter.retentionTimeSeconds;
     const metricExporters: PushMetricExporter[] = [inMemoryDbMetricExporter];
-
-    if (oasTlmConfig.storage.path) {
-        metricExporters.push(new DiskMetricExporter({ directoryPath: oasTlmConfig.storage.path }));
-        logger.info(`[MetricDiskExporter] Enabled at: ${oasTlmConfig.storage.path}`);
-    }
 
     const mainReader = new PeriodicExportingMetricReader({
         exporter: new MultiMetricExporter(metricExporters),
@@ -124,63 +93,6 @@ function configureLogs(oasTlmConfig: OasTlmConfig) {
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
 
-    if (oasTlmConfig.storage.path) {
-        mainExporter.addExporters(new DiskLogExporter({ directoryPath: oasTlmConfig.storage.path }));
-        logger.info(`[LogDiskExporter] Enabled at: ${oasTlmConfig.storage.path}`);
-    }
-
     mainExporter.addExporters(oasTlmConfig.logs.extraExporters);
     return mainProcessor;
-}
-
-function scheduleStartupImports(storagePath: string): void {
-    setTimeout(async () => {
-        try {
-            await runTimedImport(
-                'TraceDiskImport',
-                storagePath,
-                new DiskImporter({ directoryPath: storagePath }),
-                async (spans: any[]) => {
-                await importTracesToMemory(spans);
-                }
-            );
-
-            await runTimedImport(
-                'LogDiskImport',
-                storagePath,
-                new DiskImporter({ directoryPath: storagePath, segmentPrefix: 'logs' }),
-                async (logs: any[]) => {
-                    await importLogsToMemory(logs);
-                }
-            );
-
-            await runTimedImport(
-                'MetricDiskImport',
-                storagePath,
-                new DiskImporter({ directoryPath: storagePath, segmentPrefix: 'metrics' }),
-                async (scopeMetrics: any[]) => {
-                    importMetricsToMemory(scopeMetrics, { format: 'otel' });
-                }
-            );
-        } catch (error: any) {
-            logger.error(`[DiskImporter] Startup import sequence failed: ${error?.message || error}`);
-        }
-    }, 0);
-}
-
-async function runTimedImport(
-    label: string,
-    storagePath: string,
-    importer: DiskImporter,
-    onBatch: (records: any[]) => Promise<void>
-): Promise<void> {
-    const startedAt = Date.now();
-    try {
-        const result = await importer.import(onBatch);
-        const elapsedMs = Date.now() - startedAt;
-        logger.info(`[${label}] Startup import finished in ${elapsedMs}ms. Files: ${result.segmentFilesRead}, imported records: ${result.importedRecords}, failed frames: ${result.failedFrames}`);
-    } catch (error: any) {
-        const elapsedMs = Date.now() - startedAt;
-        logger.error(`[${label}] Startup import finished in ${elapsedMs}ms with error: ${error?.message || error}`);
-    }
 }
