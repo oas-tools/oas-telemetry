@@ -81,9 +81,9 @@ paths:
                 type: string
                 example: <!DOCTYPE html><title>OAS-Telemetry UI</title></head><body><h1>Welcome to OAS-Telemetry UI</h1></body></html>
 
-  /traces:
+  /spans/exporters/in-memory-exporter/data:
     get:
-      summary: Get collected traces
+      summary: Get collected spans
       tags:
         - traces
       responses:
@@ -103,9 +103,9 @@ paths:
                       type: object
                     example: []
     post:
-      summary: Insert traces (optionally reset first)
+      summary: Insert spans (optionally reset first)
       description: |
-        Inserts traces. If the query parameter `reset=true` is provided, the trace database is reset before inserting.
+        Inserts spans. If the query parameter `reset=true` is provided, the span database is reset before inserting.
         The response message will indicate whether a reset occurred.
       tags:
         - traces
@@ -130,7 +130,7 @@ paths:
                   type: array
                   items:
                     type: object
-                  description: Array of trace objects to insert
+                  description: Array of trace objects (spans) to insert
               example:
                 spans:
                   - traceId: "123"
@@ -145,7 +145,7 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Inserted 1 traces.
+                    example: Inserted 1 spans.
                   InsertedTracesCount:
                     type: number
                     example: 1
@@ -159,15 +159,27 @@ paths:
                   error:
                     type: string
                     example: Invalid data format. Expected an array of JSON objects.
+    delete:
+      summary: Reset spans database
+      tags:
+        - traces
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Traces reset
 
-  /traces/find:
+  /spans/exporters/in-memory-exporter/data/find:
     post:
-      summary: Find traces
+      summary: Find spans
       tags:
         - traces
       requestBody:
         required: true
-        description: Search criteria for traces.
+        description: Search criteria for spans.
         content:
           application/json:
             schema:
@@ -211,9 +223,9 @@ paths:
                     type: string
                     example: Invalid regex in query
 
-  /traces/start:
+  /spans/exporters/in-memory-exporter/start:
     post:
-      summary: Start trace collection
+      summary: Start spans collection
       tags:
         - traces
       responses:
@@ -225,9 +237,9 @@ paths:
                 type: string
                 example: Traces started
 
-  /traces/stop:
+  /spans/exporters/in-memory-exporter/stop:
     post:
-      summary: Stop trace collection
+      summary: Stop spans collection
       tags:
         - traces
       responses:
@@ -239,9 +251,9 @@ paths:
                 type: string
                 example: Traces stopped
 
-  /traces/status:
+  /spans/exporters/in-memory-exporter/status:
     get:
-      summary: Get trace collection status
+      summary: Get spans collection status
       tags:
         - traces
       responses:
@@ -256,9 +268,9 @@ paths:
                     type: boolean
                     example: true
 
-  /traces/reset:
+  /spans/exporters/in-memory-exporter/reset:
     post:
-      summary: Reset trace database
+      summary: Reset spans database
       tags:
         - traces
       responses:
@@ -270,9 +282,9 @@ paths:
                 type: string
                 example: Traces reset
 
-  /traces/retention-time:
+  /spans/exporters/in-memory-exporter/retention-time:
     get:
-      summary: Get trace retention time (seconds)
+      summary: Get spans retention time (seconds)
       tags:
         - traces
       responses:
@@ -287,7 +299,7 @@ paths:
                     type: number
                     example: 3600
     post:
-      summary: Set retention time for traces
+      summary: Set retention time for spans
       tags:
         - traces
       requestBody:
@@ -326,26 +338,26 @@ paths:
                     type: string
                     example: Invalid retention time. Must be a positive number.
 
-  /traces/export:
+  /spans/exporters/in-memory-exporter/export:
     get:
       tags:
         - traces
-      summary: Export collected traces
-      description: Export all collected traces in line-delimited JSON format
+      summary: Export collected spans
+      description: Export all collected spans in line-delimited JSON format
       responses:
         '200':
-          description: Traces exported successfully
+          description: Spans exported successfully
           content:
             application/json:
               schema:
                 type: string
 
-  /traces/import:
+  /spans/exporters/in-memory-exporter/import:
     post:
       tags:
         - traces
-      summary: Import traces
-      description: Import traces from line-delimited JSON format
+      summary: Import spans
+      description: Import spans from line-delimited JSON format
       requestBody:
         required: true
         content:
@@ -354,7 +366,7 @@ paths:
               type: string
       responses:
         '200':
-          description: Traces imported successfully
+          description: Spans imported successfully
           content:
             application/json:
               schema:
@@ -362,9 +374,38 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Traces imported successfully
+                    example: Spans imported successfully
 
-  /metrics:
+  /traces/{traceId}:
+    get:
+      summary: Get spans by trace ID
+      tags:
+        - traces
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The trace ID to filter spans by
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  spansCount:
+                    type: number
+                    example: 0
+                  spans:
+                    type: array
+                    items:
+                      type: object
+                    example: []
+
+  /metrics/exporters/in-memory-exporter/data:
     get:
       summary: Get collected metrics
       tags:
@@ -423,8 +464,20 @@ paths:
                   error:
                     type: string
                     example: Invalid data format. Expected an array of JSON objects.
+    delete:
+      summary: Reset metrics database
+      tags:
+        - metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Metrics reset
 
-  /metrics/find:
+  /metrics/exporters/in-memory-exporter/data/find:
     post:
       summary: Find metrics
       tags:
@@ -470,8 +523,7 @@ paths:
                     type: string
                     example: Invalid regex in query
 
-
-  /metrics/start:
+  /metrics/exporters/in-memory-exporter/start:
     post:
       summary: Start metrics collection
       tags:
@@ -485,7 +537,7 @@ paths:
                 type: string
                 example: Metrics collection started
 
-  /metrics/stop:
+  /metrics/exporters/in-memory-exporter/stop:
     post:
       summary: Stop metrics collection
       tags:
@@ -499,7 +551,7 @@ paths:
                 type: string
                 example: Metrics collection stopped
 
-  /metrics/status:
+  /metrics/exporters/in-memory-exporter/status:
     get:
       summary: Get metrics collection status
       tags:
@@ -516,7 +568,7 @@ paths:
                     type: boolean
                     example: true
 
-  /metrics/reset:
+  /metrics/exporters/in-memory-exporter/reset:
     post:
       summary: Reset metrics database
       tags:
@@ -530,7 +582,7 @@ paths:
                 type: string
                 example: Metrics reset
 
-  /metrics/retention-time:
+  /metrics/exporters/in-memory-exporter/retention-time:
     get:
       summary: Get metrics retention time (seconds)
       tags:
@@ -586,7 +638,7 @@ paths:
                     type: string
                     example: Invalid retention time. Must be a positive number.
 
-  /metrics/export:
+  /metrics/exporters/in-memory-exporter/export:
     get:
       tags:
         - metrics
@@ -600,7 +652,7 @@ paths:
               schema:
                 type: string
 
-  /metrics/import:
+  /metrics/exporters/in-memory-exporter/import:
     post:
       tags:
         - metrics
@@ -649,7 +701,7 @@ paths:
                     description: Retention time in seconds
                     example: 3600
 
-  /logs:
+  /logs/exporters/in-memory-exporter/data:
     get:
       summary: Get collected logs
       tags:
@@ -723,8 +775,20 @@ paths:
                   error:
                     type: string
                     example: Invalid data format. Expected an array of JSON objects.
+    delete:
+      summary: Reset logs database
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Logs reset
 
-  /logs/find:
+  /logs/exporters/in-memory-exporter/data/find:
     post:
       summary: Find logs
       tags:
@@ -784,7 +848,122 @@ paths:
                     type: string
                     example: Invalid regex in query
 
-  /logs/export:
+  /logs/exporters/in-memory-exporter/start:
+    post:
+      summary: Start logs collection
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Logs started
+
+  /logs/exporters/in-memory-exporter/stop:
+    post:
+      summary: Stop logs collection
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Logs stopped
+
+  /logs/exporters/in-memory-exporter/status:
+    get:
+      summary: Get logs collection status
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active:
+                    type: boolean
+                    example: true
+
+  /logs/exporters/in-memory-exporter/reset:
+    post:
+      summary: Reset logs database
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+                example: Logs reset
+
+  /logs/exporters/in-memory-exporter/retention-time:
+    get:
+      summary: Get logs retention time (seconds)
+      tags:
+        - logs
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retentionTimeInSeconds:
+                    type: number
+                    example: 3600
+    post:
+      summary: Set retention time for logs
+      tags:
+        - logs
+      requestBody:
+        required: true
+        description: Retention time in seconds.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionTimeInSeconds:
+                  type: number
+                  description: Retention time in seconds.
+                  example: 3600
+            example:
+              retentionTimeInSeconds: 3600
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Retention time set to 3600 seconds.
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid retention time. Must be a positive number.
+
+  /logs/exporters/in-memory-exporter/export:
     get:
       tags:
         - logs
@@ -798,7 +977,7 @@ paths:
               schema:
                 type: string
 
-  /logs/import:
+  /logs/exporters/in-memory-exporter/import:
     post:
       tags:
         - logs

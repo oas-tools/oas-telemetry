@@ -170,3 +170,18 @@ export const exportTraces = async (req: Request, res: Response) => {
         res.status(500).send({ error: 'Failed to export traces', details: err.message });
     }
 };
+
+export const getTraceById = async (req: Request, res: Response) => {
+    const traceId = req.params.traceId;
+    try {
+        const findConfig = {
+            query: { traceId },
+            sortOrder: { timestamp: -1 }
+        };
+        const docs = await inMemoryDbSpanExporter.find(findConfig);
+        res.send({ spansCount: docs.length, spans: docs });
+    } catch (err: any) {
+        console.error(err);
+        res.status(500).send({ error: 'Failed to get trace by ID', details: err.message });
+    }
+};
