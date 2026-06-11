@@ -15,6 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import HistogramChart from "@/components/charts/histogram";
 
 
 const RELATIVE_OPTIONS: DashboardOption[] = [
@@ -59,6 +60,7 @@ export default function MetricsPage() {
         scopeVersion: string
         metricName: string
         descriptorType?: string
+        series?: any[]
         histogramData?: {
             label: string;
             endTimes: number[];
@@ -185,6 +187,7 @@ export default function MetricsPage() {
                         newCache[id] = {
                             ...prevCache[id],
                             chartData,
+                            series,
                         };
                     } else {
                         // New or changed config
@@ -212,6 +215,7 @@ export default function MetricsPage() {
                             chartData,
                             seriesConfig,
                             histogramData,
+                            series,
                         };
                     }
                     newExpanded.push(id);
@@ -321,14 +325,22 @@ export default function MetricsPage() {
                             isOpen={expandedPanels.includes(metric.id)}
                             onToggle={() => handlePanelToggle(metric.id)}
                         >
-                            {/* Always use TimeSeriesChart. For HISTOGRAM, transform data first. */}
-                            <TimeSeriesChart
-                                data={metric.chartData}
-                                seriesConfig={metric.seriesConfig}
-                                timeRange={range}
-                                animateXAxis={isRelative}
-                                onRangeSelect={handleChangeRange}
-                            />
+                            {metric.descriptorType === "HISTOGRAM" && metric.series ? (
+                                <HistogramChart
+                                    series={metric.series}
+                                    timeRange={range}
+                                    animateXAxis={isRelative}
+                                    onRangeSelect={handleChangeRange}
+                                />
+                            ) : (
+                                <TimeSeriesChart
+                                    data={metric.chartData}
+                                    seriesConfig={metric.seriesConfig}
+                                    timeRange={range}
+                                    animateXAxis={isRelative}
+                                    onRangeSelect={handleChangeRange}
+                                />
+                            )}
                         </CollapsibleCard>
                     ))
                 )}
