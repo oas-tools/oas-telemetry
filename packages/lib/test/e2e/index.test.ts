@@ -10,6 +10,9 @@ const cjsConfig: E2ETestConfig = {
   serverScript: 'test/e2e/servers/otTestServer.cjs',
   port: '3231',
   telemetryPath: '/telemetry',
+  additionalEnv: {
+    OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS: 'true',
+  }
 };
 
 const esmConfig: E2ETestConfig = {
@@ -17,6 +20,9 @@ const esmConfig: E2ETestConfig = {
   serverScript: 'test/e2e/servers/otTestServer.mjs',
   port: '3232',
   telemetryPath: '/telemetry',
+  additionalEnv: {
+    OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS: 'true',
+  }
 };
 
 

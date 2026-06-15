@@ -55,4 +55,14 @@ describe("Config Tests", () => {
         const config = getConfig(undefined, defaultConfig, envConfig);
         expect(config.general.specFileName).toBe(defaultConfig.general.specFileName);
     });
+
+    it("[Unit][Config][+] should default autoGenerateEndpointHistograms to false", () => {
+        const config = getConfig();
+        expect(config.metrics.autoGenerateEndpointHistograms).toBe(false);
+    });
+
+    it("[Unit][Config][+] should override autoGenerateEndpointHistograms with userConfig", () => {
+        const config = getConfig({ metrics: { autoGenerateEndpointHistograms: true } });
+        expect(config.metrics.autoGenerateEndpointHistograms).toBe(true);
+    });
 });

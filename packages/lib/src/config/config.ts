@@ -39,7 +39,8 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
                 enabled: getParsedEnvVar("OASTLM_CONFIG_METRICS_MEMORY_EXPORTER_ENABLED", (v) => v === "true"),
                 retentionTimeSeconds: getParsedEnvVar("OASTLM_CONFIG_METRICS_MEMORY_EXPORTER_RETENTION_TIME_SECONDS", (v) => parseInt(v, 10)),
                 // filters NOT settable via env
-            }
+            },
+            autoGenerateEndpointHistograms: getParsedEnvVar("OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS", (v) => v === "true"),
         },
         logs: {
             memoryExporter: {
@@ -104,6 +105,7 @@ export const defaultConfig = {
             retentionTimeSeconds: 60 * 60, // 1 hour
         },
         filters: [] as any[], // future feature, currently not used
+        autoGenerateEndpointHistograms: false,
     },
     logs: {
         extraExporters: [] as LogRecordExporter[], // e.g. [new ConsoleLogRecordExporter()]

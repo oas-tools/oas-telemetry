@@ -95,13 +95,14 @@ const oasTlmConfig: UserConfig = {
         //     exportIntervalMillis: 1000 * 30, // 30 seconds
         //     exporter: new ConsoleMetricExporter()
         // })],
+        autoGenerateEndpointHistograms: true,
     },
     logs: {
         // extraExporters: [new ConsoleLogRecordExporter()],
         // extraProcessors: [new SimpleLogRecordProcessor(new ConsoleLogRecordExporter())],
     },
     auth: {
-        // enabled: true, 
+        // enabled: true,
         // jwtSecret: "secret",
         // password: "password",
         // accessTokenMaxAge: 1000 * 60 * 2 , // 2 minutes
