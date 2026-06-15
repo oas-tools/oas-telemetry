@@ -79,6 +79,19 @@ const spec = {
     }
 }
 
+import { ExportResult, ExportResultCode } from '@opentelemetry/core';
+import { ResourceMetrics } from '@opentelemetry/sdk-metrics';
+
+class TestExporter implements PushMetricExporter {
+    static exported: ResourceMetrics[] = [];
+    export(resourceMetrics: ResourceMetrics, resultCallback: (result: ExportResult) => void): void {
+        TestExporter.exported.push(JSON.parse(JSON.stringify(resourceMetrics))); // deep clone to avoid mutation issues
+        resultCallback({ code: ExportResultCode.SUCCESS });
+    }
+    async shutdown(): Promise<void> {}
+    async forceFlush(): Promise<void> {}
+}
+
 const oasTlmConfig: UserConfig = {
     general: {
         spec: JSON.stringify(spec),
@@ -91,10 +104,7 @@ const oasTlmConfig: UserConfig = {
         mainMetricReaderOptions: {
             exportIntervalMillis: 1000, // 5 seconds
         },
-        // extraReaders: [ new PeriodicExportingMetricReader( {
-        //     exportIntervalMillis: 1000 * 30, // 30 seconds
-        //     exporter: new ConsoleMetricExporter()
-        // })],
+        extraExporters: [new TestExporter()],
     },
     logs: {
         // extraExporters: [new ConsoleLogRecordExporter()],
@@ -121,6 +131,18 @@ const oasTlmConfig: UserConfig = {
 const telemetryRouter = oasTelemetry(oasTlmConfig);
 
 const app = express();
+
+app.get('/test/exported-metrics', (req, res) => {
+    res.json({
+        exported: TestExporter.exported,
+        count: TestExporter.exported.length
+    });
+});
+
+app.post('/test/exported-metrics/reset', (req, res) => {
+    TestExporter.exported = [];
+    res.sendStatus(200);
+});
 const port = process.env.PORT || 3000;
 
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { inMemoryDbMetricExporter } from '../telemetry/telemetryRegistry.js';
+import { inMemoryDbMetricExporter, mainMetricReader, customFilterMetricExporter } from '../telemetry/telemetryRegistry.js';
 import { importMetricsToMemory, sanitizeMetricRecords } from './metricsService.js';
 import { gzipSync } from 'zlib';
 
@@ -185,5 +185,78 @@ export const importMetrics = async (req: Request, res: Response) => {
     } catch (err: any) {
         console.error('Import failed:', err);
         res.status(400).send({ error: 'Failed to import metrics', details: err.message });
+    }
+};
+
+export const getExportInterval = (req: Request, res: Response) => {
+    if (!mainMetricReader) {
+        res.status(400).send({ error: 'Metric reader not initialized' });
+        return;
+    }
+    res.send({ exportIntervalMillis: mainMetricReader.getInterval() });
+};
+
+export const setExportInterval = (req: Request, res: Response) => {
+    if (!mainMetricReader) {
+        res.status(400).send({ error: 'Metric reader not initialized' });
+        return;
+    }
+    const exportIntervalMillis = (req.body || {}).exportIntervalMillis;
+    if (typeof exportIntervalMillis !== 'number' || exportIntervalMillis <= 0) {
+        res.status(400).send({ error: 'Invalid export interval. Must be a positive number.' });
+        return;
+    }
+    mainMetricReader.setInterval(exportIntervalMillis);
+    res.send({ message: `Export interval set to ${exportIntervalMillis} milliseconds.`, exportIntervalMillis });
+};
+
+export const getIgnoredMetrics = (req: Request, res: Response) => {
+    if (!customFilterMetricExporter) {
+        res.status(400).send({ error: 'Filter exporter not initialized' });
+        return;
+    }
+    res.send({ ignoredMetrics: customFilterMetricExporter.getIgnoredMetrics() });
+};
+
+export const addIgnoredMetrics = (req: Request, res: Response) => {
+    if (!customFilterMetricExporter) {
+        res.status(400).send({ error: 'Filter exporter not initialized' });
+        return;
+    }
+    const { metric, metrics } = req.body || {};
+    if (metric) {
+        customFilterMetricExporter.addIgnoredMetric(metric);
+    }
+    if (Array.isArray(metrics)) {
+        customFilterMetricExporter.addIgnoredMetrics(metrics);
+    }
+    if (!metric && !Array.isArray(metrics)) {
+        res.status(400).send({ error: 'Provide a metric or metrics array in the body' });
+        return;
+    }
+    res.send({
+        message: 'Metrics added to ignore list',
+        ignoredMetrics: customFilterMetricExporter.getIgnoredMetrics()
+    });
+};
+
+export const removeIgnoredMetrics = (req: Request, res: Response) => {
+    if (!customFilterMetricExporter) {
+        res.status(400).send({ error: 'Filter exporter not initialized' });
+        return;
+    }
+    const metric = (req.body || {}).metric || (req.query || {}).metric;
+    if (metric) {
+        customFilterMetricExporter.removeIgnoredMetric(metric as string);
+        res.send({
+            message: `Metric '${metric}' removed from ignore list`,
+            ignoredMetrics: customFilterMetricExporter.getIgnoredMetrics()
+        });
+    } else {
+        customFilterMetricExporter.clearIgnoredMetrics();
+        res.send({
+            message: 'All metrics cleared from ignore list',
+            ignoredMetrics: []
+        });
     }
 };

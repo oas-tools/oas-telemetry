@@ -1,7 +1,7 @@
 import merge from 'lodash.merge';
 import { OasTlmConfig, DeepPartial, UserConfig } from './config.types.js';
 import { BufferConfig, SpanExporter, SpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { IMetricReader, MetricProducer } from '@opentelemetry/sdk-metrics';
+import { IMetricReader, MetricProducer, PushMetricExporter } from '@opentelemetry/sdk-metrics';
 import { LogRecordExporter, LogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { type PluginResource } from '../types/index.js';
 import { type ViewOptions } from '@opentelemetry/sdk-metrics/build/src/view/View.js';
@@ -99,6 +99,7 @@ export const defaultConfig = {
         },
         extraReaders: [] as IMetricReader[], // e.g. [new PrometheusExporter()]
         extraViews: [] as ViewOptions[], // e.g. [new MetricView({ name: 'my_metric', labels: ['env'] })]
+        extraExporters: [] as PushMetricExporter[],
         memoryExporter: {
             enabled: true,
             retentionTimeSeconds: 60 * 60, // 1 hour

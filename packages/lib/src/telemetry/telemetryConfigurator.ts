@@ -4,12 +4,14 @@ import { SpanProcessor, BatchSpanProcessor as TraceBatchSpanProcessor, SimpleSpa
 import { OasTlmConfig } from '../config/config.types.js';
 import logger from '../utils/logger.js';
 import { EnablerMultiLogExporter, EnablerMultiSpanExporter } from './custom-implementations/wrappers.js';
-import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, instrumentations, multiLogExporter, multiSpanExporter, oasTelemetryResource } from './telemetryRegistry.js';
+import { inMemoryDbLogExporter, inMemoryDbMetricExporter, inMemoryDbSpanExporter, instrumentations, multiLogExporter, multiSpanExporter, oasTelemetryResource, setMainMetricReader, setCustomFilterMetricExporter } from './telemetryRegistry.js';
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { bootEnvVariables } from '../config/bootConfig.js';
 import { pluginService } from '../tlm-plugin/pluginService.js';
 import { MultiMetricExporter } from './custom-implementations/exporters/MultiMetricExporter.js';
+import { DynamicPeriodicMetricReader } from './custom-implementations/metrics/DynamicPeriodicMetricReader.js';
+import { FilterMetricExporter } from './custom-implementations/exporters/FilterMetricExporter.js';
 
 export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
 
@@ -68,13 +70,20 @@ function configureMetrics(oasTlmConfig: OasTlmConfig) {
     // METRICS CONFIGURATION
     inMemoryDbMetricExporter.setEnabledValue(oasTlmConfig.metrics.memoryExporter.enabled);
     inMemoryDbMetricExporter.retentionTimeInSeconds = oasTlmConfig.metrics.memoryExporter.retentionTimeSeconds;
-    const metricExporters: PushMetricExporter[] = [inMemoryDbMetricExporter];
 
-    const mainReader = new PeriodicExportingMetricReader({
-        exporter: new MultiMetricExporter(metricExporters),
+    const userExporters = oasTlmConfig.metrics.extraExporters || [];
+    const userExportersMultiExporter = new MultiMetricExporter(userExporters);
+    const filterExporter = new FilterMetricExporter(userExportersMultiExporter);
+    setCustomFilterMetricExporter(filterExporter);
+
+    const mainExporter = new MultiMetricExporter([inMemoryDbMetricExporter, filterExporter]);
+
+    const mainReader = new DynamicPeriodicMetricReader({
+        exporter: mainExporter,
         exportIntervalMillis: oasTlmConfig.metrics.mainMetricReaderOptions.exportIntervalMillis,
         metricProducers: oasTlmConfig.metrics.mainMetricReaderOptions.metricProducers
     });
+    setMainMetricReader(mainReader);
     return mainReader;
 }
 

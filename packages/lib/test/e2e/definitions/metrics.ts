@@ -9,7 +9,7 @@ type Metric = { id?: string; name?: string };
 type MetricsResponse = { scopeMetrics: Metric[]; scopeMetricsCount: number };
 
 /*
-[!] IMPORTANT: 
+[!] IMPORTANT:
 If a test name contains `[!]`, it means that metrics are collected automatically every X milliseconds.
 This can affect test results, especially when expecting a precise count of metrics after a reset or insert operation.
 For example, even after a reset, the system may automatically export and insert 1 or 2 metrics before the test code executes.
@@ -340,6 +340,174 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
             expect(singleResponse.data.scopeMetrics.length).toBe(1);
             expect(singleResponse.data.scopeMetrics[0].scope.name).toBe(firstMetric.scope.name);
             expect(singleResponse.data.scopeMetrics[0].descriptor.name).toBe(firstMetric.descriptor.name);
+        });
+
+        describe('Dynamic Metrics Configuration (Export Interval & Filtering)', () => {
+            const intervalUrl = `${metricsUrl}/export-interval`;
+            const ignoredUrl = `${metricsUrl}/ignored`;
+
+            it('[e2e][Metrics:Interval] should get and set the export interval', async () => {
+                const getRes = await axios.get(intervalUrl).catch((err) => err.response);
+                expect(getRes.status).toBe(200);
+                expect(getRes.data).toHaveProperty('exportIntervalMillis');
+                const originalInterval = getRes.data.exportIntervalMillis;
+
+                const setRes = await axios.post(intervalUrl, { exportIntervalMillis: 800 }).catch((err) => err.response);
+                expect(setRes.status).toBe(200);
+                expect(setRes.data.exportIntervalMillis).toBe(800);
+
+                const getRes2 = await axios.get(intervalUrl).catch((err) => err.response);
+                expect(getRes2.status).toBe(200);
+                expect(getRes2.data.exportIntervalMillis).toBe(800);
+
+                // Restore
+                await axios.post(intervalUrl, { exportIntervalMillis: originalInterval });
+            });
+
+            it('[e2e][Metrics:Interval] should reject invalid export intervals', async () => {
+                const setRes = await axios.post(intervalUrl, { exportIntervalMillis: -50 }).catch((err) => err.response);
+                expect(setRes.status).toBe(400);
+
+                const setRes2 = await axios.post(intervalUrl, { exportIntervalMillis: 'not-a-number' }).catch((err) => err.response);
+                expect(setRes2.status).toBe(400);
+            });
+
+            it('[e2e][Metrics:Filtering] should support adding, listing, removing and clearing ignored metrics', async () => {
+                // Clear initial
+                await axios.delete(ignoredUrl);
+
+                // Get initial empty list
+                const getRes = await axios.get(ignoredUrl).catch((err) => err.response);
+                expect(getRes.status).toBe(200);
+                expect(getRes.data.ignoredMetrics).toEqual([]);
+
+                // Add one metric
+                const addRes = await axios.post(ignoredUrl, { metric: 'ignored-scope-1' }).catch((err) => err.response);
+                expect(addRes.status).toBe(200);
+                expect(addRes.data.ignoredMetrics).toContain('ignored-scope-1');
+
+                // Add multiple metrics
+                const addMultiRes = await axios.post(ignoredUrl, { metrics: ['ignored-scope-2', 'ignored-scope-3'] }).catch((err) => err.response);
+                expect(addMultiRes.status).toBe(200);
+                expect(addMultiRes.data.ignoredMetrics).toContain('ignored-scope-2');
+                expect(addMultiRes.data.ignoredMetrics).toContain('ignored-scope-3');
+
+                // Get current list
+                const getRes2 = await axios.get(ignoredUrl).catch((err) => err.response);
+                expect(getRes2.data.ignoredMetrics).toEqual(
+                    expect.arrayContaining(['ignored-scope-1', 'ignored-scope-2', 'ignored-scope-3'])
+                );
+
+                // Remove one metric
+                const removeRes = await axios.delete(ignoredUrl, { data: { metric: 'ignored-scope-1' } }).catch((err) => err.response);
+                expect(removeRes.status).toBe(200);
+                expect(removeRes.data.ignoredMetrics).not.toContain('ignored-scope-1');
+
+                // Clear all metrics
+                const clearRes = await axios.delete(ignoredUrl).catch((err) => err.response);
+                expect(clearRes.status).toBe(200);
+                expect(clearRes.data.ignoredMetrics).toEqual([]);
+            });
+
+            it('[e2e][Metrics:Interval] should dynamically respect custom export intervals', async () => {
+                // Get original interval to restore it later
+                const getRes = await axios.get(intervalUrl);
+                const originalInterval = getRes.data.exportIntervalMillis;
+
+                // Clear in-memory database to start fresh
+                await axios.post(metricsResetUrl);
+
+                // Set a long export interval so it doesn't automatically export
+                await axios.post(intervalUrl, { exportIntervalMillis: 60000 });
+
+                // Reset the test exporter array
+                await axios.post(`${baseUrl}/test/exported-metrics/reset`);
+
+                // Wait a bit, record a metric by hitting /custom-metric
+                await axios.get(`${baseUrl}/custom-metric`);
+
+                // Wait 300 ms, check that it has NOT been exported yet to test exporter
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                const checkRes1 = await axios.get(`${baseUrl}/test/exported-metrics`);
+                expect(checkRes1.data.count).toBe(0);
+
+                // Change interval to a very short one (100 ms)
+                await axios.post(intervalUrl, { exportIntervalMillis: 100 });
+
+                // Wait and verify it has now been exported to the test exporter
+                await retry(async () => {
+                    const checkRes2 = await axios.get(`${baseUrl}/test/exported-metrics`);
+                    expect(checkRes2.data.count).toBeGreaterThan(0);
+                }, { timeout: 1500, interval: 50 });
+
+                // Restore original interval
+                await axios.post(intervalUrl, { exportIntervalMillis: originalInterval });
+            });
+
+            it('[e2e][Metrics:Filtering] should filter out scope metrics from user defined exporter, but keep in in-memory DB', async () => {
+                // Clear ignored list
+                await axios.delete(ignoredUrl);
+
+                // Ignore 'PetClinic' scope
+                await axios.post(ignoredUrl, { metric: 'PetClinic' });
+
+                // Reset DB and test exporter
+                await axios.post(metricsResetUrl);
+                await axios.post(`${baseUrl}/test/exported-metrics/reset`);
+
+                // Set short interval to trigger export quickly
+                await axios.post(intervalUrl, { exportIntervalMillis: 100 });
+
+                // Let's hit /custom-metric to generate a 'PetClinic' metric
+                await axios.get(`${baseUrl}/custom-metric`);
+
+                // Let's wait for the export to occur (250 ms)
+                await new Promise((resolve) => setTimeout(resolve, 250));
+
+                // Check the in-memory DB: it should contain metrics from 'PetClinic' (since in-memory exporter is NOT filtered)
+                const dbRes = await axios.get<MetricsResponse>(metricsDataUrl);
+                const dbScopes = dbRes.data.scopeMetrics.map((sm) => sm.scope?.name);
+                expect(dbScopes).toContain('PetClinic');
+
+                // Check the TestExporter: it should NOT contain metrics from 'PetClinic' because it's ignored!
+                const exportRes = await axios.get(`${baseUrl}/test/exported-metrics`);
+                const exportedScopes: string[] = [];
+                exportRes.data.exported.forEach((rm: any) => {
+                    rm.scopeMetrics?.forEach((sm: any) => {
+                        if (sm.scope?.name) {
+                            exportedScopes.push(sm.scope.name);
+                        }
+                    });
+                });
+                expect(exportedScopes).not.toContain('PetClinic');
+
+                // Now remove 'PetClinic' from ignored list
+                await axios.delete(ignoredUrl, { data: { metric: 'PetClinic' } });
+
+                // Reset test exporter
+                await axios.post(`${baseUrl}/test/exported-metrics/reset`);
+
+                // Hit /custom-metric again
+                await axios.get(`${baseUrl}/custom-metric`);
+
+                // Wait and verify it is now exported to TestExporter!
+                await retry(async () => {
+                    const exportRes2 = await axios.get(`${baseUrl}/test/exported-metrics`);
+                    const exportedScopes2: string[] = [];
+                    exportRes2.data.exported.forEach((rm: any) => {
+                        rm.scopeMetrics?.forEach((sm: any) => {
+                            if (sm.scope?.name) {
+                                exportedScopes2.push(sm.scope.name);
+                            }
+                        });
+                    });
+                    expect(exportedScopes2).toContain('PetClinic');
+                }, { timeout: 1500, interval: 50 });
+
+                // Restore ignored list and default interval
+                await axios.delete(ignoredUrl);
+                await axios.post(intervalUrl, { exportIntervalMillis: 250 });
+            });
         });
     });
 }

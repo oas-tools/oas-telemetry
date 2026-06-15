@@ -8,6 +8,8 @@ import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { bootEnvVariables } from "../config/bootConfig.js";
 import { type Instrumentation } from "@opentelemetry/instrumentation";
+import { DynamicPeriodicMetricReader } from "./custom-implementations/metrics/DynamicPeriodicMetricReader.js";
+import { FilterMetricExporter } from "./custom-implementations/exporters/FilterMetricExporter.js";
 
 // GLOBAL REGISTRY of telemetry components, used by SDKs and controllers.
 let _bootInitialized = false;
@@ -58,10 +60,16 @@ export const originalConsoleMethods = {
 // Metrics follow a different pattern in OpenTelemetry
 
 export const inMemoryDbMetricExporter = new InMemoryDbMetricExporter();
+export let mainMetricReader: DynamicPeriodicMetricReader | undefined = undefined;
+export let customFilterMetricExporter: FilterMetricExporter | undefined = undefined;
 
+export function setMainMetricReader(reader: DynamicPeriodicMetricReader) {
+    mainMetricReader = reader;
+}
 
-// Readers and their exporters cannot be grouped together in a MultiReader or similar construct
-// due to differences in aggregation temporality and aggregation selection.
+export function setCustomFilterMetricExporter(exporter: FilterMetricExporter) {
+    customFilterMetricExporter = exporter;
+}
 
 // INSTRUMENTATIONS -----------------------------------------------------------------------
 

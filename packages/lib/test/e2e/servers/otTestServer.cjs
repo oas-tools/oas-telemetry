@@ -71,7 +71,34 @@ const spec = {
 }
 
 
-app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
+class TestExporter {
+    static exported = [];
+    export(resourceMetrics, resultCallback) {
+        TestExporter.exported.push(JSON.parse(JSON.stringify(resourceMetrics)));
+        resultCallback({ code: 0 });
+    }
+    async shutdown() {}
+    async forceFlush() {}
+}
+
+app.use(oasTelemetry({
+    general: { spec: JSON.stringify(spec) },
+    metrics: {
+        extraExporters: [new TestExporter()]
+    }
+}));
+
+app.get('/test/exported-metrics', (req, res) => {
+    res.json({
+        exported: TestExporter.exported,
+        count: TestExporter.exported.length
+    });
+});
+
+app.post('/test/exported-metrics/reset', (req, res) => {
+    TestExporter.exported = [];
+    res.sendStatus(200);
+});
 
 const logger = logs.getLogger('PetClinic', '1.0.0');
 const meter = metrics.getMeter('PetClinic', '1.0.0');

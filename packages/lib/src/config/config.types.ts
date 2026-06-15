@@ -1,5 +1,5 @@
 import { LogRecordExporter, LogRecordProcessor } from "@opentelemetry/sdk-logs";
-import { IMetricReader } from "@opentelemetry/sdk-metrics";
+import { IMetricReader, PushMetricExporter } from "@opentelemetry/sdk-metrics";
 import { SpanExporter, SpanProcessor } from "@opentelemetry/sdk-trace-node";
 import { defaultConfig } from "./config.js";
 import { ViewOptions } from "@opentelemetry/sdk-metrics/build/src/view/View.js";
@@ -31,6 +31,7 @@ export type UserConfig = {
     mainMetricReaderOptions?: Partial<OasTlmConfig["metrics"]["mainMetricReaderOptions"]>;
     extraReaders?: IMetricReader[];  // required shape
     extraViews?: ViewOptions[];
+    extraExporters?: PushMetricExporter[];
     memoryExporter?: Partial<OasTlmConfig["metrics"]["memoryExporter"]>;
   };
   logs?: {

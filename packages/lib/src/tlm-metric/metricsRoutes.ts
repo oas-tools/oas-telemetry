@@ -11,6 +11,11 @@ import {
     findMetrics,
     exportMetrics,
     importMetrics,
+    getExportInterval,
+    setExportInterval,
+    getIgnoredMetrics,
+    addIgnoredMetrics,
+    removeIgnoredMetrics,
 } from './metricsController.js';
 
 export const getMetricsRoutes = () => {
@@ -34,6 +39,13 @@ export const getMetricsRoutes = () => {
 
     router.post('/exporters/in-memory-exporter/data/find', findMetrics);
     router.get('/stats', getMetricsStats);
+
+    // Dynamic metrics endpoints
+    router.get('/export-interval', getExportInterval);
+    router.post('/export-interval', setExportInterval);
+    router.get('/ignored', getIgnoredMetrics);
+    router.post('/ignored', addIgnoredMetrics);
+    router.delete('/ignored', removeIgnoredMetrics);
 
     return router;
 };

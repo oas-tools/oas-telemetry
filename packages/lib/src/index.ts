@@ -31,3 +31,5 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
 }
 
 export { oasTelemetry };
+export { DynamicPeriodicMetricReader } from './telemetry/custom-implementations/metrics/DynamicPeriodicMetricReader.js';
+export { FilterMetricExporter } from './telemetry/custom-implementations/exporters/FilterMetricExporter.js';
