@@ -32,6 +32,7 @@ export type UserConfig = {
     extraReaders?: IMetricReader[];  // required shape
     extraViews?: ViewOptions[];
     memoryExporter?: Partial<OasTlmConfig["metrics"]["memoryExporter"]>;
+    autoGenerateEndpointHistograms?: boolean;
   };
   logs?: {
     extraExporters?: LogRecordExporter[];
