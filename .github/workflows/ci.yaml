@@ -1,0 +1,62 @@
+name: Build, Test, and Publish to NPM
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  # 1. Test Job: Runs on all pushes and PRs
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  # 2. Release Job: Only runs on tags, after tests pass
+  build-and-release:
+    needs: test # Ensures tests pass before attempting to release
+    if: startsWith(github.ref, 'refs/tags/') # Only runs on tag pushes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Tag name
+        id: vars
+        run: echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Publish to NPM
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
