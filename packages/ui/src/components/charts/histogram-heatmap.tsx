@@ -142,6 +142,12 @@ export function HistogramHeatmap({
       return paddingLeft + pct * plotWidth;
     };
 
+    // Clip heatmap cell rendering strictly within the plot area to prevent overflow
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(paddingLeft, paddingTop, plotWidth, plotHeight);
+    ctx.clip();
+
     // Draw Heatmap Cells
     const cellWidth = Math.max(1, plotWidth / S);
     const cellHeight = plotHeight / B;
@@ -163,6 +169,8 @@ export function HistogramHeatmap({
         ctx.fillRect(xPos, yPos, cellWidth + 0.5, cellHeight + 0.5);
       }
     }
+
+    ctx.restore();
 
     // Draw grid lines (matching uPlot stroke & width)
     ctx.strokeStyle = "#e2e8f0";
