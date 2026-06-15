@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getAiService } from './aiService.js';
+import { ConversationNotFoundError } from './exceptions.js';
 
 export async function createConversation(req: Request, res: Response) {
     try {
@@ -60,6 +61,10 @@ export async function sendMessage(req: Request, res: Response) {
         const messages = await getAiService().sendMessage(conversationId, content);
         res.json(messages);
     } catch (err: any) {
+        if (err instanceof ConversationNotFoundError) {
+            res.status(404).json({ error: err.message });
+            return;
+        }
         res.status(500).json({ error: err.message });
     }
 }
