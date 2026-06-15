@@ -79,9 +79,14 @@ const spec = {
     }
 }
 
+let specValue = JSON.stringify(spec);
+if (process.env.OASTLM_TEST_INVALID_SPEC) {
+    specValue = ": : :";
+}
+
 const oasTlmConfig: UserConfig = {
-    general: {
-        spec: JSON.stringify(spec),
+    general: process.env.OASTLM_TEST_NO_SPEC ? {} : {
+        spec: specValue,
     },
     traces: {
         // extraExporters: [new ConsoleSpanExporter()],

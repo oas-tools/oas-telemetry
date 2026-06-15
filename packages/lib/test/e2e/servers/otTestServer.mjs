@@ -70,7 +70,12 @@ const spec = {
     }
 }
 
-app.use(oasTelemetry({ general: { spec: JSON.stringify(spec) } }));
+let specValue = JSON.stringify(spec);
+if (process.env.OASTLM_TEST_INVALID_SPEC) {
+    specValue = ": : :";
+}
+const userConfig = process.env.OASTLM_TEST_NO_SPEC ? {} : { general: { spec: specValue } };
+app.use(oasTelemetry(userConfig));
 
 const logger = logs.getLogger('PetClinic', '1.0.0');
 const meter = metrics.getMeter('PetClinic', '1.0.0');

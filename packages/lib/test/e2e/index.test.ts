@@ -3,6 +3,7 @@ import { defineLogsApiTests } from './definitions/logs';
 import { defineMetricsApiTests } from './definitions/metrics';
 import { definePluginsApiTests } from './definitions/plugins';
 import { defineAuthApiTests } from './definitions/auth';
+import { defineUtilsApiTests } from './definitions/utils';
 
 
 const cjsConfig: E2ETestConfig = {
@@ -34,6 +35,9 @@ definePluginsApiTests(esmConfig);
 
 defineAuthApiTests(cjsConfig);
 defineAuthApiTests(esmConfig);
+
+defineUtilsApiTests(cjsConfig);
+defineUtilsApiTests(esmConfig);
 
 export interface E2ETestConfig {
   label: string;
