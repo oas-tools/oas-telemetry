@@ -8,6 +8,7 @@ import { UserConfig } from './config/config.types.js';
 import { configureTelemetry } from './telemetry/telemetryConfigurator.js';
 import { isTelemetryConfigured, setTelemetryRouter, getTelemetryRouter } from './telemetry/telemetryRegistry.js';
 import { bootEnvVariables } from "./config/bootConfig.js";
+import { getAutoEndpointMetricsMiddleware } from './tlm-oas/oasMiddleware.js';
 
 /**
  * Returns the OAS-Telemetry middleware.
@@ -23,6 +24,12 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
         return router;
     }
     const oasTlmConfig = getConfig(oasTlmInputConfig);
+    
+    // Register the auto endpoint metrics middleware at the root level of the router
+    if (oasTlmConfig.metrics.autoGenerateEndpointHistograms) {
+        router.use(getAutoEndpointMetricsMiddleware(oasTlmConfig));
+    }
+
     logger.info("BaseUrl: ", bootEnvVariables.OASTLM_BOOT_BASE_URL);
     configureTelemetry(oasTlmConfig);
     configureRoutes(router, oasTlmConfig);

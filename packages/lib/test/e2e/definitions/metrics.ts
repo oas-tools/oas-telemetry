@@ -341,5 +341,23 @@ export function defineMetricsApiTests(config: E2ETestConfig) {
             expect(singleResponse.data.scopeMetrics[0].scope.name).toBe(firstMetric.scope.name);
             expect(singleResponse.data.scopeMetrics[0].descriptor.name).toBe(firstMetric.descriptor.name);
         });
+
+        it('[e2e][Metrics:AutoHistograms][+] should automatically record histogram metric per endpoint', async () => {
+            // First, call a standard endpoint (like GET /api/v1/pets) to trigger telemetry
+            const triggerResponse = await axios.get(`${baseUrl}/api/v1/pets`).catch((err) => err.response);
+            expect(triggerResponse.status).toBe(200);
+
+            // Wait/retry to make sure metrics are exported (interval is 250ms)
+            await retry(async () => {
+                const metricsResponse = await axios.get<MetricsResponse>(metricsDataUrl).catch((err) => err.response);
+                expect(metricsResponse.status).toBe(200);
+                
+                // Find our automatically generated endpoint histogram metric
+                const foundMetric = metricsResponse.data.scopeMetrics.find((sm: any) => 
+                    sm.descriptor.name === 'oas-telemetry.auto.get.api.v1.pets.ms'
+                );
+                expect(foundMetric).toBeDefined();
+            }, { timeout: 3000, interval: 100 });
+        });
     });
 }
