@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { OasTlmConfig } from '../config/config.types.js';
 import { agent } from './agent.js';
+import { ConversationNotFoundError } from './exceptions.js';
 
 type Message = { role: 'user' | 'assistant' | 'function' | 'system'; content: string; name?: string; timestamp: string };
 type Conversation = { id: string; messages: Message[]; name?: string };
@@ -40,7 +41,7 @@ class AIService {
 
     async sendMessage(conversationId: string, content: string, model?: string): Promise<Message[]> {
         const conversation = this.conversations.get(conversationId);
-        if (!conversation) throw new Error('Conversation not found');
+        if (!conversation) throw new ConversationNotFoundError();
         conversation.messages.push({
             role: 'system',
             timestamp: new Date().toISOString(),
