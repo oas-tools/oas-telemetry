@@ -37,7 +37,7 @@ const tabs = [
 const usefulLinks = [
   {
     label: "Documentation",
-    href: "https://github.com/oas-tools/oas-telemetry",
+    href: "https://oas-telemetry.github.io/docusaurus/",
     icon: BookOpen
   },
   {
