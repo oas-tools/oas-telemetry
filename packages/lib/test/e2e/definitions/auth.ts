@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import axios from "axios";
+import jwt from "jsonwebtoken";
 import { E2ETestConfig } from "../index.test";
 import { startServer } from "../utils/serverStarter";
 import { ChildProcess } from "child_process";
@@ -95,6 +96,57 @@ export function defineAuthApiTests(config: E2ETestConfig) {
         it("[e2e][Auth][+] should let use non-protected route", async () => {
             const response = await axios.get(`${baseUrl}/api/v1/pets`);
             expect(response.status).toBe(200);
+        });
+
+        it("[e2e][Auth][-] should reject access token signed with a different JWT secret", async () => {
+            const invalidToken = jwt.sign({ type: "access" }, "different_secret", { expiresIn: 300 });
+            const response = await axios.get(`${baseUrl}${telemetryPath}/logs`, {
+                headers: { Cookie: `oas-tlm-access-token=${invalidToken}` }
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
+        });
+
+        it("[e2e][Auth][-] should reject refresh token signed with a different JWT secret", async () => {
+            const invalidRefreshToken = jwt.sign({ type: "refresh" }, "different_secret", { expiresIn: 300 });
+            const response = await axios.post(`${authUrl}/refresh`, {}, {
+                headers: { Cookie: `oas-tlm-refresh-token=${invalidRefreshToken}` },
+                withCredentials: true
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
+        });
+
+        it("[e2e][Auth][-] should reject access token with incorrect payload type", async () => {
+            const wrongTypeToken = jwt.sign({ type: "refresh" }, additionalEnv.OASTLM_CONFIG_AUTH_JWT_SECRET, { expiresIn: 300 });
+            const response = await axios.get(`${baseUrl}${telemetryPath}/logs`, {
+                headers: { Cookie: `oas-tlm-access-token=${wrongTypeToken}` }
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
+        });
+
+        it("[e2e][Auth][-] should reject refresh token with incorrect payload type", async () => {
+            const wrongTypeRefreshToken = jwt.sign({ type: "access" }, additionalEnv.OASTLM_CONFIG_AUTH_JWT_SECRET, { expiresIn: 300 });
+            const response = await axios.post(`${authUrl}/refresh`, {}, {
+                headers: { Cookie: `oas-tlm-refresh-token=${wrongTypeRefreshToken}` },
+                withCredentials: true
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
+        });
+
+        it("[e2e][Auth][-] should reject expired access token", async () => {
+            const expiredToken = jwt.sign({ type: "access" }, additionalEnv.OASTLM_CONFIG_AUTH_JWT_SECRET, { expiresIn: -10 });
+            const response = await axios.get(`${baseUrl}${telemetryPath}/logs`, {
+                headers: { Cookie: `oas-tlm-access-token=${expiredToken}` }
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
+        });
+
+        it("[e2e][Auth][-] should reject expired refresh token", async () => {
+            const expiredRefreshToken = jwt.sign({ type: "refresh" }, additionalEnv.OASTLM_CONFIG_AUTH_JWT_SECRET, { expiresIn: -10 });
+            const response = await axios.post(`${authUrl}/refresh`, {}, {
+                headers: { Cookie: `oas-tlm-refresh-token=${expiredRefreshToken}` },
+                withCredentials: true
+            }).catch((err) => err.response);
+            expect(response.status).toBe(401);
         });
     });
 }
