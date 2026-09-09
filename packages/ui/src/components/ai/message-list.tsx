@@ -2,7 +2,7 @@
 
 import type { Message } from "@/lib/store/chat"
 import { cn } from "@/lib/utils"
-import { Bot, MessageCircle, Sparkles, User, Wrench } from "lucide-react"
+import { ArrowDown, Bot, MessageCircle, Sparkles, User, Wrench } from "lucide-react"
 import { marked } from "marked"
 import { useEffect, useRef, useState } from "react"
 
@@ -43,7 +43,7 @@ function MessageBubble({
       >
         <div
           className="markdown leading-relaxed break-words"
-          dangerouslySetInnerHTML={{ __html: marked.parse(content) }}
+          dangerouslySetInnerHTML={{ __html: marked.parse(content ?? "") }}
         />
         <span className={cn("text-[11px] opacity-60 mt-0.5 block", variant === "popup" && "text-[10px]")}>
           {timestamp.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
@@ -60,6 +60,13 @@ function MessageBubble({
 
 function FunctionCallMessage({ content }: { content: string }) {
   const [open, setOpen] = useState(false)
+  let details: { tool?: string; parameters?: unknown; result?: unknown }
+  try {
+    details = JSON.parse(content)
+  } catch {
+    details = { result: content }
+  }
+
   return (
     <div className="flex items-end gap-2 justify-start">
       <div className="flex-shrink-0 w-8 h-8 rounded-full border m-1 p-1 flex items-center justify-center bg-yellow-50 border-yellow-300">
@@ -67,11 +74,20 @@ function FunctionCallMessage({ content }: { content: string }) {
       </div>
       <div className="max-w-[75%] rounded-md px-3 py-1.5 bg-yellow-50 border border-yellow-300 text-yellow-900 sm:text-sm  break-words">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setOpen((v) => !v)}>
-          <span>Tools used! </span>
-          <button className="ml-auto text-xs underline">{open ? "Hide details" : "Show details"}</button>
+          <span>{details.tool || "Tool used"}</span>
+          <button className="ml-auto text-xs underline">{open ? "Hide" : "Show details"}</button>
         </div>
         {open && (
-          <pre className="mt-2 text-xs whitespace-pre-wrap break-words">{content}</pre>
+          <div className="mt-2 space-y-2 text-xs">
+            <div>
+              <div className="font-semibold">Parameters</div>
+              <pre className="whitespace-pre-wrap break-words">{JSON.stringify(details.parameters ?? {}, null, 2)}</pre>
+            </div>
+            <div>
+              <div className="font-semibold">Result</div>
+              <pre className="whitespace-pre-wrap break-words">{typeof details.result === "string" ? details.result : JSON.stringify(details.result, null, 2)}</pre>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -79,14 +95,33 @@ function FunctionCallMessage({ content }: { content: string }) {
 }
 
 export function MessageList({ messages, isLoading, variant = "page" }: MessageListProps) {
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showScrollButton, setShowScrollButton] = useState(false)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const updateScrollButton = () => {
+      setShowScrollButton(container.scrollHeight - container.scrollTop - container.clientHeight > 80)
+    }
+
+    updateScrollButton()
+    container.addEventListener("scroll", updateScrollButton)
+    return () => container.removeEventListener("scroll", updateScrollButton)
   }, [messages, isLoading])
 
+  const scrollToBottom = () => {
+    messagesContainerRef.current?.scrollTo({
+      top: messagesContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    })
+  }
+
   return (
-    <div className="h-full w-full overflow-y-auto px-4">
+    <div className="relative h-full w-full">
+      <div ref={messagesContainerRef} className="h-full w-full overflow-y-auto px-4">
       {messages.length === 0 && !isLoading && (
         <div className="flex items-center justify-center h-full text-center px-4">
           <div className="space-y-2">
@@ -94,7 +129,7 @@ export function MessageList({ messages, isLoading, variant = "page" }: MessageLi
               <MessageCircle className="w-6 h-6 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground">Start a conversation</p>
-            <p className="text-xs text-muted-foreground">Type a message below to begin</p>
+            <p className="text-xs text-muted-foreground">Ask about your API health, metrics, traces, and logs.</p>
           </div>
         </div>
       )}
@@ -142,6 +177,18 @@ export function MessageList({ messages, isLoading, variant = "page" }: MessageLi
         )}
         <div ref={messagesEndRef} />
       </div>
+      </div>
+      {showScrollButton && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className="absolute bottom-4 right-6 rounded-full border bg-background p-2 shadow-md"
+          aria-label="Scroll to latest message"
+          title="Scroll to latest message"
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      )}
     </div>
   )
 }

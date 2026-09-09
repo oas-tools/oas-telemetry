@@ -133,8 +133,9 @@ paths:
                   description: Array of trace objects (spans) to insert
               example:
                 spans:
-                  - traceId: "123"
-                    spanId: "456"
+                  - _spanContext:
+                      traceId: "123"
+                      spanId: "456"
       responses:
         '200':
           description: OK
@@ -1602,6 +1603,45 @@ paths:
                 example:
                   id: "conv-123"
                   name: "New Conversation"
+
+  /ai/chat/tools:
+    get:
+      summary: List available AI tools
+      description: Returns the tools that can be enabled for AI conversations, including technical and user-facing descriptions.
+      tags:
+        - ai
+      responses:
+        '200':
+          description: Available AI tools
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - name
+                    - userDescription
+                    - description
+                  properties:
+                    id:
+                      type: string
+                      description: Internal tool identifier used when enabling the tool.
+                    name:
+                      type: string
+                      description: Human-readable tool name.
+                    userDescription:
+                      type: string
+                      description: Short description intended for display to users.
+                    description:
+                      type: string
+                      description: Technical description used by the AI model.
+              example:
+                - id: getLogs
+                  name: Logs
+                  userDescription: Query recorded logs and filter them by date.
+                  description: Fetches log data for the microservice.
 
   /ai/chat/{conversationId}:
     parameters:

@@ -144,7 +144,7 @@ export class Series {
      */
     evictOldChunks(thresholdTime: number): number {
         let evicted = 0;
-        while (this.chunks.length > 0 && this.chunks[0].getMaxTime() < thresholdTime) {
+        while (this.chunks.length > 0 && this.chunks[0].getCreatedAt() < thresholdTime) {
             this.chunks.shift();
             evicted++;
         }

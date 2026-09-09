@@ -11,6 +11,13 @@ export type Conversation = {
   name?: string;
 };
 
+export type AiTool = {
+  id: string;
+  name: string;
+  userDescription: string;
+  description: string;
+};
+
 export interface ConversationHistory {
   messages: Message[];
   name?: string;
@@ -22,10 +29,11 @@ class ChatService {
     return res.data;
   }
 
-  async sendMessage(conversationId: string, content: string): Promise<Message[]> {
+  async sendMessage(conversationId: string, content: string, allowedTools: string[] = []): Promise<Message[]> {
     const res = await backend.post(`/ai/chat/${conversationId}/message`, {
       role: "user",
       content,
+      allowedTools,
     });
     return res.data;
   }
@@ -38,6 +46,11 @@ class ChatService {
   async listConversations(): Promise<Conversation[]> {
     const res = await backend.get("/ai/chat");
     // Expecting array of { id, title }
+    return res.data;
+  }
+
+  async listAvailableTools(): Promise<AiTool[]> {
+    const res = await backend.get("/ai/chat/tools");
     return res.data;
   }
 

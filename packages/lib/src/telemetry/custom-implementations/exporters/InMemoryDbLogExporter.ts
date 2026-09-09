@@ -176,6 +176,7 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
             severityNumber: logRecord.severityNumber,
             body: logRecord.body,
             attributes: logRecord.attributes,
+            createdAt: Date.now(),
         };
     }
 
@@ -190,6 +191,11 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
 
     private _insertLogs(logsToInsert: any[], resultCallback: (result: ExportResult) => void) {
         if (!this._db) return resultCallback({ code: ExportResultCode.FAILED });
+
+        logsToInsert = logsToInsert.map((log) => ({
+            ...log,
+            createdAt: typeof log.createdAt === 'number' ? log.createdAt : Date.now(),
+        }));
         
         this._db.insert(logsToInsert, (err: any, newDocs: any[]) => {
             if (err) {
@@ -209,10 +215,10 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
 
         setInterval(() => {
             if (!this._db) return; // Safety check
-            const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
+            const expirationTime = Date.now() - this._retentionTimeInSeconds * 1000;
 
             this._db.remove(
-                { createdAt: { $lt: expirationDate } },
+                { createdAt: { $lt: expirationTime } },
                 { multi: true },
                 (err, numRemoved) => {
                     if (err) {

@@ -47,7 +47,7 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             const cleanSpans = readableSpans
                 .map(nestedSpan => removeCircularRefs(nestedSpan)) // to avoid JSON parsing error
                 .map(span => applyNesting(span)) // to avoid dot notation in keys (neDB does not support dot notation in keys)
-                .map(span => addTimestampFromStartTime(span)); // Add a top-level timestamp field for easier querying/sorting
+                .map(span => ({ ...addTimestampFromStartTime(span), createdAt: Date.now() }));
             cleanSpans.forEach(span => {
                 pluginService.broadcastTrace(span);
             });
@@ -133,7 +133,10 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         if (!this._spans) {
             return callback(new Error('Spans database not initialized'), []);
         }
-        this._spans.insert(spans, callback);
+        this._spans.insert(spans.map((span) => ({
+            ...span,
+            createdAt: typeof span.createdAt === 'number' ? span.createdAt : Date.now(),
+        })), callback);
     }
 
     _startCleanupJob() {
@@ -141,10 +144,10 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
 
         setInterval(() => {
             if (!this._spans) return; // Safety check - not initialized yet
-            const expirationDate = new Date(Date.now() - this._retentionTimeInSeconds * 1000);
+            const expirationTime = Date.now() - this._retentionTimeInSeconds * 1000;
 
             this._spans.remove(
-                { timestamp: { $lt: expirationDate } },
+                { createdAt: { $lt: expirationTime } },
                 { multi: true },
                 (err, numRemoved) => {
                     if (err) {

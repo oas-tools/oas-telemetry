@@ -7,21 +7,15 @@ import { Server } from "http";
 vi.mock("openai", () => {
     return {
         default: class MockOpenAI {
-            chat = {
-                completions: {
-                    create: vi.fn().mockResolvedValue({
-                        choices: [
-                            {
-                                index: 0,
-                                message: {
-                                    role: "assistant",
-                                    content: "Mocked AI Response",
-                                },
-                                finish_reason: "stop",
-                            },
-                        ],
-                    }),
-                },
+            responses = {
+                create: vi.fn().mockResolvedValue({
+                    output: [{
+                        type: "message",
+                        role: "assistant",
+                        content: [{ type: "output_text", text: "Mocked AI Response" }],
+                    }],
+                    output_text: "Mocked AI Response",
+                }),
             };
         },
     };
