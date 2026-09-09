@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "../ui/button"
 import { X, Menu } from "lucide-react"
 import { chatService } from "@/services/chatService"
+import type { AiTool } from "@/services/chatService"
 
 interface ChatContainerProps {
   variant?: "popup" | "page"
@@ -28,9 +29,16 @@ export function ChatContainer({ variant = "page", onClose }: ChatContainerProps)
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [available, setAvailable] = useState<boolean>(false)
+  const [allowedTools, setAllowedTools] = useState<string[]>([])
+  const [availableTools, setAvailableTools] = useState<AiTool[]>([])
 
   useEffect(() => {
-    chatService.isChatAvailable().then(setAvailable)
+    Promise.all([chatService.isChatAvailable(), chatService.listAvailableTools()])
+      .then(([isAvailable, tools]) => {
+        setAvailable(isAvailable)
+        setAvailableTools(tools)
+      })
+      .catch(() => setAvailable(false))
   }, [])
 
   if (available === false) {
@@ -112,7 +120,10 @@ export function ChatContainer({ variant = "page", onClose }: ChatContainerProps)
         {/* Footer (fixed at bottom inside Card) */}
           <div className="shrink-0">
             <MessageInput
-              onSendMessage={sendMessage}
+              onSendMessage={(content) => sendMessage(content, allowedTools)}
+              allowedTools={allowedTools}
+              onAllowedToolsChange={setAllowedTools}
+              availableTools={availableTools}
               variant={variant}
             />
           </div>
@@ -120,4 +131,3 @@ export function ChatContainer({ variant = "page", onClose }: ChatContainerProps)
     </div>
   )
 }
-

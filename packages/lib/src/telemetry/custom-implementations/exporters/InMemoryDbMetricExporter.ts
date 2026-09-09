@@ -22,8 +22,9 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
 
     private static readonly DEFAULT_CONFIG: ExporterConfig = {
         retentionTimeInSeconds: 3600,
-        chunkSize: 120,
-        maxChunks: 60
+        // Small chunks keep retention cleanup bounded without storing a timestamp per sample.
+        chunkSize: 30,
+        maxChunks: 240
     };
 
     private readonly registry: SeriesRegistry;
@@ -189,4 +190,3 @@ export class InMemoryDbMetricExporter extends Enabler implements PushMetricExpor
         this.insertOtel(otelScopeMetrics);
     }
 }
-

@@ -48,7 +48,9 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
 }) => {
     const [loading, setLoading] = useState(true)
     const [status, setStatus] = useState<{ active: boolean }>({ active: false })
-    const [retentionTime, setRetentionTime] = useState("3600")
+    const [retentionHours, setRetentionHours] = useState("1")
+    const [retentionMinutes, setRetentionMinutes] = useState("0")
+    const [retentionSeconds, setRetentionSeconds] = useState("0")
     const [expanded, setExpanded] = useState(true)
     const [showResetConfirm, setShowResetConfirm] = useState(false)
     const [showImportExport, setShowImportExport] = useState(false)
@@ -69,7 +71,11 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
     useEffect(() => {
         setLoadingWithDelay(
             Promise.all([
-                service.getRetentionTime().then((t) => setRetentionTime(t.toString())).catch(() => toast.error("Failed to fetch retention time")),
+                service.getRetentionTime().then((t) => {
+                    setRetentionHours(Math.floor(t / 3600).toString())
+                    setRetentionMinutes(Math.floor((t % 3600) / 60).toString())
+                    setRetentionSeconds((t % 60).toString())
+                }).catch(() => toast.error("Failed to fetch retention time")),
                 service.getStatus().then((s) => setStatus(s)).catch(() => {
                     setStatus({ active: true })
                     toast("Could not connect to service")
@@ -106,14 +112,17 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
     }
 
     const handleSetRetentionTime = async () => {
-        const time = Number.parseInt(retentionTime)
-        if (isNaN(time) || time <= 0) {
-            toast.error("Retention time must be a positive number")
+        const hours = Number.parseInt(retentionHours)
+        const minutes = Number.parseInt(retentionMinutes)
+        const seconds = Number.parseInt(retentionSeconds)
+        const time = hours * 3600 + minutes * 60 + seconds
+        if (isNaN(time) || time <= 0 || hours < 0 || minutes < 0 || seconds < 0 || seconds > 59) {
+            toast.error("Enter a valid retention time")
             return
         }
         await setLoadingWithDelay(
             service.setRetentionTime(time)
-                .then(() => toast.success(`${resourceLabel} will be retained for ${time} seconds`))
+                .then(() => toast.success(`${resourceLabel} will be retained for ${hours} hours, ${minutes} minutes and ${seconds} seconds`))
                 .catch(() => toast.error("Failed to set retention time"))
         )
     }
@@ -191,18 +200,43 @@ const CollectionPanel: React.FC<CollectionPanelProps> = ({
                         className="flex flex-col md:flex-row items-start md:items-end gap-2"
                     >
                         <div className="flex-1 w-full">
-                            <Label htmlFor="retention-time" className="text-sm">
-                                Retention Time (seconds)
-                            </Label>
-                            <Input
-                                id="retention-time"
-                                type="number"
-                                value={retentionTime}
-                                onChange={(e) => setRetentionTime(e.target.value)}
-                                placeholder="3600"
-                                className="mt-1"
-                                disabled={loading}
-                            />
+                            <Label className="text-sm">Retention Time</Label>
+                            <div className="mt-1 grid grid-cols-3 gap-2">
+                                <div>
+                                    <Label htmlFor="retention-hours" className="text-xs text-muted-foreground">Hours</Label>
+                                    <Input
+                                        id="retention-hours"
+                                        type="number"
+                                        min="0"
+                                        value={retentionHours}
+                                        onChange={(e) => setRetentionHours(e.target.value)}
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="retention-minutes" className="text-xs text-muted-foreground">Minutes</Label>
+                                    <Input
+                                        id="retention-minutes"
+                                        type="number"
+                                        min="0"
+                                        value={retentionMinutes}
+                                        onChange={(e) => setRetentionMinutes(e.target.value)}
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="retention-seconds" className="text-xs text-muted-foreground">Seconds</Label>
+                                    <Input
+                                        id="retention-seconds"
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        value={retentionSeconds}
+                                        onChange={(e) => setRetentionSeconds(e.target.value)}
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
                         </div>
                         <Button
                             type="submit"

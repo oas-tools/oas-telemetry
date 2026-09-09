@@ -212,7 +212,7 @@ export class SeriesRegistry {
     }
 
     evictOldData(retentionTimeNs: number): { evictedChunks: number; evictedSeries: number } {
-        const thresholdTime = Date.now() * 1_000_000 - retentionTimeNs;
+        const thresholdTime = Date.now() - retentionTimeNs / 1_000_000;
         let evictedChunks = 0;
         let evictedSeries = 0;
 
@@ -324,6 +324,7 @@ export class SeriesRegistry {
                     cursor: chunk.cursor,
                     minEndTime: chunk.minEndTime,
                     maxEndTime: chunk.maxEndTime,
+                    createdAt: chunk.createdAt,
                     isHistogram: chunk.isHistogram
                 }));
             });
@@ -400,6 +401,8 @@ export class SeriesRegistry {
                             chunkPrivate.cursor = record.cursor;
                             chunkPrivate.minEndTime = record.minEndTime;
                             chunkPrivate.maxEndTime = record.maxEndTime;
+                            chunkPrivate.createdAt = record.createdAt
+                                || (record.endTimes?.[0] ? record.endTimes[0] / 1_000_000 : Date.now());
                             chunkPrivate.isHistogram = record.isHistogram;
 
                             const seriesPrivate = series as any;

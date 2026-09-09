@@ -10,6 +10,7 @@ export class Chunk {
     private minEndTime: number = 0;
     private maxEndTime: number = 0;
     private readonly isHistogram: boolean;
+    private createdAt: number;
 
     constructor(maxSamples: number = 120, isHistogram: boolean = false) {
         this.maxSamples = maxSamples;
@@ -18,6 +19,7 @@ export class Chunk {
         this.values = new Float64Array(maxSamples);
         this.histograms = new Array(maxSamples).fill(null);
         this.isHistogram = isHistogram;
+        this.createdAt = Date.now();
     }
 
     /**
@@ -178,5 +180,9 @@ export class Chunk {
 
     size(): number {
         return this.cursor;
+    }
+
+    getCreatedAt(): number {
+        return this.createdAt;
     }
 }

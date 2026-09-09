@@ -175,7 +175,7 @@ export const getTraceById = async (req: Request, res: Response) => {
     const traceId = req.params.traceId;
     try {
         const findConfig = {
-            query: { traceId },
+            query: { '_spanContext.traceId': traceId },
             sortOrder: { timestamp: -1 }
         };
         const docs = await inMemoryDbSpanExporter.find(findConfig);

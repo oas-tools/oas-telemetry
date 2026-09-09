@@ -1,6 +1,5 @@
 # OAS TELEMETRY
 
-
 **OAS Telemetry** is a library that automatically configures telemetry in your Express application based on OpenAPI, with no extra code required. Simply use the middleware to instantly access endpoints for viewing recent requests, system logs, and metrics—all stored in memory. This allows you to analyze your API’s behavior and debug issues easily, without manual setup or complex integration. OpenTelemetry is used under the hood to collect traces, metrics, and logs.
 
 The middleware is highly configurable and supports both **ES Module (ESM-ES2020)** and **CommonJS (CJS)** formats. Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
@@ -24,9 +23,7 @@ The middleware is highly configurable and supports both **ES Module (ESM-ES2020)
 >   Using environment variables and initialization parameters has proven to be convenient and flexible.  
 >   We do not expect breaking changes — new configuration options will be added only when new functionality is introduced, and all updates will always be documented in the `.env.example` file and official documentation.
 >
-> - **UI:** Under active development. Major changes to React have already been completed.  
->   Logs, Plugin, and ChatAI pages are available and functional.  
->   Next, we will work on the **Traces** and **Metrics** pages.
+> - **UI:** Under active development. Logs, Plugins, ChatAI, Traces, and Metrics pages are available, although the UI may still receive improvements before version 1.0.
 >
 > - **Traces:** Currently functional with HTTP instrumentation.  
 >   We are evaluating a possible switch to auto-instrumentation, depending on memory and performance testing results.
@@ -34,8 +31,7 @@ The middleware is highly configurable and supports both **ES Module (ESM-ES2020)
 > - **Metrics:** Functional but expected to change.  
 >   We are exploring optimizations to reduce memory usage and improve data handling before 1.0.
 >
-> Please, if you want to use this package or collaborate, contact us via **motero6@us.es**.
-
+> Please, if you want to use this package or collaborate, contact us via **<motero6@us.es>**.
 
 ## Usage
 
@@ -57,7 +53,7 @@ Add the following lines to your `index.js` file:
 
 ```js
 // This import MUST be at the top of the file
-import oasTelemetry from '@oas-tools/oas-telemetry';
+import { oasTelemetry } from '@oas-tools/oas-telemetry';
 
 // ...rest of your code here creating an express app and importing the OpenAPI spec
 // NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
@@ -72,7 +68,7 @@ Add the following lines to your `index.js` file:
 
 ```js
 // This require MUST be at the top of the file
-const oasTelemetry = require('@oas-tools/oas-telemetry');
+const { oasTelemetry } = require('@oas-tools/oas-telemetry');
 
 // ...rest of your code here creating an express app and importing the OpenAPI spec
 // NOTE: Do not add express.json() before oasTelemetry, or set its limit to at least "10mb" to avoid issues with large files.
@@ -98,13 +94,12 @@ export const customTelemetryConfig = {
 
   auth: {
     enabled: true,
-    apiKeyMaxAge: 1000 * 60 * 30, // 30 minutes
+    accessTokenMaxAge: 1000 * 60 * 30, // 30 minutes
     password: "my-custom-password",
     jwtSecret: "my-super-secret",
   },
 
   ai: {
-    openAIKey: process.env.YOUR_OPENAI_API_KEY, // Seteable via environment variable
     openAIModel: "gpt-4o",
     extraContextPrompts: [
       "Provide clear, concise answers",
@@ -115,14 +110,10 @@ export const customTelemetryConfig = {
   traces: {
     extraExporters: [],
     extraProcessors: [],
-    mainProcessorOptions: {
-      config: undefined,
-    },
     memoryExporter: {
       enabled: true,
-      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
+      retentionTimeSeconds: 60 * 60 * 2, // 2 hours
     },
-    filters: [],
   },
 
   metrics: {
@@ -133,9 +124,10 @@ export const customTelemetryConfig = {
     extraReaders: [],
     memoryExporter: {
       enabled: true,
-      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
+      retentionTimeSeconds: 60 * 60 * 2, // 2 hours
     },
-    filters: [],
+    autoGenerateEndpointHistograms: false,
+    extraViews: [],
   },
 
   logs: {
@@ -143,16 +135,19 @@ export const customTelemetryConfig = {
     extraProcessors: [],
     memoryExporter: {
       enabled: true,
-      retentionTimeInSeconds: 1000 * 60 * 120, // 2 hours
+      retentionTimeSeconds: 60 * 60 * 2, // 2 hours
     },
-    filters: [],
   },
 
   plugins: {
     enabled: true,
     extraPlugins: [],
   },
+
+  instrumentations: [],
 };
+
+// Configure the OpenAI key with OASTLM_CONFIG_AI_OPENAI_KEY in the environment.
 
 app.use(oasTelemetry(customTelemetryConfig));
 ```
@@ -165,11 +160,14 @@ You can access the telemetry UI at the endpoint `/oas-telemetry` (or at a custom
 
 ## Rest API Endpoints Overview
 
+All routes below are relative to `OASTLM_BOOT_BASE_URL`, which defaults to `/oas-telemetry`.
+
 ### Authentication Endpoints
 
-- `POST /login`: Log in to the system.
-- `GET /logout`: Log out of the system.
-- `GET /check`: Check authentication status.
+- `POST /auth/login`: Log in to the system.
+- `POST /auth/logout`: Log out of the system.
+- `POST /auth/refresh`: Refresh the access token.
+- `GET /auth/enabled`: Check whether authentication is enabled.
 
 ### Metrics Endpoints
 
@@ -220,14 +218,21 @@ You can access the telemetry UI at the endpoint `/oas-telemetry` (or at a custom
 
 ### AI Endpoints
 
-- `POST /ai/chat`: Interact with the AI agent.
-- `POST /ai/microservices`: Configure known microservices.
-- `GET /ai/microservices`: Retrieve the list of known microservices.
+- `GET /ai/chat`: List conversations.
+- `POST /ai/chat`: Create a conversation.
+- `GET /ai/chat/tools`: List available AI tools.
+- `GET /ai/chat/:conversationId`: Get conversation history.
+- `POST /ai/chat/:conversationId/message`: Send a message.
+- `DELETE /ai/chat/:conversationId`: Delete a conversation.
+- `GET /ai/chat/health`: Check AI service health.
 
 ### Plugins Endpoints
 
-- `GET /plugins/list`: List all registered plugins.
-- `POST /plugins/register`: Register a new plugin.
+- `GET /plugins`: List all registered plugins.
+- `POST /plugins`: Register a plugin.
+- `POST /plugins/:id/activate`: Activate a plugin.
+- `POST /plugins/:id/deactivate`: Deactivate a plugin.
+- `DELETE /plugins/:id`: Delete a plugin.
 
 ### Utility Endpoints
 
@@ -235,11 +240,11 @@ You can access the telemetry UI at the endpoint `/oas-telemetry` (or at a custom
 - `GET /utils/heapStats`: Show v8 heap statistics.
 - `GET /utils/generate-log`: Generate a log message.
 - `GET /utils/generate-wait/:seconds?`: Wait for a specified number of seconds.
-- `GET /utils/health`: Perform a health check.
+- `GET /health`: Perform a health check.
 
 ## Telemetry Plugins
 
-> **Note:** Plugins are currently only supported for traces. Support for logs and metrics plugins will be added in future releases.
+> **Note:** Plugins run in separate child processes and can be registered as ESM or CommonJS modules. Their concrete telemetry integrations depend on the plugin implementation.
 
 OAS Telemetry supports a range of plugins to extend its functionality, allowing developers to tailor telemetry data collection, alerting, and reporting to meet specific requirements. Plugins enable additional features, such as integration with alerting systems, custom data exporters, and data visualization tools.
 
@@ -254,13 +259,13 @@ This flexibility makes it easy to incorporate a wide variety of plugins in your 
 
 ## Accessing Telemetry Data
 
-Using OAS Telemetry, you can access telemetry data through the UI (WIP), the `/telemetry/spans/exporters/in-memory-exporter/data` endpoint, or the `/telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with a POST request using a MongoDB search syntax.
+Using OAS Telemetry, you can access telemetry data through the UI, the `/oas-telemetry/spans/exporters/in-memory-exporter/data` endpoint, or the `/oas-telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with a POST request using a MongoDB search syntax. Replace `/oas-telemetry` with the value configured in `OASTLM_BOOT_BASE_URL`.
 
 Note: if authentication is enabled, you must provide the correct credentials to access the telemetry data.
 
 ### Search Example
 
-To perform a simple search, send a POST request to the `/telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with the following JSON payload:
+To perform a simple search, send a POST request to the `/oas-telemetry/spans/exporters/in-memory-exporter/data/find` endpoint with the following JSON payload:
 
 ```json
 {
@@ -319,14 +324,15 @@ To run these examples, follow these steps:
     ```sh
     node index.js
     ```
-6. Go to `/telemetry` (currently UI, is a placeholder except for the AI chat, we are migrating to a component based UI, but you can use the API like GET: `/telemetry/logs/exporters/in-memory-exporter/data` `/telemetry/spans/exporters/in-memory-exporter/data` `/telemetry/traces/:traceId`)
+
+6. Go to `/oas-telemetry/` (or the path configured with `OASTLM_BOOT_BASE_URL`) to open the UI. You can also use the API, for example `GET /oas-telemetry/logs/exporters/in-memory-exporter/data`, `GET /oas-telemetry/spans/exporters/in-memory-exporter/data`, or `GET /oas-telemetry/traces/:traceId`.
 
 Your project folder should now contain the necessary files to run the example with **OAS Telemetry** integrated.
 
 ### Simple Example [ES Module](https://nodejs.org/docs/latest/api/esm.html) (*.mjs)
 
 ```js index.mjs
-import oasTelemetry from '@oas-tools/oas-telemetry';
+import { oasTelemetry } from '@oas-tools/oas-telemetry';
 import express from 'express';
 import dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'test') {
@@ -433,7 +439,7 @@ app.get("/api/v1/clinics", (req, res) => {
 ### Simple Example [Common.js Module](https://nodejs.org/docs/latest/api/modules.html) (*.cjs)
 
 ```js index.cjs
-let oasTelemetry = require('@oas-tools/oas-telemetry');
+let { oasTelemetry } = require('@oas-tools/oas-telemetry');
 let express = require('express');
 let dotenv = require('dotenv');
 if (process.env.NODE_ENV !== 'test') {

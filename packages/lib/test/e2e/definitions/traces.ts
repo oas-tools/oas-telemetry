@@ -4,7 +4,7 @@ import { E2ETestConfig } from "../index.test";
 import { startServer } from "../utils/serverStarter";
 import { ChildProcess } from "child_process";
 
-type Trace = { id?: string; name?: string };
+type Trace = { _spanContext?: { traceId?: string; spanId?: string }; id?: string; name?: string };
 type TracesResponse = { spans: Trace[]; spansCount: number };
 
 export function defineTracesApiTests(config: E2ETestConfig) {
@@ -203,13 +203,19 @@ export function defineTracesApiTests(config: E2ETestConfig) {
         });
 
         it('[e2e][Traces:GetTraceById][+] should return spans filtered by traceId', async () => {
-            const mockTraceId = "test-trace-id-123456";
-            await axios.post(spansDataUrl, { spans: [{ id: "span-1", traceId: mockTraceId }, { id: "span-2", traceId: "other-trace-id" }] }).catch((err) => err.response);
+            await axios.get(petsUrl).catch((err) => err.response);
 
-            const response = await axios.get<TracesResponse>(`${tracesUrl}/${mockTraceId}`).catch((err) => err.response);
+            const spansResponse = await axios.get<TracesResponse>(spansDataUrl).catch((err) => err.response);
+            expect(spansResponse.status).toBe(200);
+            expect(spansResponse.data.spansCount).toBeGreaterThan(0);
+
+            const traceId = spansResponse.data.spans[0]._spanContext?.traceId;
+            expect(traceId).toBeTruthy();
+
+            const response = await axios.get<TracesResponse>(`${tracesUrl}/${traceId}`).catch((err) => err.response);
             expect(response.status).toBe(200);
-            expect(response.data.spansCount).toBe(1);
-            expect(response.data.spans[0].traceId).toBe(mockTraceId);
+            expect(response.data.spansCount).toBeGreaterThan(0);
+            expect(response.data.spans.every((span) => span._spanContext?.traceId === traceId)).toBe(true);
         });
     });
 }
