@@ -1,6 +1,8 @@
 # OAS TELEMETRY
 
-**OAS Telemetry** is a library that automatically configures telemetry in your Express application based on OpenAPI, with no extra code required. Simply use the middleware to instantly access endpoints for viewing recent requests, system logs, and metrics—all stored in memory. This allows you to analyze your API’s behavior and debug issues easily, without manual setup or complex integration. OpenTelemetry is used under the hood to collect traces, metrics, and logs.
+**OAS Telemetry** is a library that automatically configures the OpenTelemetry SDK for your Express application based on OpenAPI, with no extra code required. It sets up auto-instrumentations along with some custom ones out of the box, and **stores the collected traces, metrics, and logs in memory**, providing a **UI to inspect them** locally. This allows you to analyze your API's behavior and debug issues easily, without manual setup or complex integration.
+
+By default, telemetry data is kept only in memory and is discarded after a configurable retention time (60 minutes by default). If you want to persist it, you can set the appropriate environment variable to export data directly to an **OpenTelemetry Collector**, which can then forward it to your backend of choice.
 
 The middleware is highly configurable and supports both **ES Module (ESM-ES2020)** and **CommonJS (CJS)** formats. Its functionality can be extended via plugins; see [Telemetry Plugins](#telemetry-plugins) for details.
 
@@ -25,8 +27,7 @@ The middleware is highly configurable and supports both **ES Module (ESM-ES2020)
 >
 > - **UI:** Under active development. Logs, Plugins, ChatAI, Traces, and Metrics pages are available, although the UI may still receive improvements before version 1.0.
 >
-> - **Traces:** Currently functional with HTTP instrumentation.  
->   We are evaluating a possible switch to auto-instrumentation, depending on memory and performance testing results.
+> - **Traces:** Currently functional with auto instrumentations for the exporters. In memory exporter only saves HTTP spans in order to reduce memory usage.
 >
 > - **Metrics:** Functional but expected to change.  
 >   We are exploring optimizations to reduce memory usage and improve data handling before 1.0.
@@ -95,8 +96,9 @@ export const customTelemetryConfig = {
   auth: {
     enabled: true,
     accessTokenMaxAge: 1000 * 60 * 30, // 30 minutes
+    // For development purposes only. In production, use a secure password and consider using environment variables to store it.
     password: "my-custom-password",
-    jwtSecret: "my-super-secret",
+    jwtSecret: "my-super-secret", 
   },
 
   ai: {
