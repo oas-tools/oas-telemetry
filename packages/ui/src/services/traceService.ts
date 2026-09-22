@@ -10,6 +10,13 @@ export interface Span {
     name: string
     duration: number
     timestamp: number
+    startTime?: [number, number]
+    endTime?: [number, number]
+    kind?: number
+    status?: { code: number; message?: string }
+    _spanContext?: { traceId: string; spanId: string }
+    parentSpanContext?: { traceId: string; spanId: string }
+    instrumentationScope?: { name: string; version?: string }
     attributes: {
         http?: {
             request?: { method: string }

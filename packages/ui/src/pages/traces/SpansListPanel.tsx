@@ -13,13 +13,12 @@ export default function SpansList({ spans, loadOlderSpans, loadNewerSpans }: Spa
     <VirtualizedListPanel<Span>
       items={spans}
       itemContent={(_, span) => <SpanItem span={span} />}
-      title="Spans History"
-      description="View and scroll through HTTP spans"
-      emptyMessage="No spans to display. Please update your filter or try again later."
+      title="Traces"
+      description="Recent traces. Expand one to see its spans and correlated logs."
+      emptyMessage="No traces to display. Please update your filter or try again later."
       loadOlderItems={loadOlderSpans}
       loadNewerItems={loadNewerSpans}
       panelName="SpansListPanel"
     />
   )
 }
-

@@ -8,6 +8,10 @@ import TracesCollectionPanel from "./TracesCollectionPanel"
 
 const SPANS_PER_FETCH = 30
 
+// Each trace's root span is the one with no parent - listing only those turns the
+// (otherwise very noisy, many-spans-per-request) span list into a list of traces.
+const ROOT_SPANS_ONLY = { "parentSpanContext": { "$exists": false } }
+
 // Helpers ---------------------------------------------------
 const getSpanTimestamp = (span: Span) =>
   typeof span.timestamp === "number" ? span.timestamp : Number(span.timestamp)
@@ -30,12 +34,13 @@ export default function TraceSpansPage() {
   const [hasManualSearch, setHasManualSearch] = useState(false)
 
   const loadInitialSpans = useCallback(async (query: any = {}, isManual: boolean = false) => {
+    const fullQuery = { ...ROOT_SPANS_ONLY, ...query }
     setLoading(true)
-    setQueryToSend(query)
+    setQueryToSend(fullQuery)
     setHasManualSearch(isManual)
     try {
       const response = await traceService.findSpans({
-        query,
+        query: fullQuery,
         limit: SPANS_PER_FETCH,
       })
       const spans = response.spans
@@ -45,10 +50,10 @@ export default function TraceSpansPage() {
         setLastTimestamp(getSpanTimestamp(spans[spans.length - 1]))
       } else if (isManual && spans.length === 0) {
         // Only show "No spans found" if user did a manual search
-        toast.info("No spans found")
+        toast.info("No traces found")
       }
     } catch {
-      toast.error("Failed to load spans")
+      toast.error("Failed to load traces")
     } finally {
       setLoading(false)
     }
@@ -76,7 +81,7 @@ export default function TraceSpansPage() {
         return prev
       })
     } catch {
-      toast.error("Failed to load older spans")
+      toast.error("Failed to load older traces")
     }
   }, [firstTimestamp, queryToSend, hasManualSearch])
 
@@ -102,7 +107,7 @@ export default function TraceSpansPage() {
         setLastTimestamp(getSpanTimestamp(filteredNewSpans[filteredNewSpans.length - 1]))
       }
     } catch {
-      toast.error("Failed to load newer spans")
+      toast.error("Failed to load newer traces")
     }
   }, [lastTimestamp, queryToSend, loadInitialSpans, hasManualSearch])
 
@@ -116,7 +121,7 @@ export default function TraceSpansPage() {
   }, [loadInitialSpans, traceIdFromUrl])
 
   // Extract and memoize unique endpoints for filters (don't recalculate on every render)
-  const uniqueEndpoints = useMemo(() => 
+  const uniqueEndpoints = useMemo(() =>
     Array.from(
       new Set(currentSpans.map((span) => span.attributes?.url?.path)),
     ).filter(Boolean) as string[],
