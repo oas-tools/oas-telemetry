@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import { getColorFromPalette, formatTimeString } from "./utils";
+import { getColorFromPalette, formatTimeString, formatCompactNumber, dynamicAxisSize } from "./utils";
 import { ChartTooltip, type TooltipData } from "./chart-tooltip";
 
 export type SeriesConfig = {
@@ -84,10 +84,13 @@ export function TimeSeriesChart({
                         width: 1,
                     },
                     space: 50,
+                    gap: 0, // Places labels close to the axis
                     font: "12px Inter, sans-serif",
                     values: (_, ticks) => ticks.map((t) => formatTimeString(t as number)),
                 },
                 {
+                    side: 3, // Left axis
+                    gap: 0, // Places labels close to the axis
                     stroke: "#64748b",
                     grid: {
                         show: true,
@@ -95,6 +98,11 @@ export function TimeSeriesChart({
                         width: 1,
                     },
                     font: "12px Inter, sans-serif",
+                    // Abbreviate large numbers (1.2M, 3.4K...) so long labels
+                    // don't get clipped/overflow outside the chart, and reserve
+                    // enough gutter width for whatever renders (measured, not guessed).
+                    values: (_, ticks) => ticks.map((t) => formatCompactNumber(t as number)),
+                    size: dynamicAxisSize(10, 26),
                 },
             ],
             series: [

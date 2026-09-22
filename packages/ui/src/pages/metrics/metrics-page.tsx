@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TimeSeriesChart } from "@/components/charts/time-series-chart";
+import { HistogramHeatmapChart } from "@/components/charts/histogram-heatmap-chart";
 import { useUPlotStyles } from "@/hooks/use-uplot-styles";
 import CollapsibleCard from "@/components/CollapsibleCard";
 import { metricsService } from "@/services/metricsService";
@@ -16,7 +17,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Info } from "lucide-react";
 
 // Own instrumentation scopes should be listed before third-party ones
@@ -57,6 +59,8 @@ export default function MetricsPage() {
     const [loading, setLoading] = useState(false);
     const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
     const [, forceRerender] = useState(0);
+    // Per-metric view mode for HISTOGRAM cards: classic per-bucket line chart vs. the new heatmap.
+    const [histogramViewMode, setHistogramViewMode] = useState<Record<string, "line" | "heatmap">>({});
     const expandedPanelsRef = useRef<string[]>([]);
     const latestRequestIdRef = useRef(0);
     const isAutoRefreshTickRef = useRef(false);
@@ -79,9 +83,10 @@ export default function MetricsPage() {
         descriptorDescription?: string
         histogramData?: {
             label: string;
-            endTimes: number[];
-            values: number[];
+            endTimes: number[]; // ms, aligned 1:1 with `values`
+            values: ({ boundaries?: number[]; counts?: number[] } | null | undefined)[];
             unit: string;
+            latestBoundaries: number[];
         } | null
     }>>({});
     // const [metricsCacheVersion, setMetricsCacheVersion] = useState(0); // force rerender when cache changes
@@ -218,6 +223,30 @@ export default function MetricsPage() {
                                 : metricName,
                         }));
                     }
+                    const descriptorType = metric.descriptor.type;
+                    const descriptorUnit = metric.descriptor.unit || "ms";
+
+                    // For histograms, keep the per-timestamp bucket snapshots (used by
+                    // the heatmap view) and the most recent boundaries (used as the
+                    // canonical bucket layout for the y-axis labels).
+                    let histogramData = null;
+                    if (descriptorType === "HISTOGRAM" && series.length > 0) {
+                        const firstSeries = series[0];
+                        const rawValues = firstSeries.values || [];
+                        const latestValue = rawValues[rawValues.length - 1];
+                        const latestBoundaries: number[] =
+                            latestValue?.buckets?.boundaries
+                            ?? metric.descriptor.advice?.explicitBucketBoundaries
+                            ?? [];
+                        histogramData = {
+                            label: metricName,
+                            endTimes: (firstSeries.endTimes || []).map((ns: number) => ns / 1_000_000),
+                            values: rawValues.map((v: any) => v?.buckets),
+                            unit: descriptorUnit,
+                            latestBoundaries,
+                        };
+                    }
+
                     if (
                         prevCache[id] &&
                         isSeriesConfigEqual(prevCache[id].seriesConfig, seriesConfig)
@@ -226,24 +255,10 @@ export default function MetricsPage() {
                         newCache[id] = {
                             ...prevCache[id],
                             chartData,
+                            histogramData,
                         };
                     } else {
                         // New or changed config
-                        const descriptorType = metric.descriptor.type;
-                        const descriptorUnit = metric.descriptor.unit || "ms";
-
-                        // For histograms, use first series data
-                        let histogramData = null;
-                        if (descriptorType === "HISTOGRAM" && series.length > 0) {
-                            const firstSeries = series[0];
-                            histogramData = {
-                                label: metricName,
-                                endTimes: firstSeries.endTimes,
-                                values: firstSeries.values,
-                                unit: descriptorUnit,
-                            };
-                        }
-
                         newCache[id] = {
                             id,
                             scopeName,
@@ -372,13 +387,13 @@ export default function MetricsPage() {
                 ) : metricsList.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">No metrics found.</div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
                         {metricsList.map((metric: any) => (
                             <CollapsibleCard
                                 key={metric.id}
-                                className="py-2 gap-2"
+                                className="py-2 gap-2 h-full"
                                 headerClassName="px-3 py-1.5 gap-1"
-                                contentClassName="px-3 pb-3 pt-0"
+                                contentClassName="px-3 pb-3 pt-0 overflow-x-auto"
                                 header={
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-1.5 min-w-0">
@@ -394,17 +409,24 @@ export default function MetricsPage() {
                                                 </Badge>
                                             )}
                                             {metric.descriptorDescription && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <Info
-                                                            className="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            aria-label="Metric description"
+                                                            className="shrink-0 text-muted-foreground"
                                                             onClick={(e) => e.stopPropagation()}
-                                                        />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent className="max-w-xs">
+                                                        >
+                                                            <Info className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent
+                                                        className="w-auto max-w-xs text-xs p-2"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
                                                         {metric.descriptorDescription}
-                                                    </TooltipContent>
-                                                </Tooltip>
+                                                    </PopoverContent>
+                                                </Popover>
                                             )}
                                         </div>
                                         <div className="text-[11px] text-muted-foreground truncate">
@@ -413,17 +435,46 @@ export default function MetricsPage() {
                                         </div>
                                     </div>
                                 }
+                                headerAction={
+                                    metric.descriptorType === "HISTOGRAM" ? (
+                                        <ToggleGroup
+                                            type="single"
+                                            size="sm"
+                                            value={histogramViewMode[metric.id] ?? "heatmap"}
+                                            onValueChange={(v) => {
+                                                if (!v) return;
+                                                setHistogramViewMode((prev) => ({ ...prev, [metric.id]: v as "line" | "heatmap" }));
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="shrink-0"
+                                        >
+                                            <ToggleGroupItem value="line" className="text-[10px] h-6 px-2">Line</ToggleGroupItem>
+                                            <ToggleGroupItem value="heatmap" className="text-[10px] h-6 px-2">Heatmap (beta)</ToggleGroupItem>
+                                        </ToggleGroup>
+                                    ) : undefined
+                                }
                                 isOpen={expandedPanels.includes(metric.id)}
                                 onToggle={() => handlePanelToggle(metric.id)}
                             >
-                                {/* Always use TimeSeriesChart. For HISTOGRAM, transform data first. */}
-                                <TimeSeriesChart
-                                    data={metric.chartData}
-                                    seriesConfig={metric.seriesConfig}
-                                    timeRange={range}
-                                    animateXAxis={isRelative}
-                                    onRangeSelect={handleChangeRange}
-                                />
+                                {metric.descriptorType === "HISTOGRAM" && metric.histogramData && (histogramViewMode[metric.id] ?? "heatmap") === "heatmap" ? (
+                                    <HistogramHeatmapChart
+                                        endTimes={metric.histogramData.endTimes}
+                                        values={metric.histogramData.values}
+                                        boundaries={metric.histogramData.latestBoundaries}
+                                        unit={metric.descriptorUnit}
+                                        timeRange={range}
+                                        animateXAxis={isRelative}
+                                        onRangeSelect={handleChangeRange}
+                                    />
+                                ) : (
+                                    <TimeSeriesChart
+                                        data={metric.chartData}
+                                        seriesConfig={metric.seriesConfig}
+                                        timeRange={range}
+                                        animateXAxis={isRelative}
+                                        onRangeSelect={handleChangeRange}
+                                    />
+                                )}
                             </CollapsibleCard>
                         ))}
                     </div>
