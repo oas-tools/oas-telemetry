@@ -26,13 +26,14 @@ export type UserConfig = {
     extraExporters?: SpanExporter[];
     extraProcessors?: SpanProcessor[];
     memoryExporter?: Partial<OasTlmConfig["traces"]["memoryExporter"]>;
+    captureBody?: Partial<OasTlmConfig["traces"]["captureBody"]>;
   };
   metrics?: {
     mainMetricReaderOptions?: Partial<OasTlmConfig["metrics"]["mainMetricReaderOptions"]>;
     extraReaders?: IMetricReader[];  // required shape
     extraViews?: ViewOptions[];
     memoryExporter?: Partial<OasTlmConfig["metrics"]["memoryExporter"]>;
-    autoGenerateEndpointHistograms?: boolean;
+    recordSchemaCompliance?: boolean;
   };
   logs?: {
     extraExporters?: LogRecordExporter[];

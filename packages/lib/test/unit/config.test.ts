@@ -56,13 +56,13 @@ describe("Config Tests", () => {
         expect(config.general.specFileName).toBe(defaultConfig.general.specFileName);
     });
 
-    it("[Unit][Config][+] should default autoGenerateEndpointHistograms to false", () => {
+    it("[Unit][Config][+] should default recordSchemaCompliance to true", () => {
         const config = getConfig();
-        expect(config.metrics.autoGenerateEndpointHistograms).toBe(false);
+        expect(config.metrics.recordSchemaCompliance).toBe(true);
     });
 
-    it("[Unit][Config][+] should override autoGenerateEndpointHistograms with userConfig", () => {
-        const config = getConfig({ metrics: { autoGenerateEndpointHistograms: true } });
-        expect(config.metrics.autoGenerateEndpointHistograms).toBe(true);
+    it("[Unit][Config][+] should override recordSchemaCompliance with userConfig", () => {
+        const config = getConfig({ metrics: { recordSchemaCompliance: false } });
+        expect(config.metrics.recordSchemaCompliance).toBe(false);
     });
 });

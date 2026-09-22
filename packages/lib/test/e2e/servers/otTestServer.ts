@@ -100,7 +100,7 @@ const oasTlmConfig: UserConfig = {
         //     exportIntervalMillis: 1000 * 30, // 30 seconds
         //     exporter: new ConsoleMetricExporter()
         // })],
-        autoGenerateEndpointHistograms: true,
+        recordSchemaCompliance: true,
     },
     logs: {
         // extraExporters: [new ConsoleLogRecordExporter()],

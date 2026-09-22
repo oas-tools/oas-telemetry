@@ -1,12 +1,12 @@
 import backend from "./Backend";
 
 export interface ScopeMetricQuery {
-  metricId: {
-    scope: {
-      name: string;
-      version?: string;
-    };
-    metricName: string;
+  scope: {
+    name: string;
+    version?: string;
+  };
+  descriptor: {
+    name: string;
   };
   filters?: Record<string, string>;
 }

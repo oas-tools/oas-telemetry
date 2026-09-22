@@ -3,7 +3,9 @@ import { originalConsoleMethods } from "../telemetry/telemetryRegistry.js";
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'NONE'];
 const currentLogLevel = (bootEnvVariables.OASTLM_BOOT_LOG_LEVEL).toUpperCase();
-const serviceName = 'OAS-TLM-@-' + bootEnvVariables.OASTLM_BOOT_SERVICE_NAME;
+// Uses the standard OTel service name env var directly (not a library-specific one), so this
+// prefix matches whatever OTEL_SERVICE_NAME resolves the actual OTel resource's service.name to.
+const serviceName = 'OAS-TLM-@-' + (process.env.OTEL_SERVICE_NAME || 'UNKNOWN');
 
 function shouldLog(level: string) {
   return LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(currentLogLevel);

@@ -4,9 +4,7 @@ import { InMemoryDbLogExporter } from "./custom-implementations/exporters/InMemo
 import { InMemoryDbMetricExporter } from "./custom-implementations/exporters/InMemoryDbMetricExporter.js";
 import { DynamicMultiSpanProcessor } from "./custom-implementations/processors/dynamicMultiSpanProcessor.js";
 import { DynamicMultiLogRecordProcessor } from "./custom-implementations/processors/dynamicMultiLogProcessor.js";
-import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { bootEnvVariables } from "../config/bootConfig.js";
 import { type Instrumentation } from "@opentelemetry/instrumentation";
 
 // GLOBAL REGISTRY of telemetry components, used by SDKs and controllers.
@@ -21,9 +19,10 @@ export function setTelemetryConfigured(v: boolean) { _telemetryConfigured = v; }
 export function setTelemetryRouter(router: any) { _router = router; }
 export function getTelemetryRouter() { return _router; }
 
-export const oasTelemetryResource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: bootEnvVariables.OASTLM_BOOT_SERVICE_NAME
-});
+// Left empty on purpose: NodeSDK merges this with its own env-based resource detectors, so
+// service.name/service.* attributes are picked up from the standard OTEL_SERVICE_NAME /
+// OTEL_RESOURCE_ATTRIBUTES env vars instead of a library-specific one.
+export const oasTelemetryResource = resourceFromAttributes({});
 
 
 // TRACES -------------------------------------------------------------------------------------

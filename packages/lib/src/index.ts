@@ -8,7 +8,7 @@ import { UserConfig } from './config/config.types.js';
 import { configureTelemetry } from './telemetry/telemetryConfigurator.js';
 import { isTelemetryConfigured, setTelemetryRouter, getTelemetryRouter } from './telemetry/telemetryRegistry.js';
 import { bootEnvVariables } from "./config/bootConfig.js";
-import { getAutoEndpointMetricsMiddleware } from './tlm-oas/oasMiddleware.js';
+import { getOasComplianceMiddleware } from './tlm-oas/oasMiddleware.js';
 
 /**
  * Returns the OAS-Telemetry middleware.
@@ -25,9 +25,9 @@ function oasTelemetry(oasTlmInputConfig?: UserConfig) {
     }
     const oasTlmConfig = getConfig(oasTlmInputConfig);
     
-    // Register the auto endpoint metrics middleware at the root level of the router
-    if (oasTlmConfig.metrics.autoGenerateEndpointHistograms) {
-        router.use(getAutoEndpointMetricsMiddleware(oasTlmConfig));
+    // Register the OpenAPI-compliance middleware at the root level of the router
+    if (oasTlmConfig.metrics.recordSchemaCompliance || oasTlmConfig.traces.captureBody.mode !== 'off') {
+        router.use(getOasComplianceMiddleware(oasTlmConfig));
     }
 
     logger.info("BaseUrl: ", bootEnvVariables.OASTLM_BOOT_BASE_URL);

@@ -11,7 +11,7 @@ const cjsConfig: E2ETestConfig = {
   port: '3231',
   telemetryPath: '/telemetry',
   additionalEnv: {
-    OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS: 'true',
+    OASTLM_CONFIG_METRICS_RECORD_SCHEMA_COMPLIANCE: 'true',
   }
 };
 
@@ -21,7 +21,7 @@ const esmConfig: E2ETestConfig = {
   port: '3232',
   telemetryPath: '/telemetry',
   additionalEnv: {
-    OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS: 'true',
+    OASTLM_CONFIG_METRICS_RECORD_SCHEMA_COMPLIANCE: 'true',
   }
 };
 
