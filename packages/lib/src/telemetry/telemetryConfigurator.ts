@@ -10,6 +10,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { bootEnvVariables } from '../config/bootConfig.js';
 import { pluginService } from '../tlm-plugin/pluginService.js';
 import { MultiMetricExporter } from './custom-implementations/exporters/MultiMetricExporter.js';
+import { getAutoOtlpLogExporter, getAutoOtlpMetricExporter, getAutoOtlpTraceExporter } from './custom-implementations/otlpAutoExporters.js';
 
 export function configureTelemetry(oasTlmConfig: OasTlmConfig) {
 
@@ -61,6 +62,11 @@ function configureTraces(oasTlmConfig: OasTlmConfig) {
     }
     mainExporter.addExporters(inMemoryDbSpanExporter); // Main exporter have at least the in-memory exporter used by the traces controller
 
+    const autoOtlpTraceExporter = getAutoOtlpTraceExporter();
+    if (autoOtlpTraceExporter) {
+        mainExporter.addExporters(autoOtlpTraceExporter);
+    }
+
     mainExporter.addExporters(oasTlmConfig.traces.extraExporters);
     return mainProcessor;
 }
@@ -70,6 +76,11 @@ function configureMetrics(oasTlmConfig: OasTlmConfig) {
     inMemoryDbMetricExporter.setEnabledValue(oasTlmConfig.metrics.memoryExporter.enabled);
     inMemoryDbMetricExporter.retentionTimeInSeconds = oasTlmConfig.metrics.memoryExporter.retentionTimeSeconds;
     const metricExporters: PushMetricExporter[] = [inMemoryDbMetricExporter];
+
+    const autoOtlpMetricExporter = getAutoOtlpMetricExporter();
+    if (autoOtlpMetricExporter) {
+        metricExporters.push(autoOtlpMetricExporter);
+    }
 
     const mainReader = new PeriodicExportingMetricReader({
         exporter: new MultiMetricExporter(metricExporters),
@@ -93,6 +104,11 @@ function configureLogs(oasTlmConfig: OasTlmConfig) {
         mainProcessor = new LogSimpleLogRecordProcessor(mainExporter);
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
+
+    const autoOtlpLogExporter = getAutoOtlpLogExporter();
+    if (autoOtlpLogExporter) {
+        mainExporter.addExporters(autoOtlpLogExporter);
+    }
 
     mainExporter.addExporters(oasTlmConfig.logs.extraExporters);
     return mainProcessor;
