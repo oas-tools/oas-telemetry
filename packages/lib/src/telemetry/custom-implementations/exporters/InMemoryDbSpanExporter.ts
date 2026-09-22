@@ -7,6 +7,12 @@ import { Enabler } from '../wrappers.js';
 import { pluginService } from '../../../tlm-plugin/pluginService.js';
 
 
+// Detects a real HTTP request/response span (incoming or outgoing) by the semantic-convention
+function isHttpSpan(span: { attributes?: { http?: { request?: { method?: string }, method?: string } } }): boolean {
+    const http = span.attributes?.http;
+    return !!(http?.request?.method || http?.method);
+}
+
 export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     private _spans: dataStore<Record<string, any>> | null = null;
     private _retentionTimeInSeconds: number;
@@ -63,12 +69,12 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             });
 
             if (this.isEnabled()) {
-                // Insert spans into the in-memory database. When httpOnly is set, only the spans coming from
-                // @opentelemetry/instrumentation-http (the actual request/response spans) are kept here, to bound
-                // this store's memory use; every span is still exported normally to extraExporters (e.g. OTLP)
-                // and broadcast to plugins above, regardless of this setting.
+                // Insert spans into the in-memory database. When httpOnly is set, only spans that carry an
+                // HTTP method attribute (real request/response spans, incoming or outgoing) are kept here,
+                // to bound this store's memory use; every span is still exported normally to extraExporters
+                // (e.g. OTLP) and broadcast to plugins above, regardless of this setting.
                 const spansToStore = this._httpOnly
-                    ? cleanSpans.filter(span => span.instrumentationScope?.name === '@opentelemetry/instrumentation-http')
+                    ? cleanSpans.filter(isHttpSpan)
                     : cleanSpans;
                 if (this._spans && spansToStore.length > 0) {
                     this._spans.insert(spansToStore, (err: any, _newDoc: any) => {

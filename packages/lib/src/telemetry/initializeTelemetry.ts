@@ -15,7 +15,6 @@ if (bootEnvVariables.OASTLM_BOOT_MODULE_DISABLED) {
     if (!isBootInitialized()) {
         if (!bootEnvVariables.OASTLM_BOOT_AUTOINSTRUMENTATIONS_NODE_DISABLED) {
             const nodeAutoInstrumentations = getNodeAutoInstrumentations({
-                '@opentelemetry/instrumentation-fs': { enabled: false },
                 '@opentelemetry/instrumentation-http': {
                     // Ignore internal telemetry routes
                     ignoreIncomingRequestHook: (req) => {

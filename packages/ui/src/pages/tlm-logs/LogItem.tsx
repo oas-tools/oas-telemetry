@@ -20,6 +20,10 @@ export interface LogEntry {
 
 interface LogItemProps {
     log: LogEntry
+    // Hide the "go to trace" link when this LogItem is already being shown inside that
+    // trace's own view (e.g. embedded in the traces page) - only useful on the standalone
+    // Logs page. Defaults to true so existing usages (the Logs page) are unaffected.
+    showTraceLink?: boolean
 }
 
 function getSeverityOption(severity?: string) {
@@ -41,7 +45,7 @@ function copyToClipboard(text: string) {
         .catch(() => toast.error("Failed to copy"))
 }
 
-const LogItem: React.FC<LogItemProps> = ({ log }) => {
+const LogItem: React.FC<LogItemProps> = ({ log, showTraceLink = true }) => {
     const [showDetails, setShowDetails] = useState(false)
     const severityOpt = getSeverityOption(log.severityText || log.severity)
     const SeverityIcon = severityOpt.icon
@@ -49,37 +53,46 @@ const LogItem: React.FC<LogItemProps> = ({ log }) => {
 
     return (
         <div className="group hover:bg-muted/50 rounded-lg px-2 py-2 transition-colors border-b border-muted font-mono text-[13px]">
-            <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground font-mono">
+            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-muted-foreground font-mono">
                 <span>{formatTimestamp(log.timestamp)}</span>
                 <span className="text-blue-700 dark:text-blue-400">{serviceName}</span>
                 <span className="flex items-center gap-1">
                     <SeverityIcon className={severityOpt.color + " h-4 w-4"} />
                     {log.severityText || log.severity}
                 </span>
-                <span className="flex items-center gap-2 ml-auto">
-                                        {log.traceId && (
-                                            <>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="px-2 py-0.5 text-[10px] cursor-pointer font-mono"
-                                                    onClick={() => copyToClipboard(log.traceId || "")}
-                                                    title="Copy Trace ID"
-                                                >
-                                                    {log.traceId.slice(0, 8)}
-                                                </Badge>
-                                                <TraceLinkIcon traceId={log.traceId} />
-                                            </>
-                                        )}
+                {log.traceId && (
+                    <span className="flex items-center gap-1 sm:ml-auto">
+                        <Badge
+                            variant="outline"
+                            className="px-2 py-0.5 text-[10px] cursor-pointer font-mono"
+                            onClick={() => copyToClipboard(log.traceId || "")}
+                            title="Copy Trace ID"
+                        >
+                            {log.traceId.slice(0, 8)}
+                        </Badge>
+                        {showTraceLink && <TraceLinkIcon traceId={log.traceId} />}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex-shrink-0 h-7 w-7 p-0"
+                            aria-label="Show more Context"
+                            onClick={() => setShowDetails((v) => !v)}
+                        >
+                            <Code2 className="h-4 w-4" />
+                        </Button>
+                    </span>
+                )}
+                {!log.traceId && (
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-shrink-0 h-7 w-7 p-0"
+                        className="flex-shrink-0 h-7 w-7 p-0 sm:ml-auto"
                         aria-label="Show more Context"
                         onClick={() => setShowDetails((v) => !v)}
                     >
                         <Code2 className="h-4 w-4" />
                     </Button>
-                </span>
+                )}
             </div>
             {showDetails && (
                 <div className="mt-2 mb-2 bg-muted/30 rounded p-2 font-mono text-xs overflow-x-auto border">
