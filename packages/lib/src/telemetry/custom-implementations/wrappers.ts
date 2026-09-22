@@ -93,6 +93,9 @@ export class EnablerLogExporter extends Enabler implements LogRecordExporter, En
   shutdown(): Promise<void> {
     return this.exporter.shutdown();
   }
+  forceFlush(): Promise<void> {
+    return this.exporter.forceFlush();
+  }
 
 }
 
@@ -218,6 +221,13 @@ export class EnablerMultiLogExporter extends EnablerMultiExporter<LogRecordExpor
   async shutdown(): Promise<void> {
     if (this._exporters) {
       await Promise.all(this._exporters.map((exporter) => exporter.shutdown()));
+    }
+    return;
+  }
+
+  async forceFlush(): Promise<void> {
+    if (this._exporters) {
+      await Promise.all(this._exporters.map((exporter) => exporter.forceFlush()));
     }
     return;
   }

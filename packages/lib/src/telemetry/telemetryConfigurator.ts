@@ -98,10 +98,10 @@ function configureLogs(oasTlmConfig: OasTlmConfig) {
     inMemoryDbLogExporter.retentionTimeInSeconds = oasTlmConfig.logs.memoryExporter.retentionTimeSeconds;
     const mainExporter: EnablerMultiLogExporter = multiLogExporter
     mainExporter.clearExporters();
-    let mainProcessor: LogRecordProcessor = new LogBatchLogRecordProcessor(mainExporter);
+    let mainProcessor: LogRecordProcessor = new LogBatchLogRecordProcessor({ exporter: mainExporter });
     if (bootEnvVariables.OASTLM_BOOT_ENV !== 'production') {
         logger.info('[TelemetryConfigurator] Not in production, using SimpleLogRecordProcessor for logs');
-        mainProcessor = new LogSimpleLogRecordProcessor(mainExporter);
+        mainProcessor = new LogSimpleLogRecordProcessor({ exporter: mainExporter });
     }
     mainExporter.addExporters(inMemoryDbLogExporter); // Main exporter have at least the in-memory exporter used by the logs controller
 

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 import logger from './logger.js';
 
 /**
@@ -10,7 +10,7 @@ export function loadApiSpec(config: any): any {
         try {
             const data = readFileSync(config.general.specFileName, 'utf8');
             if (config.general.specFileName.endsWith('.yaml') || config.general.specFileName.endsWith('.yml')) {
-                return yaml.load(data);
+                return load(data);
             }
             return JSON.parse(data);
         } catch (e: any) {
@@ -22,7 +22,7 @@ export function loadApiSpec(config: any): any {
             return JSON.parse(config.general.spec);
         } catch (ej) {
             try {
-                return yaml.load(config.general.spec);
+                return load(config.general.spec);
             } catch (ey: any) {
                 logger.warn(`[oasUtils] Failed to parse spec string: ${ey.message}`);
             }

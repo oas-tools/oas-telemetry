@@ -131,7 +131,7 @@ describe("Utils API Unit Tests", () => {
         it("should return 404 not found", () => {
             const mockConfig: any = {
                 general: {
-                    spec: ": : :"
+                    spec: "{ invalid"
                 }
             };
             const req: any = {};
