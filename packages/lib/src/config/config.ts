@@ -27,6 +27,7 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
             memoryExporter: {
                 enabled: getParsedEnvVar("OASTLM_CONFIG_TRACES_MEMORY_EXPORTER_ENABLED", (v) => v === "true"),
                 retentionTimeSeconds: getParsedEnvVar("OASTLM_CONFIG_TRACES_MEMORY_EXPORTER_RETENTION_TIME_SECONDS", (v) => parseInt(v, 10)),
+                httpOnly: getParsedEnvVar("OASTLM_CONFIG_TRACES_MEMORY_EXPORTER_HTTP_ONLY", (v) => v === "true"),
                 // filters NOT settable via env
             }
         },
@@ -53,6 +54,9 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
             openAIKey: getParsedEnvVar("OASTLM_CONFIG_AI_OPENAI_KEY"),
             openAIModel: getParsedEnvVar("OASTLM_CONFIG_AI_OPENAI_MODEL", (v) => v || "gpt-3.5-turbo"),
             extraContextPrompts: getParsedEnvVar("OASTLM_CONFIG_AI_EXTRA_CONTEXT_PROMPTS", (v) => v ? v.split(',') : []),
+        },
+        plugins: {
+            enabled: getParsedEnvVar("OASTLM_CONFIG_PLUGINS_ENABLED", (v) => v === "true"),
         },
     }
 };
@@ -90,6 +94,10 @@ export const defaultConfig = {
         memoryExporter: {
             enabled: true, // auto start exporting.
             retentionTimeSeconds: 60 * 60, // 1 hour
+            // Only store spans created by @opentelemetry/instrumentation-http (real HTTP request/response spans).
+            // Other instrumentations (e.g. express) generate many internal spans per request that are still
+            // exported normally to extraExporters/OTLP, just not kept in this in-memory store, to bound its memory use.
+            httpOnly: true,
         },
         filters: [] as any[], // future feature, currently not used
     },

@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { specLoader, heapStats, getOasTelemetrySpec } from './utilController.js';
+import { specLoader, heapStats, getOasTelemetrySpec, getModulesStatus } from './utilController.js';
 import { OasTlmConfig } from '../config/config.types.js';
 
 export const getUtilsRoutes = (oasTlmConfig: OasTlmConfig) => {
     const router = Router();
 
+    router.get('/modules', (req, res) => getModulesStatus(req, res, oasTlmConfig));
     router.get('/spec', (req, res) => specLoader(req, res, oasTlmConfig));
     router.get('/oas-telemetry-spec', (req, res) => getOasTelemetrySpec(req, res));
     router.get('/heapStats', heapStats);

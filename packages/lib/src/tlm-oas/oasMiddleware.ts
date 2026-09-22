@@ -32,7 +32,7 @@ export function getAutoEndpointMetricsMiddleware(config: OasTlmConfig) {
         if (initialized) return;
         initialized = true;
 
-        const meter = metrics.getMeter('oas-telemetry-auto-endpoint-metrics', packageVersion);
+        const meter = metrics.getMeter('oas_telemetry_auto_endpoint_metrics', packageVersion);
         for (const entry of normalizedSpecMap.values()) {
             for (const method of entry.methods) {
                 const cleanEndpoint = entry.originalPath

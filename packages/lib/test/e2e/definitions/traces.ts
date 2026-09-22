@@ -159,9 +159,9 @@ export function defineTracesApiTests(config: E2ETestConfig) {
 
             const query = {
                 query: {
-                    "attributes.http.target": { "$regex": "^/api/v1/pets.*$" },
-                    "attributes.http.method": "GET",
-                    "$or": [{ "attributes.http.status_code": { "$lte": 400 } }],
+                    "attributes.url.path": { "$regex": "^/api/v1/pets.*$" },
+                    "attributes.http.request.method": "GET",
+                    "$or": [{ "attributes.http.response.status_code": { "$lte": 400 } }],
                 },
             };
 
@@ -174,9 +174,9 @@ export function defineTracesApiTests(config: E2ETestConfig) {
         it('[e2e][Traces:Find][-] should return 400 for invalid regex configuration', async () => {
             const invalidQuery = {
                 query: {
-                    "attributes.http.target": { "$regex": "[invalid-regex" },
-                    "attributes.http.method": "GET",
-                    "$or": [{ "attributes.http.status_code": { "$lte": 400 } }],
+                    "attributes.url.path": { "$regex": "[invalid-regex" },
+                    "attributes.http.request.method": "GET",
+                    "$or": [{ "attributes.http.response.status_code": { "$lte": 400 } }],
                 },
             };
 

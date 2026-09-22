@@ -50,6 +50,7 @@ function configureTraces(oasTlmConfig: OasTlmConfig) {
     // TRACES CONFIGURATION
     // [OT]Provider -> [OT]SpanProcessor(multiSpan) -> n Processors(eg mainProcessor, extra) -> 1 SpanExporter
     inMemoryDbSpanExporter.retentionTimeInSeconds = oasTlmConfig.traces.memoryExporter.retentionTimeSeconds;
+    inMemoryDbSpanExporter.httpOnly = oasTlmConfig.traces.memoryExporter.httpOnly;
     inMemoryDbSpanExporter.setEnabledValue(oasTlmConfig.traces.memoryExporter.enabled);
     const mainExporter: EnablerMultiSpanExporter = multiSpanExporter
     mainExporter.clearExporters();

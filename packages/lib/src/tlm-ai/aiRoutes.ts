@@ -7,7 +7,12 @@ export const getAIRoutes = (oasTlmConfig: OasTlmConfig) => {
 
     const router = Router();
 
-    configureAiService(oasTlmConfig); //oasTlmConfig.ai.openAIKey
+    // The router is always mounted (see requireModuleEnabled in routesManager.ts); only
+    // configure the underlying service when a key is actually present, so an empty/disabled
+    // deployment doesn't crash at startup.
+    if (oasTlmConfig.ai.openAIKey) {
+        configureAiService(oasTlmConfig);
+    }
     
     router.get('/chat/health', (req, res) => {
         res.status(200).send('AI service is healthy');

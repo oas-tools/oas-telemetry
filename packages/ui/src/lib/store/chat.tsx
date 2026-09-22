@@ -38,15 +38,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   // Load conversations from backend
   useEffect(() => {
     async function loadConversations() {
-      const convs = await chatService.listConversations()
-      const formatted = convs.map((c: ServiceConversation) => ({
-        id: c.id,
-        name: c.name ?? "Chat-" + c.id.slice(0, 4),
-        messages: [],
-      }))
-      setConversations(formatted)
-      if (formatted.length > 0) {
-        setActiveConversationId(formatted[0].id)
+      try {
+        const convs = await chatService.listConversations()
+        const formatted = convs.map((c: ServiceConversation) => ({
+          id: c.id,
+          name: c.name ?? "Chat-" + c.id.slice(0, 4),
+          messages: [],
+        }))
+        setConversations(formatted)
+        if (formatted.length > 0) {
+          setActiveConversationId(formatted[0].id)
+        }
+      } catch {
+        // AI module may be disabled or briefly unavailable; keep an empty chat list.
       }
     }
     loadConversations()

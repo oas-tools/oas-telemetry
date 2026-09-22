@@ -7,6 +7,14 @@ import { OasTlmConfig } from '../config/config.types.js';
 import { fileURLToPath } from 'node:url';
 
 
+export const getModulesStatus = (_req: Request, res: Response, oasTlmConfig: OasTlmConfig) => {
+    res.json({
+        auth: oasTlmConfig.auth.enabled,
+        ai: !!oasTlmConfig.ai.openAIKey,
+        plugins: oasTlmConfig.plugins.enabled,
+    });
+};
+
 export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmConfig) => {
     if (oasTlmConfig.general.specFileName) {
         try {

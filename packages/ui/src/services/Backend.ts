@@ -97,6 +97,22 @@ export async function isAuthEnabled() {
     }
 }
 
+export interface EnabledModules {
+    auth: boolean;
+    ai: boolean;
+    plugins: boolean;
+}
+
+export async function getEnabledModules(): Promise<EnabledModules> {
+    try {
+        const res = await backend.get("/utils/modules");
+        return res.data;
+    } catch {
+        // Fail closed for optional features so the UI doesn't try to call disabled endpoints.
+        return { auth: true, ai: false, plugins: false };
+    }
+}
+
 export async function refreshAuth() {
     try {
         console.debug("I'm thirsty... refreshing! (auth token)");

@@ -118,7 +118,7 @@ export default function TraceSpansPage() {
   // Extract and memoize unique endpoints for filters (don't recalculate on every render)
   const uniqueEndpoints = useMemo(() => 
     Array.from(
-      new Set(currentSpans.map((span) => span.attributes?.http?.target)),
+      new Set(currentSpans.map((span) => span.attributes?.url?.path)),
     ).filter(Boolean) as string[],
     [currentSpans]
   )

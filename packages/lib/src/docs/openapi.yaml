@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: '@oas-tools/oas-telemetry'
-  version: 0.7.0-alpha.2
+  version: 0.8.0-alpha.2
   license:
     name: Apache-2.0
   description: |-
@@ -14,6 +14,26 @@ components:
       type: apiKey
       in: cookie
       name: oas-tlm-access-token
+  responses:
+    ModuleDisabled:
+      description: |
+        The module backing this route is disabled in this deployment (see GET /utils/modules).
+        The route is always mounted; this response replaces a plain 404 so clients can tell
+        "module off" apart from "wrong path".
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              enabled:
+                type: boolean
+                example: false
+              module:
+                type: string
+                example: ai
+              message:
+                type: string
+                example: ai module is disabled
 
 security:
   - CookieAuth: []
@@ -191,11 +211,11 @@ paths:
                   additionalProperties: true
                   description: Mongo-like query criteria
                   example:
-                    attributes.http.target:
+                    attributes.url.path:
                       $regex: "^/api/v1/pets.*$"
-                    attributes.http.method: "GET"
+                    attributes.http.request.method: "GET"
                     $or:
-                      - attributes.http.status_code:
+                      - attributes.http.response.status_code:
                           $lte: 400
       responses:
         '200':
@@ -1002,6 +1022,34 @@ paths:
                     type: string
                     example: Logs imported successfully
 
+  /utils/modules:
+    get:
+      summary: Get enabled/disabled status of toggleable modules
+      description: |
+        Capability-discovery endpoint. Reports whether auth, AI and plugins are enabled in this
+        deployment, so clients (e.g. the UI) can decide what to show/call before hitting a
+        module's own routes. Always mounted, never requires authentication.
+      tags:
+        - utils
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  auth:
+                    type: boolean
+                  ai:
+                    type: boolean
+                  plugins:
+                    type: boolean
+                example:
+                  auth: true
+                  ai: false
+                  plugins: true
+
   /utils/spec:
     get:
       summary: Get OpenAPI spec in JSON
@@ -1255,6 +1303,8 @@ paths:
                       name: "Sample Plugin"
                       url: "https://example.com/plugin.js"
                       active: true
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
     post:
       summary: Register a new plugin
       tags:
@@ -1321,6 +1371,8 @@ paths:
                   error:
                     type: string
                     example: "Plugin code or URL must be provided"
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
 
   /plugins/{id}/activate:
     post:
@@ -1343,12 +1395,15 @@ paths:
                 type: string
                 example: Plugin "plugin-1" activated.
         '404':
-          description: Plugin not found
+          description: Plugin not found, or the plugins module is disabled (see GET /utils/modules)
           content:
             text/plain:
               schema:
                 type: string
                 example: Plugin with id "plugin-1" not found.
+            application/json:
+              schema:
+                $ref: '#/components/responses/ModuleDisabled/content/application~1json/schema'
 
   /plugins/{id}/deactivate:
     post:
@@ -1371,12 +1426,15 @@ paths:
                 type: string
                 example: Plugin "plugin-1" deactivated.
         '404':
-          description: Plugin not found
+          description: Plugin not found, or the plugins module is disabled (see GET /utils/modules)
           content:
             text/plain:
               schema:
                 type: string
                 example: Plugin with id "plugin-1" not found.
+            application/json:
+              schema:
+                $ref: '#/components/responses/ModuleDisabled/content/application~1json/schema'
 
   /plugins/{id}:
     delete:
@@ -1399,12 +1457,15 @@ paths:
                 type: string
                 example: Plugin "plugin-1" deleted.
         '404':
-          description: Plugin not found
+          description: Plugin not found, or the plugins module is disabled (see GET /utils/modules)
           content:
             text/plain:
               schema:
                 type: string
                 example: Plugin with id "plugin-1" not found.
+            application/json:
+              schema:
+                $ref: '#/components/responses/ModuleDisabled/content/application~1json/schema'
 
   /auth/login:
     post:
@@ -1561,6 +1622,8 @@ paths:
               schema:
                 type: string
                 example: AI service is healthy
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
 
   /ai/chat:
     get:
@@ -1584,6 +1647,8 @@ paths:
                 example:
                   - id: "conv-1"
                     name: "Conversation 1"
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
     post:
       summary: Create a new AI conversation (alias)
       tags:
@@ -1603,6 +1668,8 @@ paths:
                 example:
                   id: "conv-123"
                   name: "New Conversation"
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
 
   /ai/chat/tools:
     get:
@@ -1642,6 +1709,8 @@ paths:
                   name: Logs
                   userDescription: Query recorded logs and filter them by date.
                   description: Fetches log data for the microservice.
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'
 
   /ai/chat/{conversationId}:
     parameters:
@@ -1682,16 +1751,18 @@ paths:
                     - role: "assistant"
                       content: "Hi, how can I help?"
         '404':
-          description: Not found
+          description: Conversation not found, or the AI module is disabled (see GET /utils/modules)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                example:
-                  error: Not found
+                oneOf:
+                  - type: object
+                    properties:
+                      error:
+                        type: string
+                    example:
+                      error: Not found
+                  - $ref: '#/components/responses/ModuleDisabled/content/application~1json/schema'
     delete:
       summary: Delete a conversation (alias)
       tags:
@@ -1700,16 +1771,18 @@ paths:
         '204':
           description: Deleted
         '404':
-          description: Not found
+          description: Conversation not found, or the AI module is disabled (see GET /utils/modules)
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                example:
-                  error: Not found
+                oneOf:
+                  - type: object
+                    properties:
+                      error:
+                        type: string
+                    example:
+                      error: Not found
+                  - $ref: '#/components/responses/ModuleDisabled/content/application~1json/schema'
 
   /ai/chat/{conversationId}/message:
     parameters:
@@ -1770,3 +1843,5 @@ paths:
                     type: string
                 example:
                   error: Missing content
+        '404':
+          $ref: '#/components/responses/ModuleDisabled'

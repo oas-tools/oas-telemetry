@@ -14,6 +14,7 @@ import { getAIRoutes } from "./tlm-ai/aiRoutes.js";
 import { OasTlmConfig } from "./config/config.types.js";
 import { bootEnvVariables } from "./config/bootConfig.js";
 import { getPluginRoutes } from "./tlm-plugin/pluginRoutes.js";
+import { requireModuleEnabled } from "./utils/moduleGuard.js";
 
 export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
     if (!oasTlmConfig.general.spec && !oasTlmConfig.general.specFileName) {
@@ -64,11 +65,17 @@ export const configureRoutes = (router: Router, oasTlmConfig: OasTlmConfig) => {
     telemetryRouter.use("/metrics", getMetricsRoutes());
     telemetryRouter.use("/logs", getLogRoutes());
 
-    if (oasTlmConfig.ai.openAIKey) {
-        telemetryRouter.use("/ai", getAIRoutes(oasTlmConfig));
-    }
+    telemetryRouter.use(
+        "/ai",
+        requireModuleEnabled('ai', c => !!c.ai.openAIKey)(oasTlmConfig),
+        getAIRoutes(oasTlmConfig)
+    );
 
-    telemetryRouter.use("/plugins", getPluginRoutes());
+    telemetryRouter.use(
+        "/plugins",
+        requireModuleEnabled('plugins', c => c.plugins.enabled)(oasTlmConfig),
+        getPluginRoutes()
+    );
 
     // Mount the telemetryRouter under telemetryBaseUrl
     router.use(telemetryBaseUrl, telemetryRouter);
