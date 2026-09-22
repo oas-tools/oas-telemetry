@@ -114,6 +114,12 @@ export const customTelemetryConfig = {
       enabled: true,
       retentionTimeSeconds: 60 * 60 * 2, // 2 hours
     },
+    captureBody: {
+      // Attaches request/response body to the active span for debugging.
+      // "off" | "onError" | "onMismatch" | "onMismatchOrError" | "always"
+      mode: "off",
+      maxSizeBytes: 8 * 1024,
+    },
   },
 
   metrics: {
@@ -126,7 +132,7 @@ export const customTelemetryConfig = {
       enabled: true,
       retentionTimeSeconds: 60 * 60 * 2, // 2 hours
     },
-    autoGenerateEndpointHistograms: false,
+    recordSchemaCompliance: true, // records oas.schema.compliance, whether each request matched the OpenAPI spec
     extraViews: [],
   },
 

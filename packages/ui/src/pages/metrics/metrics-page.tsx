@@ -15,6 +15,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
+
+// Own instrumentation scopes should be listed before third-party ones
+// (e.g. @opentelemetry/instrumentation-*).
+function isOwnScope(scopeName: string): boolean {
+    return scopeName.toLowerCase().includes("oas");
+}
 
 
 const RELATIVE_OPTIONS: DashboardOption[] = [
@@ -47,8 +56,15 @@ export default function MetricsPage() {
     const [autoRefreshOption, setAutoRefreshOption] = useState<DashboardOption>(defaultAutoRefresh);
     const [loading, setLoading] = useState(false);
     const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
+    const [, forceRerender] = useState(0);
+    const expandedPanelsRef = useRef<string[]>([]);
     const latestRequestIdRef = useRef(0);
+    const isAutoRefreshTickRef = useRef(false);
     const isRelative = relativeOption != null;
+
+    useEffect(() => {
+        expandedPanelsRef.current = expandedPanels;
+    }, [expandedPanels]);
 
     // Persistent cache for metric configs and data
     const metricsCacheRef = useRef<Record<string, {
@@ -59,6 +75,8 @@ export default function MetricsPage() {
         scopeVersion: string
         metricName: string
         descriptorType?: string
+        descriptorUnit?: string
+        descriptorDescription?: string
         histogramData?: {
             label: string;
             endTimes: number[];
@@ -69,15 +87,16 @@ export default function MetricsPage() {
     // const [metricsCacheVersion, setMetricsCacheVersion] = useState(0); // force rerender when cache changes
 
     // Auto-refresh logic
-    useAutoRefresh(isRelative, relativeOption?.value ?? null, setRange, autoRefreshOption.value);
+    useAutoRefresh(isRelative, relativeOption?.value ?? null, setRange, autoRefreshOption.value, isAutoRefreshTickRef);
 
-    // Fetch metrics data for a given range
-    const fetchMetricsData = useCallback(async (startMs: number, endMs: number) => {
+    // Fetch metrics data for a given range. When `scopeMetrics` is provided (non-empty),
+    // only those scope+metric combinations are requested from the backend.
+    const fetchMetricsData = useCallback(async (startMs: number, endMs: number, scopeMetrics?: { scope: { name: string; version?: string }; descriptor: { name: string } }[]) => {
         try {
             const res = await metricsService.findMetrics({
                 from: startMs * 1_000_000, // ms -> ns
                 to: endMs * 1_000_000, // ms -> ns
-                scopeMetrics: [],
+                scopeMetrics: scopeMetrics || [],
             });
             return res.scopeMetrics || [];
         } catch {
@@ -98,13 +117,35 @@ export default function MetricsPage() {
     useEffect(() => {
         let active = true;
         const fetchData = async () => {
+            const isAutoTick = isAutoRefreshTickRef.current;
+            isAutoRefreshTickRef.current = false;
+
+            const prevCache = metricsCacheRef.current;
+
+            // On an auto-refresh tick we only need fresh data for panels that are
+            // currently expanded (collapsed cards aren't rendered, so there's no
+            // point asking the backend for their data). If nothing is expanded,
+            // skip the request entirely.
+            let scopeMetricsFilter: { scope: { name: string; version?: string }; descriptor: { name: string } }[] | undefined;
+            if (isAutoTick) {
+                const openMetrics = Object.values(prevCache).filter((m) => expandedPanelsRef.current.includes(m.id));
+                if (openMetrics.length === 0) {
+                    return;
+                }
+                scopeMetricsFilter = openMetrics.map((m) => ({
+                    scope: { name: m.scopeName, version: m.scopeVersion === "no_scope" ? undefined : m.scopeVersion },
+                    descriptor: { name: m.metricName },
+                }));
+            }
+
             setLoading(true);
             const requestId = ++latestRequestIdRef.current;
             try {
-                const data = await fetchMetricsData(range.from, range.to);
+                const data = await fetchMetricsData(range.from, range.to, scopeMetricsFilter);
                 if (!active || requestId !== latestRequestIdRef.current) return;
-                const prevCache = metricsCacheRef.current;
-                const newCache: typeof prevCache = {};
+                // Partial (auto-refresh) fetches only touch the metrics they asked for;
+                // everything else in the cache (including collapsed cards) is kept as-is.
+                const newCache: typeof prevCache = isAutoTick ? { ...prevCache } : {};
                 const newExpanded: string[] = [];
                 // Track which IDs are still present
                 data.forEach((metric: any) => {
@@ -209,17 +250,31 @@ export default function MetricsPage() {
                             scopeVersion,
                             metricName,
                             descriptorType,
+                            descriptorUnit,
+                            descriptorDescription: metric.descriptor.description,
                             chartData,
                             seriesConfig,
                             histogramData,
                         };
                     }
-                    newExpanded.push(id);
+                    if (!isAutoTick) {
+                        // Keep the panel's current open/closed state; only brand-new
+                        // metrics get auto-expanded. This is what previously made
+                        // every card pop back open on each refresh.
+                        const isNewMetric = !prevCache[id];
+                        const wasExpandedBefore = expandedPanelsRef.current.includes(id);
+                        if (isNewMetric || wasExpandedBefore) {
+                            newExpanded.push(id);
+                        }
+                    }
                 });
-                // Remove any IDs not present in new data
                 metricsCacheRef.current = newCache;
-                setExpandedPanels(newExpanded);
-                // force rerender if needed
+                if (isAutoTick) {
+                    // Expanded state didn't change; just force a rerender to reflect the new chart data.
+                    forceRerender((v) => v + 1);
+                } else {
+                    setExpandedPanels(newExpanded);
+                }
             } finally {
                 if (active && requestId === latestRequestIdRef.current) {
                     setLoading(false);
@@ -258,14 +313,17 @@ export default function MetricsPage() {
         setRange(r => ({ ...r }));
     }, []);
 
-    // Use cache for rendering
-    const metricsList = Object.values(metricsCacheRef.current);
+    // Use cache for rendering. Own (oas-telemetry) scopes are shown first,
+    // third-party (e.g. @opentelemetry/instrumentation-*) scopes after.
+    const metricsList = Object.values(metricsCacheRef.current).sort(
+        (a, b) => Number(isOwnScope(b.scopeName)) - Number(isOwnScope(a.scopeName))
+    );
 
     return (
         <div className="min-h-screen bg-background">
-            <main className="container mx-auto px-4 py-4 md:py-8 space-y-6">
+            <main className="container mx-auto px-3 py-3 space-y-3">
                 <MetricsCollectionPanel onMetricsReset={handleMetricsReset} />
-                <div className="flex flex-wrap gap-2 items-center">
+                <div className="sticky top-0 z-10 -mx-3 px-3 py-1.5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b flex flex-wrap gap-2 items-center">
                     <DashboardRangeSelectPanel
                         from={range.from}
                         to={range.to}
@@ -314,23 +372,61 @@ export default function MetricsPage() {
                 ) : metricsList.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">No metrics found.</div>
                 ) : (
-                    metricsList.map((metric: any) => (
-                        <CollapsibleCard
-                            key={metric.id}
-                            header={metric.metricName}
-                            isOpen={expandedPanels.includes(metric.id)}
-                            onToggle={() => handlePanelToggle(metric.id)}
-                        >
-                            {/* Always use TimeSeriesChart. For HISTOGRAM, transform data first. */}
-                            <TimeSeriesChart
-                                data={metric.chartData}
-                                seriesConfig={metric.seriesConfig}
-                                timeRange={range}
-                                animateXAxis={isRelative}
-                                onRangeSelect={handleChangeRange}
-                            />
-                        </CollapsibleCard>
-                    ))
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                        {metricsList.map((metric: any) => (
+                            <CollapsibleCard
+                                key={metric.id}
+                                className="py-2 gap-2"
+                                headerClassName="px-3 py-1.5 gap-1"
+                                contentClassName="px-3 pb-3 pt-0"
+                                header={
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="font-medium text-sm truncate">{metric.metricName}</span>
+                                            {metric.descriptorType && (
+                                                <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0 h-4 font-normal">
+                                                    {metric.descriptorType}
+                                                </Badge>
+                                            )}
+                                            {metric.descriptorUnit && (
+                                                <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-4 font-normal">
+                                                    {metric.descriptorUnit}
+                                                </Badge>
+                                            )}
+                                            {metric.descriptorDescription && (
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info
+                                                            className="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs">
+                                                        {metric.descriptorDescription}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            )}
+                                        </div>
+                                        <div className="text-[11px] text-muted-foreground truncate">
+                                            {metric.scopeName}
+                                            {metric.scopeVersion && metric.scopeVersion !== "no_scope" ? `@${metric.scopeVersion}` : ""}
+                                        </div>
+                                    </div>
+                                }
+                                isOpen={expandedPanels.includes(metric.id)}
+                                onToggle={() => handlePanelToggle(metric.id)}
+                            >
+                                {/* Always use TimeSeriesChart. For HISTOGRAM, transform data first. */}
+                                <TimeSeriesChart
+                                    data={metric.chartData}
+                                    seriesConfig={metric.seriesConfig}
+                                    timeRange={range}
+                                    animateXAxis={isRelative}
+                                    onRangeSelect={handleChangeRange}
+                                />
+                            </CollapsibleCard>
+                        ))}
+                    </div>
                 )}
             </main>
         </div>
@@ -338,13 +434,14 @@ export default function MetricsPage() {
 }
 
 // Custom hook for auto-refresh logic
-function useAutoRefresh(isRelative: boolean, relativeValue: number | null, setSelectedRange: (r: { from: number; to: number }) => void, autoRefreshInterval: number) {
+function useAutoRefresh(isRelative: boolean, relativeValue: number | null, setSelectedRange: (r: { from: number; to: number }) => void, autoRefreshInterval: number, isAutoRefreshTickRef: { current: boolean }) {
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     useEffect(() => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         if (autoRefreshInterval > 0 && isRelative && relativeValue != null) {
             intervalRef.current = setInterval(() => {
                 const now = Date.now();
+                isAutoRefreshTickRef.current = true;
                 setSelectedRange({ from: now - relativeValue, to: now });
             }, autoRefreshInterval);
         }

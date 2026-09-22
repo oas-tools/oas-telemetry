@@ -6,6 +6,9 @@ import { LogRecordExporter, LogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { type PluginResource } from '../types/index.js';
 import { type ViewOptions } from '@opentelemetry/sdk-metrics/build/src/view/View.js';
 
+export type CaptureBodyMode = 'off' | 'onError' | 'onMismatch' | 'onMismatchOrError' | 'always';
+const CAPTURE_BODY_MODES: CaptureBodyMode[] = ['off', 'onError', 'onMismatch', 'onMismatchOrError', 'always'];
+
 // Environment-level config (highest priority)
 // If NOT defined, it should return UNDEFINED so it dose not override the userConfig or defaultConfig.
 // Thats why we use getParsedEnvVar with no default value.
@@ -29,7 +32,11 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
                 retentionTimeSeconds: getParsedEnvVar("OASTLM_CONFIG_TRACES_MEMORY_EXPORTER_RETENTION_TIME_SECONDS", (v) => parseInt(v, 10)),
                 httpOnly: getParsedEnvVar("OASTLM_CONFIG_TRACES_MEMORY_EXPORTER_HTTP_ONLY", (v) => v === "true"),
                 // filters NOT settable via env
-            }
+            },
+            captureBody: {
+                mode: getParsedEnvVar("OASTLM_CONFIG_TRACES_CAPTURE_BODY_MODE", (v) => CAPTURE_BODY_MODES.includes(v as CaptureBodyMode) ? v as CaptureBodyMode : undefined),
+                maxSizeBytes: getParsedEnvVar("OASTLM_CONFIG_TRACES_CAPTURE_BODY_MAX_SIZE_BYTES", (v) => parseInt(v, 10)),
+            },
         },
         metrics: {
             mainMetricReaderOptions: {
@@ -41,7 +48,7 @@ const loadEnv = (): DeepPartial<OasTlmConfig> => {
                 retentionTimeSeconds: getParsedEnvVar("OASTLM_CONFIG_METRICS_MEMORY_EXPORTER_RETENTION_TIME_SECONDS", (v) => parseInt(v, 10)),
                 // filters NOT settable via env
             },
-            autoGenerateEndpointHistograms: getParsedEnvVar("OASTLM_CONFIG_METRICS_AUTO_GENERATE_ENDPOINT_HISTOGRAMS", (v) => v === "true"),
+            recordSchemaCompliance: getParsedEnvVar("OASTLM_CONFIG_METRICS_RECORD_SCHEMA_COMPLIANCE", (v) => v === "true"),
         },
         logs: {
             memoryExporter: {
@@ -99,6 +106,14 @@ export const defaultConfig = {
             // exported normally to extraExporters/OTLP, just not kept in this in-memory store, to bound its memory use.
             httpOnly: true,
         },
+        // Attaches the request/response body as attributes on the active span, for debugging.
+        // Off by default: bodies can contain PII. "onError"/"onMismatch"/"onMismatchOrError" only
+        // capture when there's something worth looking at (a 4xx/5xx response, or a route that
+        // isn't in the OpenAPI spec); "always" captures on every request regardless.
+        captureBody: {
+            mode: 'off' as CaptureBodyMode,
+            maxSizeBytes: 8 * 1024, // truncate bodies larger than this
+        },
         filters: [] as any[], // future feature, currently not used
     },
     metrics: {
@@ -113,7 +128,10 @@ export const defaultConfig = {
             retentionTimeSeconds: 60 * 60, // 1 hour
         },
         filters: [] as any[], // future feature, currently not used
-        autoGenerateEndpointHistograms: false,
+        // Records a lightweight counter of requests matching/not matching a documented OpenAPI
+        // operation (oas.schema.compliance). This is the one metric OTel's own auto-instrumentations
+        // can't produce, since it requires knowledge of the loaded OpenAPI spec.
+        recordSchemaCompliance: true,
     },
     logs: {
         extraExporters: [] as LogRecordExporter[], // e.g. [new ConsoleLogRecordExporter()]
