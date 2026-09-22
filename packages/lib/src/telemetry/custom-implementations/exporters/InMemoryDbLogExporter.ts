@@ -93,6 +93,10 @@ export class InMemoryDbLogExporter extends Enabler implements LogRecordExporter 
         });
     }
 
+    public async forceFlush(): Promise<void> {
+        // Nothing to flush: inserts happen synchronously as part of export().
+    }
+
     /**
      * Shutdown the exporter.
      */

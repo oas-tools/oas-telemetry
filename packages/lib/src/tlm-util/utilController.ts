@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 import { Request, Response } from 'express';
 import v8 from 'node:v8';
 import { OasTlmConfig } from '../config/config.types.js';
@@ -22,8 +22,7 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
             const extension = path.extname(oasTlmConfig.general.specFileName);
             let json = data;
             if (extension == "yaml")
-                //@ts-expect-error yes
-                json = JSON.stringify(yaml.SafeLoad(data), null, 2);
+                json = JSON.stringify(load(data), null, 2);
             res.setHeader('Content-Type', 'application/json');
             res.send(json);
         } catch (e) {
@@ -36,7 +35,7 @@ export const specLoader = (_req: Request, res: Response, oasTlmConfig: OasTlmCon
             spec = JSON.parse(oasTlmConfig.general.spec);
         } catch (ej) {
             try {
-                spec = JSON.stringify(yaml.load(oasTlmConfig.general.spec), null, 2);
+                spec = JSON.stringify(load(oasTlmConfig.general.spec), null, 2);
             } catch (ey) {
                 console.error(`Error parsing spec: ${ej} - ${ey}`);
             }
@@ -71,7 +70,7 @@ export const getOasTelemetrySpec = (_req: Request, res: Response) => {
         const specPath = path.join(currentDirectory, '../docs/openapi.yaml');
         const data = readFileSync(specPath, { encoding: 'utf8', flag: 'r' });
         let json = data;
-        json = JSON.stringify(yaml.load(data), null, 2);
+        json = JSON.stringify(load(data), null, 2);
         res.setHeader('Content-Type', 'application/json');
         res.send(json);
     } catch (e) {
