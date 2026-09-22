@@ -29,9 +29,9 @@ const getTraces = async (input: {
         const to = input.to ? Math.floor(Date.parse(input.to) / 1000) : undefined;
         if (from !== undefined && !Number.isNaN(from)) search['endTime.0'] = { $gte: from };
         if (to !== undefined && !Number.isNaN(to)) search['endTime.0'] = { ...(search['endTime.0'] || {}), $lte: to };
-        if (input.method) search['attributes.http.method'] = input.method.toUpperCase();
+        if (input.method) search['attributes.http.request.method'] = input.method.toUpperCase();
         if (input.statusCode !== null && input.statusCode !== undefined) {
-            search['attributes.http.status_code'] = input.statusCode;
+            search['attributes.http.response.status_code'] = input.statusCode;
         }
         const allTraces: any[] = await inMemoryDbSpanExporter.find({ query: search });
         const traces = allTraces.slice(offset, offset + 20);

@@ -12,9 +12,12 @@ export interface Span {
     timestamp: number
     attributes: {
         http?: {
-            target: string
-            method: string
-            status_code: number
+            request?: { method: string }
+            response?: { status_code: number }
+            [key: string]: any
+        }
+        url?: {
+            path: string
             [key: string]: any
         }
         [key: string]: any
@@ -54,12 +57,7 @@ class TracesService {
         const { limit = 50, query = {} } = criteria;
         const sort = { timestamp: -1 }; // Descending timestamp, from New to Old
 
-        const patchedQuery = { ...query };
-        if (!Object.prototype.hasOwnProperty.call(patchedQuery, "attributes.http.method")) {
-            patchedQuery["attributes.http.method"] = { $exists: true };
-        }
-
-        const res = await backend.post("/spans/exporters/in-memory-exporter/data/find", { query: patchedQuery, limit, sort });
+        const res = await backend.post("/spans/exporters/in-memory-exporter/data/find", { query, limit, sort });
         const spans = res.data.spans || [];
         return { spans: spans.reverse() }; // Reverse to have Oldest at top, Newest at bottom
     }

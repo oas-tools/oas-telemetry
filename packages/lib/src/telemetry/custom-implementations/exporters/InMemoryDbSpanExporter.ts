@@ -11,6 +11,7 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
     private _spans: dataStore<Record<string, any>> | null = null;
     private _retentionTimeInSeconds: number;
     private _initialized = false;
+    private _httpOnly = true;
 
     constructor(retentionTimeInSeconds: number = 3600) {
         super();
@@ -39,6 +40,15 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
         return this._retentionTimeInSeconds;
     }
 
+    public set httpOnly(httpOnly: boolean) {
+        this._httpOnly = httpOnly;
+        logger.info(`[InMemoryDbSpanExporter] httpOnly storage set to ${this._httpOnly}`);
+    }
+
+    public get httpOnly(): boolean {
+        return this._httpOnly;
+    }
+
     export(readableSpans: ReadableSpan[], resultCallback: (arg0: { code: ExportResultCode; error?: Error; }) => void) {
         this._ensureInitialized();
         logger.debug(`[InMemoryDbSpanExporter] Export called with spans: ${readableSpans.length}`);
@@ -53,9 +63,15 @@ export class InMemoryDbSpanExporter extends Enabler implements SpanExporter {
             });
 
             if (this.isEnabled()) {
-                // Insert spans into the in-memory database
-                if (this._spans) {
-                    this._spans.insert(cleanSpans, (err: any, _newDoc: any) => {
+                // Insert spans into the in-memory database. When httpOnly is set, only the spans coming from
+                // @opentelemetry/instrumentation-http (the actual request/response spans) are kept here, to bound
+                // this store's memory use; every span is still exported normally to extraExporters (e.g. OTLP)
+                // and broadcast to plugins above, regardless of this setting.
+                const spansToStore = this._httpOnly
+                    ? cleanSpans.filter(span => span.instrumentationScope?.name === '@opentelemetry/instrumentation-http')
+                    : cleanSpans;
+                if (this._spans && spansToStore.length > 0) {
+                    this._spans.insert(spansToStore, (err: any, _newDoc: any) => {
                         if (err) {
                             logger.error('[InMemoryDbSpanExporter] Error inserting spans', err);
                             return;

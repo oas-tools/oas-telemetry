@@ -81,15 +81,15 @@ const SpansFiltersPanel: React.FC<Props> = ({
       }
     } else {
       if (endpointFilter.length > 0) {
-        query = { ...query, ["attributes.http.target"]: { $in: endpointFilter } }
+        query = { ...query, ["attributes.url.path"]: { $in: endpointFilter } }
       }
       if (methodFilter.length > 0) {
-        query = { ...query, ["attributes.http.method"]: { $in: methodFilter } }
+        query = { ...query, ["attributes.http.request.method"]: { $in: methodFilter } }
       }
       if (statusInput.trim().length > 0) {
         const statusCodes = parseStatusCodes(statusInput)
         if (statusCodes.length > 0) {
-          query = { ...query, ["attributes.http.status_code"]: { $in: statusCodes } }
+          query = { ...query, ["attributes.http.response.status_code"]: { $in: statusCodes } }
         } else {
           toast.error("No valid status codes found. Use format: 200, 301, 404")
           return
@@ -233,8 +233,8 @@ const SpansFiltersPanel: React.FC<Props> = ({
                     setUserInputQuery(
                       JSON.stringify(
                         {
-                          "attributes.http.method": "GET",
-                          "attributes.http.status_code": { $gte: 400 },
+                          "attributes.http.request.method": "GET",
+                          "attributes.http.response.status_code": { $gte: 400 },
                         },
                         null,
                         2,
@@ -249,7 +249,7 @@ const SpansFiltersPanel: React.FC<Props> = ({
               </div>
               <Textarea
                 id="mongo-query"
-                placeholder='{"attributes.http.method": "GET"}'
+                placeholder='{"attributes.http.request.method": "GET"}'
                 value={userInputQuery}
                 onChange={(e) => setUserInputQuery(e.target.value)}
                 className="min-h-[120px] font-mono text-sm"

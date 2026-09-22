@@ -22,8 +22,6 @@ scopeMetrics: {
 }
 */
 
-// Import fs at top level for disk operations
-import fs from 'fs';
 import logger from '../../../../utils/logger.js';
 
 export class SeriesRegistry {
@@ -416,36 +414,6 @@ export class SeriesRegistry {
             logger.error(`Failed to deserialize metrics from line-delimited JSON`);
         }
     }
-
-    /**
-     * Save registry to disk as line-delimited JSON (one chunk per line)
-     */
-    saveToDisk(filePath: string): void {
-        try {
-            const lineDelimitedJsonData = this.serializeToLineDelimitedJson();
-            fs.writeFileSync(filePath, lineDelimitedJsonData);
-        } catch {
-            logger.error(`Failed to save metrics to disk at ${filePath}`);
-        }
-    }
-
-    /**
-     * Load registry from disk (line-delimited JSON format)
-     */
-    loadFromDisk(filePath: string): void {
-        try {
-            if (!fs.existsSync(filePath)) {
-                return;
-            }
-            const lineDelimitedJsonData = fs.readFileSync(filePath, 'utf-8');
-            this.deserializeFromLineDelimitedJson(lineDelimitedJsonData);
-        } catch {
-            logger.error(`Failed to load metrics from disk at ${filePath}`);
-            // Fallback to memory.
-            this.reset();
-        }
-    }
-
 }
 
 // Utility: Create deterministic ID from attributes

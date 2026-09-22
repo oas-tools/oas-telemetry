@@ -7,6 +7,7 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu"
 import { useAuth } from "@/context/AuthContext"
+import { useCapabilities } from "@/context/CapabilitiesContext"
 import { getLogoRelativePath } from "@/services/Backend"
 import {
     Activity,
@@ -65,8 +66,14 @@ const usefulLinks = [
 
 export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
   const { isAuthenticated, logout, authEnabled } = useAuth()
+  const { ai, plugins } = useCapabilities()
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const logoUrl = getLogoRelativePath();
+  const visibleTabs = tabs.filter(({ id }) => {
+    if (id === "chat") return ai
+    if (id === "plugins") return plugins
+    return true
+  })
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
@@ -80,7 +87,7 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
         <div className="hidden md:flex flex-1 items-center justify-between ml-8">
           <NavigationMenu viewport={false} className="flex-1">
             <NavigationMenuList className="flex flex-row items-center gap-2">
-              {tabs.map(({ id, label, icon: Icon }) => (
+              {visibleTabs.map(({ id, label, icon: Icon }) => (
                 <NavigationMenuItem key={id}>
                   <NavigationMenuLink asChild>
                     <Link
@@ -164,7 +171,7 @@ export function TelemetryHeader({ activeTab = "" }: { activeTab?: string }) {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            {tabs.map(({ id, label, icon: Icon }) => (
+            {visibleTabs.map(({ id, label, icon: Icon }) => (
               <Link
                 key={id}
                 to={`/${id}`}

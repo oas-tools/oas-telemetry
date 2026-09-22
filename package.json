@@ -22,5 +22,8 @@
     "apipecker": "^1.5.0",
     "axios": "^1.10.0",
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.80.0"
   }
 }

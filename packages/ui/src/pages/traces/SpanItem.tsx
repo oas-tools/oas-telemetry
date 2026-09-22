@@ -67,10 +67,9 @@ const SpanItem: React.FC<SpanItemProps> = ({ span }) => {
   const [showDetails, setShowDetails] = useState(false)
 
   // Extract HTTP data
-  const httpData = span.attributes?.http
-  const method = httpData?.method || "UNKNOWN"
-  const target = httpData?.target || "/"
-  const statusCode = httpData?.status_code || 0
+  const method = span.attributes?.http?.request?.method || "UNKNOWN"
+  const target = span.attributes?.url?.path || "/"
+  const statusCode = span.attributes?.http?.response?.status_code || 0
   const traceId = span.traceId || span._spanContext?.traceId || ""
 
   // Get timestamp: use startTime if available, else timestamp
