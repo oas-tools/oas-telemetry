@@ -317,11 +317,18 @@ export default function MetricsPage() {
         []
     );
 
-    const handlePanelToggle = useCallback((id: string) => {
-        setExpandedPanels((prev) =>
-            prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
-        );
+    // Toggles a panel. With two columns, the other panel in the same row
+    // follows the same state so the row opens/closes as a whole.
+    const handlePanelToggle = useCallback((id: string, rowPartnerId?: string) => {
+        setExpandedPanels((prev) => {
+            const ids = rowPartnerId ? [id, rowPartnerId] : [id];
+            return prev.includes(id)
+                ? prev.filter((k) => !ids.includes(k))
+                : [...prev.filter((k) => !ids.includes(k)), ...ids];
+        });
     }, []);
+
+    const isTwoColumns = useMediaQuery(TWO_COLUMNS_QUERY);
 
     const handleMetricsReset = useCallback(() => {
         // Refetch with current range
@@ -387,11 +394,11 @@ export default function MetricsPage() {
                 ) : metricsList.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">No metrics found.</div>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
-                        {metricsList.map((metric: any) => (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+                        {metricsList.map((metric: any, index: number) => (
                             <CollapsibleCard
                                 key={metric.id}
-                                className="py-2 gap-2 h-full"
+                                className="py-2 gap-2"
                                 headerClassName="px-3 py-1.5 gap-1"
                                 contentClassName="px-3 pb-3 pt-0 overflow-x-auto"
                                 header={
@@ -454,7 +461,7 @@ export default function MetricsPage() {
                                     ) : undefined
                                 }
                                 isOpen={expandedPanels.includes(metric.id)}
-                                onToggle={() => handlePanelToggle(metric.id)}
+                                onToggle={() => handlePanelToggle(metric.id, isTwoColumns ? metricsList[index ^ 1]?.id : undefined)}
                             >
                                 {metric.descriptorType === "HISTOGRAM" && metric.histogramData && (histogramViewMode[metric.id] ?? "heatmap") === "heatmap" ? (
                                     <HistogramHeatmapChart
@@ -482,6 +489,21 @@ export default function MetricsPage() {
             </main>
         </div>
     );
+}
+
+// Matches the `lg:grid-cols-2` breakpoint of the metrics grid.
+const TWO_COLUMNS_QUERY = "(min-width: 1024px)";
+
+function useMediaQuery(query: string) {
+    const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+    useEffect(() => {
+        const mql = window.matchMedia(query);
+        const onChange = () => setMatches(mql.matches);
+        onChange();
+        mql.addEventListener("change", onChange);
+        return () => mql.removeEventListener("change", onChange);
+    }, [query]);
+    return matches;
 }
 
 // Custom hook for auto-refresh logic
